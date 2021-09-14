@@ -1,0 +1,11 @@
+log/
+A_actionPlans/
+B_fullPlans/
+C_operatorPlans/
+__pycache__/
+A_ap_domain.pddl
+A_ap_problem.pddl
+B_fp_domain.pddl
+B_fp_problem.pddl
+C_op_domain.pddl
+C_op_problem.pddl
