@@ -1,4 +1,4 @@
-;21:29:25 13/09
+;16:37:36 16/09
 
 (define (problem regrasp-block)
    (:domain blocks)
@@ -39,7 +39,7 @@
    (:goal
    (and
         (handempty)
-        (ontable box1 region_table__0__-1)
+        (ontable box1 region_shelf__1__0)
    ))
 
 )

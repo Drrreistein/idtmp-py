@@ -37,11 +37,11 @@ class PlanningScenario(object):
 
                 self.bd_body = {
                     "floor": load_pybullet("../scenario_description/plane.urdf", fixed_base=True),
-                    "table": create_box(w, w, h, color=(.75, .75, .75, 1)),
+                    "table": create_box(w, w, h, color=(.25, .25, .25, 1)),
                     "sink": create_box(w, w, h, color=(.25, .25, .75, 1)),
                     "stove": create_box(w, w, h, color=(.75, .25, .25, 1)),
-                    "box1": create_box(.07, .07, .1, mass=mass, color=(1, 0, 0, 1)),
-                    "box2": create_box(.07, .07, .1, mass=mass, color=(0, 1, 0, 1)),
+                    "box1": create_box(.07, .07, .1, mass=mass, color=(1, 1, 1, 1)),
+                    "box2": create_box(.07, .07, .1, mass=mass, color=(1, 1, 1, 1)),
                     "box3": create_box(.07, .07, .1, mass=mass, color=(0, 0, 1, 1)),
                     "box4": create_box(.07, .07, .1, mass=mass, color=(0, 0.7, 0.7, 1)),
                     "box5": create_box(.07, .07, .1, mass=mass, color=(0.7, 0, 0.7, 1)),

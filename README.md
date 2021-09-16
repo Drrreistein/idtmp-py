@@ -1,3 +1,5 @@
+`idtmp-py`, is the python version of the implementation of `idtmp`, the related paper [here](https://journals.sagepub.com/doi/pdf/10.1177/0278364918761570)
+
 ## Usage
 
 ### Requirements

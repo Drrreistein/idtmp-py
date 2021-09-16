@@ -57,6 +57,7 @@
                  (not (CanOperate))
                  )
   )
+
   (:action place
     :parameters (?a - arm ?o - wuti ?p - pose ?g - grasp ?q - config ?t - trajectory)
     :precondition (and (Kin ?a ?o ?p ?g ?q ?t)
@@ -80,6 +81,7 @@
                  (not (CanOperate))
                  )
   )
+  
   (:action cook
     :parameters (?o - wuti ?r - wuti)
     :precondition (and (Stackable ?o ?r) (Stove ?r)

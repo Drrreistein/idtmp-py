@@ -164,7 +164,7 @@ class Plan():
             else:
                 horizon_state.append(Not(state))
         logger.info(f'naive general failure constraints')
-        return Implies(And(horizon_state), Not(failed_action))
+        return [Implies(And(horizon_state), Not(failed_action))]
 
     def general_failure_constraints(self, model, encoder, plan, failed_step):
         """

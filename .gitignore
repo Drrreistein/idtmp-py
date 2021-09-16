@@ -3,6 +3,13 @@ A_actionPlans/
 B_fullPlans/
 C_operatorPlans/
 __pycache__/
+found_plans/
+
+
+*.prof
+exe_plan.pk
+output.sas
+instantiated_actions.pk
 A_ap_domain.pddl
 A_ap_problem.pddl
 B_fp_domain.pddl

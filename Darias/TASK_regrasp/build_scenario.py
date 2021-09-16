@@ -345,7 +345,6 @@ class PlanningScenario3(object):
         self.dic_body_info[self.bd_body['region_shelf']] = (False,)
         self.dic_body_info[self.bd_body['region_table']] = (False,)
         self.dic_body_info[self.bd_body['region_drawer']] = (True,)
-
         self.reset()
 
     def reset(self):
@@ -379,9 +378,7 @@ class PlanningScenario3(object):
         r = Register(self.bd_body['camera1'], self.bd_body['box1'])
         attach_viewcone(self.bd_body['camera1'], depth=1.5)
         draw_frame(tform_from_pose(get_pose(self.bd_body['camera1'])), None)
-
         r.show()
-
 
 class PlanningScenario4(object):
     def __init__(self):
