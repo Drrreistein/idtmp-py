@@ -31,10 +31,8 @@ class Encoder():
     Base encoder class. Defines methods to build standard
     state-based encodings -- i.e., Rintanen 09
     """
-
     def __init__(self, task, modifier):
         self.task = task
-        
         self.modifier = modifier
 
         (self.boolean_fluents,
@@ -51,6 +49,7 @@ class Encoder():
             self.mutexes = self._computeSerialMutexes()
         else:
             self.mutexes = self._computeParallelMutexes()
+
     def _ground(self):
         """
         Grounds action schemas as per TFD parser)
@@ -85,7 +84,6 @@ class Encoder():
         axioms_by_layer, _,_,_ = numeric_axiom_rules.handle_axioms(self.numeric_axioms)
 
         return axioms_by_name, depends_on, axioms_by_layer
-
 
     def _computeSerialMutexes(self):
         """!
@@ -194,7 +192,6 @@ class Encoder():
 
         return mutexes
 
-
     def createVariables(self):
         """!
         Creates state and action variables needed in the encoding.
@@ -236,7 +233,6 @@ class Encoder():
         for step in range(self.horizon):
             for a in self.actions:
                 self.action_variables[step][a.name] = Bool('{}_{}'.format(a.name,step))
-
 
     def encodeInitialState(self):
         """!
@@ -293,7 +289,6 @@ class Encoder():
 
         return initial
 
-
     def encodeGoalState(self):
         """!
         Encodes formula defining goal state
@@ -337,7 +332,6 @@ class Encoder():
                         propositional_subgoal.append(self.boolean_variables[self.horizon][var_name])
             else:
                 raise Exception('Propositional goal condition \'{}\': type \'{}\' not recognized'.format(goal, type(goal)))
-
             return propositional_subgoal
 
         def _encodeNumericGoals():
@@ -557,13 +551,309 @@ class Encoder():
 
         raise NotImplementedError
 
+class SimpleEncoder():
+    """
+    simple encoder can only deal with boolean variable, and linear search
+    """
+    def __init__(self, task):
+        self.actions, self.boolean_fluent = self._ground()
+        pass
+
+    def _enumerate_action_params(self, params:list):
+        pass
+
+    def _ground(self):
+        # enumerate object type
+        objects = defaultdict(set)
+        for obj in self.task.objects:
+            objects[obj.type].add(obj.name)
+
+        # enumerate actions
+        from actions import PropositionalAction
+        self.actions = []
+        for action in self.task.actions:
+            action_name = action.name
+            params = action.parameters
+            while len(params)>0:
+                param_type = params.pop().type
+
+
+        # enumerate boolean fluent
+        from conditions import Atom
+        self.boolean_fluent = set()
+
+        return self.actions, self.boolean_fluent
+
+    def createVariables(self):
+        # Create boolean variables for boolean fluents
+        self.boolean_variables = defaultdict(dict)
+        for step in range(self.horizon+1):
+            # define SMT  variables only for predicates in the PDDL domain,
+            # do not consider new atoms added by the SAS+ translation
+            for fluent in self.boolean_fluents:
+                if isinstance(fluent.predicate,str) and fluent.predicate.startswith('defined!'):
+                    continue
+                elif isinstance(fluent.predicate,str) and fluent.predicate.startswith('new-'):
+                    continue
+                else:
+                    var_name = utils.varNameFromBFluent(fluent)
+                    self.boolean_variables[step][var_name] = Bool('{}_{}'.format(var_name,step))
+
+        # Create propositional variables for actions
+        self.action_variables = defaultdict(dict)
+        for step in range(self.horizon):
+            for a in self.actions:
+                self.action_variables[step][a.name] = Bool('{}_{}'.format(a.name,step))
+
+    def encodeInitialState(self):
+        initial = []
+
+        # Traverse initial facts
+        for fact in self.task.init:
+            # encode propositional fluents
+            if utils.isBoolFluent(fact):
+                if not fact.predicate == '=':
+                    if fact in self.boolean_fluents:
+                        var_name = utils.varNameFromBFluent(fact)
+                        initial.append(self.boolean_variables[0][var_name])
+            else:
+                raise Exception('Initial condition \'{}\': type \'{}\' not recognized'.format(fact, type(fact)))
+        
+        # Close-world assumption: facts not asserted in init formula
+        # are assumed to be false
+
+        for variable in self.boolean_variables[0].values():
+            if not variable in initial:
+                initial.append(Not(variable))
+
+        return initial
+
+    def encodeGoalState(self):
+
+        def _encodePropositionalGoals(goal=None):
+            """
+            Encodes propositional subgoals.
+            """
+            propositional_subgoal = []
+
+            # UGLY HACK: we skip atomic propositions that are added
+            # to handle numeric axioms by checking names.
+            axiom_names = [axiom.name for axiom in self.task.axioms]
+
+            # Doing this as I mmight be calling this method
+            # if I find a propositional subgoal in numeric conditions
+            # see method below...
+            if goal is None:
+                goal = self.task.goal
+            # Check if goal is just a single atom
+            if isinstance(goal, pddl.conditions.Atom):
+                if not goal.predicate in axiom_names:
+                    if goal in self.boolean_fluents:
+                        var_name = utils.varNameFromBFluent(goal)
+                        if  goal.negated:
+                            propositional_subgoal.append(Not(self.boolean_variables[self.horizon][var_name]))
+                        else:
+                            propositional_subgoal.append(self.boolean_variables[self.horizon][var_name])
+
+            # Check if goal is a conjunction
+            elif isinstance(goal,pddl.conditions.Conjunction):
+                for fact in goal.parts:
+                    var_name = utils.varNameFromBFluent(fact)
+                    if  fact.negated:
+                        propositional_subgoal.append(Not(self.boolean_variables[self.horizon][var_name]))
+                    else:
+                        propositional_subgoal.append(self.boolean_variables[self.horizon][var_name])
+            else:
+                raise Exception('Propositional goal condition \'{}\': type \'{}\' not recognized'.format(goal, type(goal)))
+            return propositional_subgoal
+
+        # Build goal formulas
+        propositional_subgoal = _encodePropositionalGoals()
+        goal = And(propositional_subgoal)
+        
+        return goal
+
+    def encodeActions(self):
+
+        actions = []
+
+        for step in range(self.horizon):
+            for action in self.actions:
+
+                # Encode preconditions
+                for pre in action.condition:
+                    if utils.isBoolFluent(pre):
+                        var_name = utils.varNameFromBFluent(pre)
+                        if pre.negated:
+                            actions.append(Implies(self.action_variables[step][action.name],Not(self.boolean_variables[step][var_name])))
+                        else:
+                            actions.append(Implies(self.action_variables[step][action.name],self.boolean_variables[step][var_name]))
+
+                    elif isinstance(pre, pddl.conditions.FunctionComparison):
+                        expr = utils.inorderTraversalFC(self,pre,self.numeric_variables[step])
+                        actions.append(Implies(self.action_variables[step][action.name],expr))
+
+                    else:
+                        raise Exception('Precondition \'{}\' of type \'{}\' not supported'.format(pre,type(pre)))
+
+                # Encode add effects
+                for add in action.add_effects:
+                    # Check if effect is conditional
+                    if len(add[0]) == 0:
+                        actions.append(Implies(self.action_variables[step][action.name],self.boolean_variables[step+1][utils.varNameFromBFluent(add[1])]))
+                    else:
+                        raise Exception(' Action {} contains add effect not supported'.format(action.name))
+
+
+                # Encode delete effects
+                for de in action.del_effects:
+                    # Check if effect is conditional
+                    if len(de[0]) == 0:
+                        actions.append(Implies(self.action_variables[step][action.name],Not(self.boolean_variables[step+1][utils.varNameFromBFluent(de[1])])))
+                    else:
+                        raise Exception(' Action {} contains del effect not supported'.format(action.name))
+        """
+                # Encode numeric effects
+                for ne in action.assign_effects:
+                    # Check if conditional
+                    if len(ne[0]) == 0:
+                        ne = ne[1]
+                        if isinstance(ne, pddl.f_expression.FunctionAssignment):
+                            # Num eff that are instance of this class are defined
+                            # by the following PDDL keywords: assign, increase, decrease,
+                            # scale-up, scale-down
+
+                            # Numeric effects have fluents on the left and either a const, a fluent
+                            # or a complex numeric expression on the right
+
+                            # Handle left side
+                            # retrieve variable name
+                            var_name = utils.varNameFromNFluent(ne.fluent)
+
+                            this_step_variable = self.numeric_variables[step][var_name]
+                            next_step_variable = self.numeric_variables[step+1][var_name]
+
+                            # Handle right side
+
+                            if ne.expression in self.numeric_fluents and not ne.expression.symbol.startswith('derived!'): #don't consider variables added by TFD
+                                # right side is a simple fluent
+                                var_name = utils.varNameFromNFluent(ne.expression)
+                                expr = self.numeric_variables[step][var_name]
+                            else:
+                                # retrieve axioms corresponding to expression
+                                numeric_axiom = self.axioms_by_name[ne.expression]
+                                # build SMT expression
+                                expr = utils.inorderTraversal(self,numeric_axiom, self.numeric_variables[step])
+
+
+                            if ne.symbol == '=':
+                                actions.append(Implies(self.action_variables[step][action.name], next_step_variable == expr))
+                            elif ne.symbol == '+':
+                                actions.append(Implies(self.action_variables[step][action.name], next_step_variable == this_step_variable + expr))
+                            elif ne.symbol == '-':
+                                actions.append(Implies(self.action_variables[step][action.name], next_step_variable == this_step_variable - expr))
+                            elif ne.symbol == '*':
+                                actions.append(Implies(self.action_variables[step][action.name], next_step_variable == this_step_variable * expr))
+                            elif ne.symbol == '/':
+                                actions.append(Implies(self.action_variables[step][action.name], next_step_variable == this_step_variable / expr))
+                            else:
+                                raise Exception('Operator not recognized')
+                        else:
+
+                            raise Exception('Numeric effect {} not supported yet'.format(ne))
+                    else:
+                        raise Exception('Numeric conditional effects not supported yet')
+        """
+        return actions
+    
+    def encodeFrames(self):
+
+        frame = []
+
+        # Create new object and use it as
+        # inadmissible value to check if
+        # variable exists in dictionary
+
+        sentinel = object()
+
+        for step in range(self.horizon):
+            # Encode frame axioms for boolean fluents
+            for fluent in self.boolean_fluents:
+                var_name = utils.varNameFromBFluent(fluent)
+                fluent_pre = self.boolean_variables[step].get(var_name, sentinel)
+                fluent_post = self.boolean_variables[step+1].get(var_name, sentinel)
+
+                # Encode frame axioms only if atoms have SMT variables associated
+                if fluent_pre is not sentinel and fluent_post is not sentinel:
+                    action_add = []
+                    action_del = []
+
+                    for action in self.actions:
+                        add_eff = [add[1] for add in action.add_effects]
+                        if fluent in add_eff:
+                            action_add.append(self.action_variables[step][action.name])
+
+                        del_eff = [de[1] for de in action.del_effects]
+                        if fluent in del_eff:
+                            action_del.append(self.action_variables[step][action.name])
+
+                    frame.append(Implies(And(Not(fluent_pre),fluent_post),Or(action_add)))
+                    frame.append(Implies(And(fluent_pre,Not(fluent_post)),Or(action_del)))
+        """
+            # Encode frame axioms for numeric fluents
+            for fluent in self.numeric_fluents:
+                fluent_pre = self.numeric_variables[step].get(utils.varNameFromNFluent(fluent), sentinel)
+                fluent_post = self.numeric_variables[step+1].get(utils.varNameFromNFluent(fluent), sentinel)
+
+                if fluent_pre is not sentinel and fluent_post is not sentinel:
+                    action_num = []
+
+                    for action in self.actions:
+                        num_eff = [ne[1].fluent for ne in action.assign_effects]
+                        if fluent in num_eff:
+                            action_num.append(self.action_variables[step][action.name])
+
+                    #TODO
+                    # Can we write frame axioms for num effects in a more
+                    # efficient way?
+                    frame.append(Or(fluent_post == fluent_pre, Or(action_num)))
+        """
+        return frame
+
+    def encode(self, horizon):
+        self.horizon = horizon
+        
+        self.createVariables()
+
+        formula = defaultdict(list)
+
+        formula['initial'] = self.encodeInitialState()
+
+        # Encode goal state axioms
+        formula['goal'] = self.encodeGoalState()
+
+        # Encode universal axioms
+
+        formula['actions'] = self.encodeActions()
+
+        # Encode explanatory frame axioms
+
+        formula['frame'] = self.encodeFrame()
+
+        # Encode execution semantics (lin/par)
+
+        formula['sem'] = self.encodeExecutionSemantics()
+
+        return formula
+
+        pass
 
 class EncoderSMT(Encoder):
     """
     Class that defines method to build SMT encoding.
     """
 
-    def encode(self,horizon):
+    def encode(self, horizon):
         """!
         Builds SMT encoding.
 
@@ -582,7 +872,6 @@ class EncoderSMT(Encoder):
         formula = defaultdict(list)
 
         # Encode initial state axioms
-
         formula['initial'] = self.encodeInitialState()
 
         # Encode goal state axioms
@@ -593,7 +882,6 @@ class EncoderSMT(Encoder):
         formula['actions'] = self.encodeActions()
 
         # Encode explanatory frame axioms
-
         formula['frame'] = self.encodeFrame()
 
         # Encode execution semantics (lin/par)

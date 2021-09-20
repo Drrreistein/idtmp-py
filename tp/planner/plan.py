@@ -16,10 +16,10 @@
 ############################################################################
 
 
-from numpy.core.defchararray import encode
-from pybullet_tools.utils import ConstraintInfo
+from os import stat
 from z3 import *
 import subprocess
+import tmsmt as tm
 from IPython import embed
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
@@ -149,8 +149,8 @@ class Plan():
         constraints = []
         for self.horizon, action in self.plan.items():
             constraints.append(self.encoder.action_variables[self.horizon][action])
-
-        return Not(And(constraints))
+        logger.info(f"simply negating action sequences")
+        return [Not(And(constraints))]
 
     def general_failure_constraints_naive(self, model, encoder, plan, failed_step):
         """
@@ -196,5 +196,32 @@ class Plan():
             constraints.append(Implies(And(horizon_state[i]), Not(horizon_action[i])))
         return constraints
 
-    def collision_generalization_constr(self):
-        pass
+    def collision_generalization_constraints(self, objects:set, model, encoder, plan, failed_step):
+        min_step = 0
+        max_step = max(encoder.boolean_variables.keys())
+        failed_action = encoder.action_variables[failed_step][plan[failed_step]]
+
+        horizon_state = []
+        horizon_action = []
+        action_str = str(failed_action)[:-2]
+        for i in range(max_step):
+            horizon_state.append([])
+            horizon_action.append(encoder.action_variables[int(i)][action_str])
+
+        for s in encoder.boolean_variables[failed_step].values():
+            state_str = str(s)[:-2]
+            members = set(tm.demangle(state_str))
+            if len(members.union(objects))==0:
+                break
+            for i in range(max_step):
+                if model[s]:
+                    horizon_state[i].append(encoder.boolean_variables[int(i)][state_str])
+                else:
+                    horizon_state[i].append(Not(encoder.boolean_variables[int(i)][state_str]))
+
+        logger.info(f'collisoin generalization constraints')
+
+        constraints = []
+        for i in range(max_step):
+            constraints.append(Implies(And(horizon_state[i]), Not(horizon_action[i])))
+        return constraints

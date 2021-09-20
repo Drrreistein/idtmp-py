@@ -6,6 +6,7 @@ from numpy.core.fromnumeric import cumsum
 
 import tmsmt as tm
 import numpy as np
+import z3
 
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet_tools.utils as pu
@@ -20,8 +21,7 @@ logger = logging.getLogger('MAIN')
 EPSILON = 0.01
 RESOLUTION = 0.1
 DIR_NUM = 1
-MOTION_TIMEOUT = 50
-custom_limits = dict()
+MOTION_TIMEOUT = 500
 # for i in range(7):
 #     custom_limits[i] = (-2*np.pi, 2*np.pi)
 
@@ -35,20 +35,13 @@ class DomainSemantics(object):
         self.self_collision = True
         self.approach_pose = (( 0. ,  0. , -0.02), (0.0, 0.0, 0.0, 1.0))
         self.end_effector_link = pu.link_from_name(self.robot, pk.TOOL_FRAMES[pu.get_body_name(self.robot)])
-
+        embed()
         self.sdg_motioner = pk.sdg_plan_free_motion(self.robot, self.all_bodies)
 
     def motion_plan(self, body, goal_pose, attaching=False):
-        # if attaching and self.scn.bd_body[body]=='c2':
-        #     embed()
         init_joints = pk.get_joint_positions(self.robot,self.movable_joints)
         # pu.draw_pose(goal_pose)
 
-        goal_joints = pk.inverse_kinematics(self.robot, self.end_effector_link, goal_pose, custom_limits=custom_limits)
-        # start_conf = pk.BodyConf(self.robot, pk.get_joint_positions(self.robot,self.movable_joints), self.movable_joints)
-        goal_conf = pk.BodyConf(self.robot, goal_joints, self.movable_joints)
-        if goal_joints is None:
-            return False, goal_joints
         if attaching:
             body_pose = pu.get_pose(body)
             tcp_pose = pu.get_link_pose(self.robot, self.end_effector_link)
@@ -60,11 +53,20 @@ class DomainSemantics(object):
         else:
             obstacles = self.scn.all_bodies
             attachment = []
-        if attaching:
-            embed()
+
+        # goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, custom_limits=custom_limits)
+        goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=self.self_collision, 
+        disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment,max_distance=self.max_distance)
+
+        if goal_joints is None:
+            return False, goal_joints
+        # start_conf = pk.BodyConf(self.robot, pk.get_joint_positions(self.robot,self.movable_joints), self.movable_joints)
+        goal_conf = pk.BodyConf(self.robot, goal_joints, self.movable_joints)
+        
+        # if attaching:
+        #     embed()
         path = pu.plan_joint_motion(self.robot, self.movable_joints, goal_conf.configuration, obstacles=obstacles,self_collisions=self.self_collision, 
-        disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment, custom_limits=custom_limits,
-        max_distance=self.max_distance, iterations=MOTION_TIMEOUT)
+        disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment, max_distance=self.max_distance, iterations=MOTION_TIMEOUT)
 
         if path is None:
             # if attaching:
@@ -128,10 +130,11 @@ class UnpackDomainSemantics(DomainSemantics):
         body_to_tcp = pu.multiply(pu.invert(body_pose), tcp_pose)
 
         place_body_pose = pu.Pose([x,y,z], pu.euler_from_quat(rotation))
-        place_tcp_pose = pu.multiply(place_body_pose, body_to_tcp)
+        goal_pose = pu.multiply(place_body_pose, body_to_tcp)
         # pu.draw_pose(place_body_pose)
         # pu.draw_pose(place_tcp_pose)
-        res, path = self.motion_plan(body, place_tcp_pose, attaching=True)
+
+        res, path = self.motion_plan(body, goal_pose, attaching=True)
         return res, path
 
 class PDDLProblem(object):
@@ -148,6 +151,7 @@ class PDDLProblem(object):
         self._goal_state()
         self._init_state()
         self._plot_locations(self.objects['location'])
+        self._real_goal_state()
 
     def _plot_locations(self, locations):
         for l in locations:
@@ -188,11 +192,29 @@ class PDDLProblem(object):
         self.goal = []
         self.goal.append(['handempty'])
         ontable = ['ontable','box1','region_shelf__1__0']
-        # ontable = ['or']
-        # for loc in self.objects['location']:
-        #     if 'region2' in loc:
-        #         ontable.append(['ontable','c1',loc])
+
         self.goal.append(ontable)
+
+    def _real_goal_state(self):
+        self.real_goal = []
+        self.real_goal.append(['handempty'])
+        ontable = ['or']
+        for loc in self.objects['location']:
+            if 'shelf' in loc:
+                ontable.append(['ontable','box1',loc])
+        self.real_goal.append(ontable)
+
+    def update_goal_in_formula(self, encoder):
+        disconj = []
+        for k,v in encoder.boolean_variables[encoder.horizon].items():
+            if 'ontable_box1_region_shelf' in k:
+                disconj.append(v)
+
+        conj = []
+        conj.append(z3.Or(disconj))
+        conj.append(encoder.boolean_variables[encoder.horizon]['handempty'])
+
+        return z3.And(conj)
 
     def _gen_scene_objects(self):
         scene_objects = dict()
@@ -281,9 +303,12 @@ def main():
     tp_total_time.start()    
     tp = TaskPlanner(problem_filename, domain_filename, start_horizon=3, max_horizon=10)
     tp.incremental()
+    goal_constraints = problem.update_goal_in_formula(tp.encoder)
+    tp.formula['goal'] = goal_constraints
+    tp.modeling()
+
     exceeding_horizon = False
     tp_total_time.stop()
-    embed()
 
     tm_plan = None
     t00 = time.time()
@@ -298,18 +323,23 @@ def main():
                 print(f'')
                 if not tp.incremental():
                     break
+                goal_constraints = problem.update_goal_in_formula(tp.encoder)
+                tp.formula['goal'] = goal_constraints
+                tp.modeling()
                 global MOTION_TIMEOUT
                 MOTION_TIMEOUT += 5
                 logger.info(f"search task plan in horizon: {tp.horizon}")
         tp_total_time.stop()
 
         if tp.horizon > tp.max_horizon:
-            logger.Error(f"exceeding task planner maximal horizon")
+            logger.error(f"exceeding task planner maximal horizon")
+            embed()
             break
         
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
+            print(f"{h}: {p}")
         # ------------------- motion plan ---------------------
         mp_total_time.start()
         res, m_plan = tm.motion_refiner(t_plan)
@@ -325,7 +355,7 @@ def main():
             logger.info(f'')
             
             tp_total_time.start()
-            tp.add_constraint(m_plan)
+            tp.add_constraint(m_plan, typ='general', cumulative=False)
             tp_total_time.stop()
 
             t_plan = None
@@ -338,9 +368,9 @@ def main():
     print(f"total planning time: {total_time}")
     print(f"task plan counter: {tp.counter}")
 
-    while True:
-        ExecutePlanNaive(scn, t_plan, m_plan)
-        time.sleep(1)
+    # while True:
+    #     ExecutePlanNaive(scn, t_plan, m_plan)
+    #     time.sleep(1)
 
     pu.disconnect()
 

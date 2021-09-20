@@ -257,7 +257,7 @@ def get_pddlstream_problem(scn):
 #######################################################
 
 def main():
-    visualization = 0
+    visualization = 1
     connect(use_gui=visualization)
 
     scn = PlanningScenario()

@@ -5,7 +5,7 @@ from run_branch import *
 #######################################################
 
 def exp():
-    visualization = 0
+    visualization = 1
     connect(use_gui=visualization)
 
     scn = PlanningScenario()

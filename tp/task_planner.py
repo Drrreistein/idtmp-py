@@ -1,8 +1,11 @@
 import time
+
+from IPython.core.magic_arguments import construct_parser
 from codetiming import Timer
 
 import translate
 from planner import encoder, search, modifier, plan
+from IPython import embed
 
 import z3
 from logging_utils import *
@@ -31,8 +34,6 @@ class TaskPlanner(object):
     
     @Timer(name='tp_searching', text='')
     def search_plan(self):
-        
-        assert self.horizon<self.max_horizon, "exceeding plan horizon"
         self.counter += 1
         res = self.solver.check()
         if res != z3.sat:
@@ -47,18 +48,39 @@ class TaskPlanner(object):
         self.horizon += 1
         if self.horizon > self.max_horizon:
             return False
-        self.solver = z3.Solver()
-        self.solver.add(z3.And(self.general_constraints))
         self.formula =  self.encoder.encode(self.horizon)
+
+        return True
+
+    def modeling(self):
+        self.solver = z3.Solver()
         for k,v in self.formula.items():
             self.solver.add(v)
-        return True
-    @Timer(name='tp_add_constraints', text='')
-    def add_constraint(self, failed_step):
-        constraints = self.solution.general_failure_constraints_naive(self.model, self.encoder, self.solution.plan, failed_step)
-        self.general_constraints = self.general_constraints.union(set(constraints))
         self.solver.add(z3.And(self.general_constraints))
+
+    @Timer(name='tp_add_constraints', text='')
+    def add_constraint(self, failed_step, typ='negated', cumulative=True):
+        """
+        typ = ['negated','general','collision']
+        """
+        if typ=='negated':
+            constraints = self.solution.negate_plan_constraints()
+        elif typ=='general':
+            constraints = self.solution.general_failure_constraints(self.model, self.encoder, self.solution.plan, failed_step)
+        elif typ=='collision':
+            constraints = self.solution.collision_generalization_constraints(self.model, self.encoder, self.solution.plan, failed_step)
+        
+        self.general_constraints = self.general_constraints.union(set(constraints))
+        if not cumulative:
+            self.solver.add(constraints)
+        else:
+            self.solver.add(z3.And(self.general_constraints))
         self.solver.push()
+
+
+        # self.solver.add(z3.And(constraints))
+
+        # self.solver.push()
 
         # constraints = self.solution.negate_plan_constraints()
         # self.solver.add(z3.And(constraints))

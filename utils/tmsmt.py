@@ -105,6 +105,7 @@ def motion_refiner(task_plan:dict):
         if not res:
             # logger.error("motion refining failed")
             logger.error(f"failed operator:{id}, {op}")
+            print(f"failed operator:{id}, {op}")
             return False, id
         else:
             paths.append(path)

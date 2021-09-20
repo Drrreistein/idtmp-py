@@ -1,12 +1,17 @@
+from itertools import islice
 from IPython import embed
 import os, sys, time, re
 
+from prompt_toolkit.filters import app
+
 import tmsmt as tm
 import numpy as np
+from codetiming import Timer
 
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet as p
 import pybullet_tools.utils as pu
+import pybullet_tools.kuka_primitives3 as pk
 import pybullet_tools.pr2_primitives as pp
 import pybullet_tools.pr2_utils as ppu
 from build_scenario import PlanningScenario
@@ -17,29 +22,122 @@ logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
-RESOLUTION = 0.1
+RESOLUTION = 0.2
 MOTION_TIMEOUT = 200
 
 class DomainSemantics(object):
     def __init__(self, scene):
         self.scn = scene
         self.robot = self.scn.robots[0]
-        self.movable_joints = pu.get_movable_joints(self.robot)
+        self.arm = 'left'
+
+        self.base_joints = [0,1,2]
+        self.arm_joints = list(pp.get_arm_joints(self.robot, self.arm))
+        self.movable_joints = self.base_joints + self.arm_joints
+
         self.all_bodies = self.scn.all_bodies
         self.max_distance = pp.MAX_DISTANCE
         self.self_collision = True
         self.approach_pose = (( 0. ,  0. , -0.02), (0.0, 0.0, 0.0, 1.0))
+        self.ik_fn = pp.get_ik_fn(self.scn)
+        self.ir_sampler = pp.get_ir_sampler(self.scn)
+        self.end_effector_link = pp.get_gripper_link(self.robot, self.arm)
+        self.base_motion_obstacles = list(set(self.scn.env_bodies) | set(self.scn.regions))
+        self.arm_motion_obstacles = list(set(self.scn.env_bodies) | set(self.scn.regions))
+        self.custom_limits = []
+        self.base_lower_limits, self.base_upper_limits = pp.get_custom_limits(self.robot, self.base_joints, self.custom_limits)
+        self.disabled_collision_pairs={(3, 61), (17, 62)}
+        self.sample_fn = pp.get_sample_fn(self.robot, self.arm_joints)
+
+    def get_global_ik(self, input_tuple, attachment=[]):
+
+        arm, body, pose, grasp = input_tuple
+        ir_generator = self.ir_sampler(*input_tuple)
+        self.max_attempts = 25
+        
+        for i in range(self.max_attempts):
+            try:
+                ir_outputs = next(ir_generator)
+            except StopIteration:
+                return None
+            if ir_outputs is None:
+                continue
+            ik_outputs = self.ik_fn(*(input_tuple + ir_outputs))
+            if ik_outputs is None:
+                continue
+            joints_path = []
+            for p in ik_outputs[0].commands[0].path:
+                joints_path.append(p.values)
+            path = pk.BodyPath(self.robot, joints_path, self.arm_joints, attachments=attachment)
+            return ir_outputs[0].values, path
+
+    def pr2_inverse_kinematics_random(self, robot, arm, target_poses, obstacles=[], custom_limits={}, **kwargs):
+        arm_link = pp.get_gripper_link(robot, arm)
+        arm_joints = pp.get_arm_joints(robot, arm)
+        
+        # arm_conf = pp.sub_inverse_kinematics(robot, arm_joints[0], arm_link, target_pose, custom_limits=custom_limits)
+        solutions = pp.plan_cartesian_motion(robot, arm_joints[0], arm_link, target_poses, **kwargs)
+
+        if solutions is None:
+            print(f"ik failed: no candidate IK")
+            return None
+        if not any(pp.pairwise_collision(robot, b) for b in obstacles):
+            print(f"ik failed: collided ik")
+            return None            
+        return pp.get_joint_positions(robot, arm_joints)
+
+    def get_ik_custom(self, input_tuple, attachment=[]):
+        arm, body, pose, grasp = input_tuple
+        init_base = pp.get_joint_positions(self.robot, self.base_joints)
+        init_arm = pp.get_joint_positions(self.robot, self.arm_joints)
+
+        if attachment==[]:
+            arm_obstacles = self.scn.all_bodies
+        else:
+            arm_obstacles = list(set(self.scn.all_bodies) - {body})
+
+        gripper_pose = pp.multiply(pose.value, pp.invert(grasp.value))  # w_f_g = w_f_o * (g_f_o)^-1
+
+        pick_pose = pp.multiply(pose.value, ((0,0,-0.02),pp.quat_from_euler((0,-np.pi/2,0))))
+        approach_pose = pp.multiply(pose.value, ((0,0,-0.1),pp.quat_from_euler((0,-np.pi/2,0))))
+        pp.draw_pose(pick_pose)
+
+        base_generator = pp.learned_pose_generator(self.robot, pick_pose, arm=arm, grasp_type=grasp.grasp_type)
+        for base_conf in islice(base_generator, 50):
+            if not pp.all_between(self.base_lower_limits, base_conf, self.base_upper_limits):
+                logger.warning(f"generate base conf succeed")
+                continue
+            pp.set_joint_positions(self.robot, self.base_joints, base_conf)
+        # ik of arm
+        # approach_pose = pp.multiply(pose.value, ((0,0,-0.1),(0,0,0,1)))
+        # grasp_conf = pp.pr2_inverse_kinematics(self.robot, arm, gripper_pose,
+        #                                     custom_limits=self.custom_limits)
+            pick_conf = self.pr2_inverse_kinematics_random(self.robot, arm, [pick_pose],
+                                                    custom_limits=self.custom_limits)
+            approach_conf = self.pr2_inverse_kinematics_random(self.robot, arm, [approach_pose],
+                                                    custom_limits=self.custom_limits)
+            if pick_conf is None or approach_conf is None:
+                logger.warning(f"arm ik failed")
+                continue
+            break
+        pp.set_joint_positions(self.robot, self.arm_joints, init_arm)
+        return base_conf, [approach_conf, pick_conf]
+
+    def plan_base_motion(self, goal_conf, attachment=[]):
+        raw_path = pp.plan_joint_motion(self.robot, [0,1,2], goal_conf, attachments=[],
+                                obstacles=self.base_motion_obstacles, custom_limits=self.custom_limits,
+                                self_collisions=pp.SELF_COLLISIONS,
+                                restarts=4, iterations=50, smooth=50)
+        path = pk.BodyPath(self.robot, raw_path, self.base_joints, attachments=attachment)
+        return path
+
+    def plan_joints_motion(self):
+        pass
 
     def motion_plan(self, body, goal_pose, attaching=False):
-        # if attaching and self.scn.bd_body[body]=='c2':
-        #     embed()
-        embed()
         # pu.draw_pose(goal_pose)
-        goal_joints = pp.inverse_kinematics(self.robot, self.end_effector_link, goal_pose)
-
-        start_conf = pp.BodyConf(self.robot, pp.get_joint_positions(self.robot,self.movable_joints), self.movable_joints)
-        goal_conf = pp.BodyConf(self.robot, goal_joints, self.movable_joints)
-
+        init_conf = pp.get_joint_positions(self.robot, self.movable_joints)
+        # attachment
         if attaching:
             body_pose = pu.get_pose(body)
             tcp_pose = pu.get_link_pose(self.robot, self.end_effector_link)
@@ -51,10 +149,48 @@ class DomainSemantics(object):
             obstacles = self.scn.all_bodies
             attachment = []
 
-        path = pu.plan_joint_motion(self.robot, self.movable_joints, goal_conf.configuration, obstacles=obstacles,self_collisions=self.self_collision, 
-        disabled_collisions=pp.DISABLED_COLLISION_PAIR, attachments=attachment,
-        max_distance=self.max_distance)
+        goal_pose = pp.BodyPose(body, goal_pose)
+        approach_vector = pp.APPROACH_DISTANCE * pp.get_unit_vector([1, 0, 0])
+        grasps = []
+        for g in pp.get_top_grasps(body, grasp_length=pp.GRASP_LENGTH):
+            grasps.append(pp.Grasp('top', body, g, pp.multiply((approach_vector, pp.unit_quat()), g), pp.TOP_HOLDING_LEFT_ARM))
 
+        import random
+        filtered_grasps = []
+        for grasp in grasps:
+            grasp_width = 0.0
+            if grasp_width is not None:
+                grasp.grasp_width = grasp_width
+                filtered_grasps.append(grasp)
+        random.shuffle(filtered_grasps)
+
+        input_tuple = ('left', body, goal_pose, filtered_grasps[0])
+
+        iteration = 0
+        while iteration<10:        
+            base_conf, arm_path = self.get_ik_custom(input_tuple, attachment)
+
+            print(f"ik generated, plan motion")
+            path = pp.plan_joint_motion(self.robot, self.arm_joints, arm_path[0], obstacles=obstacles,self_collisions=self.self_collision, 
+            disabled_collisions=self.disabled_collision_pairs, attachments=attachment,
+            max_distance=self.max_distance, iterations=MOTION_TIMEOUT)
+            if path is None:
+                iteration += 1
+                pp.set_joint_positions(self.robot, self.movable_joints, init_conf)
+            else:
+                break
+
+        pp.set_joint_positions(self.robot, self.movable_joints, init_conf)
+        
+        base_path = self.plan_base_motion(base_conf, attachment)
+
+        embed()
+
+        pp.set_joint_positions(self.robot, self.base_joints, base_path.path[-1])
+        pp.set_joint_positions(self.robot, self.arm_joints, arm_path.path[-1])
+
+        base_path
+        return True, [base_path, arm_path]
         if path is None:
             # logger.error(f"free motion planning failed")
             return False, path
@@ -78,10 +214,9 @@ class UnpackDomainSemantics(DomainSemantics):
         extend = pu.get_aabb_extent(pu.get_aabb(body))
         x = center[0]
         y = center[1]
-        z = center[2] + extend[2]/2 + EPSILON
+        z = center[2] + EPSILON
         body_pose = pu.Pose([x,y,z], pu.euler_from_quat(rotation))
         goal_pose = pu.multiply(body_pose, ((0,0,0), pu.quat_from_axis_angle([1,0,0],np.pi)))
-        embed()
         res, path = self.motion_plan(body, goal_pose, attaching=False)
         return res, path
 
@@ -238,8 +373,8 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
     scn.reset()
 
 def main():
-    tp_time = 0
-    mp_time = 0
+    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
+    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
     total_time = 0
 
     visualization = True
@@ -255,14 +390,18 @@ def main():
     parser.dump_problem(problem, problem_filename)
     logger.info(f"problem.pddl dumped")
 
-    embed()
     # initial domain semantics
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
 
     # IDTMP
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=12)
+    tp_total_time.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=14)
     tp.incremental()
+    tp.modeling()
+    tp_total_time.stop()
+
+
     tm_plan = None
     t00 = time.time()
     while tm_plan is None:
@@ -274,19 +413,23 @@ def main():
             if t_plan is None:
                 logger.warning(f"task plan not found in horizon: {tp.horizon}")
                 print(f'')
+                tp_total_time.start()
                 tp.incremental()
-                
+                tp.modeling()
+                tp_total_time.stop()
                 logger.info(f"search task plan in horizon: {tp.horizon}")
-                # MOTION_TIMEOUT += 0.1
-        tp_time += time.time() - t0
+                global MOTION_TIMEOUT 
+                MOTION_TIMEOUT += 10
 
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
+
         # ------------------- motion plan ---------------------
-        t0 = time.time()
+        mp_total_time.start()
         res, m_plan = tm.motion_refiner(t_plan)
-        mp_time += time.time() - t0
+        mp_total_time.stop()
+
         scn.reset()
         if res:
             logger.info(f"task and motion plan found")
@@ -297,11 +440,12 @@ def main():
             logger.info(f'')
             tp.add_constraint(m_plan)
             t_plan = None
-            tp_time += time.time()-t0
 
     total_time = time.time()-t00
-    print(f"task plan time: {tp_time}")
-    print(f"motion refiner time: {mp_time}")
+    all_timers = tp_total_time.timers
+    print(f"all timers: {all_timers}")
+    print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
+    print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
     print(f"total planning time: {total_time}")
     print(f"task plan counter: {tp.counter}")
 

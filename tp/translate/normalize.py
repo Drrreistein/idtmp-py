@@ -120,6 +120,7 @@ class GoalConditionProxy(ConditionProxy):
   def register_owner(self, task):
     # TODO: Implement with axioms.
     assert False, "Disjunctive goals not (yet) implemented."
+
   def delete_owner(self, task):
     # TODO: Implement with axioms.
     assert False, "Disjunctive goals not (yet) implemented."

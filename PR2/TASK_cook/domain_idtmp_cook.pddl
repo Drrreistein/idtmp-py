@@ -50,9 +50,11 @@
                 :precondition (and
                         (issink ?loc)
                         (ontable ?x ?loc)
+                        (not (cleaned ?x))
                 )
                 :effect (and
                         (cleaned ?x)
+                        
                 )
         )
 
@@ -62,6 +64,7 @@
                         (isstove ?loc)
                         (ontable ?x ?loc)
                         (cleaned ?x)
+                        (not (cooked ?x))
                 )
                 :effect (and
                         (cooked ?x)

@@ -424,6 +424,17 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 
 data flow
 
+
+
+**problem** of the second version of adding constraint - general state+action component , which are added when motion refining failed.
+
+1. when adding failed state-action components as global constraints, algorithm not complete. because motion refining failure was caused not 100% due to no motion solution but sampling time-out.
+2. the same state in state-action component programmed by boolean variables may actually refer to different state in real world. In other words, two states, e.g. robot grasp box from top or side, may be programmed as same state(depending on the defining domain), and for one state there is candidate action to execute, but for another there is not.
+
+![image-20210918172533229](docs/image-20210918172533229.png)
+
+
+
 ### Problem
 
 - [ ] what's the relation btw. number steps in log file and number of action sequences, 
@@ -457,10 +468,12 @@ data flow
 
 ### TODO
 
-- [ ] IDTMP add **new constraint** to constraint stack when motion planning failed, but how this new constraint will influence the next generated skeleton, too strict or too loose, maybe you can compare it with the skeletons of eTAMP
-- [ ] weird constraint added by IDTMP
-- [ ] date for intermediate and final thesis defence
-- [ ] pddl planner ??
-- [ ] add extra pick-up direction in z-axis: 
-- [ ] convert py2 to py3, ~/tamp/idtmp/tmp, almost...
-- [ ] 
+- [x] IDTMP add **new constraint** to constraint stack when motion planning failed, but how this new constraint will influence the next generated skeleton, too strict or too loose, maybe you can compare it with the skeletons of eTAMP
+- [x] weird constraint added by IDTMP
+- [x] date for intermediate and final thesis defence
+- [x] pddl planner ??
+- [x] add extra pick-up direction in z-axis: 
+- [x] convert py2 to py3, ~/tamp/idtmp/tmp, almost...
+- [x] OMTPlanner not able to encode grammar like OR in goal of problem.pddl
+- [ ] task_cook not implemented
+- [ ] update add_motion_constraints
