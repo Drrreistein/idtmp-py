@@ -1,0 +1,14 @@
+
+include "class.robray"
+include "table.robray"
+include "bookshelf.robray"
+
+/**********/
+/* Blocks */
+/**********/
+frame body1 {
+    parent bookshelf_h1;
+    geometry {
+        isa block2;
+    }
+}

@@ -1,0 +1,52 @@
+/**********/
+/* Tables */
+/**********/
+
+def table_height -.05;
+
+frame table_base {
+    translation [.1, -.3, table_height];
+    rpy [0, 0, -0*deg];
+}
+
+frame region1 {
+    parent table_base;
+    translation [-0.1, -0.5, -0.1];
+    rpy [0, 0, 90*deg];
+    geometry {
+        isa table;
+        dimension [.5, 1, table_size];
+    }
+}
+
+frame barrier1{
+    parent region1;
+    translation [0, -0.1, table_stack];
+    geometry{
+        isa barrier;
+    }
+}
+
+frame barrier2{
+    parent region1;
+    translation [0.2, -0.3, table_stack];
+    geometry{
+        isa barrier;
+    }
+}
+
+frame barrier3{
+    parent region1;
+    translation [-0.2, -0.3, table_stack];
+    geometry{
+        isa barrier;
+    }
+}
+
+frame barrier4{
+    parent region1;
+    translation [0, 0.4, table_stack];
+    geometry{
+        isa barrier;
+    }
+}

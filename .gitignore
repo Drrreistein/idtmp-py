@@ -4,7 +4,7 @@ B_fullPlans/
 C_operatorPlans/
 __pycache__/
 found_plans/
-
+output/
 
 *.prof
 exe_plan.pk

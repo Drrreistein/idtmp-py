@@ -1,0 +1,51 @@
+
+frame bookshelf{    
+    translation [0.8, -0.8, -0.2];
+    rpy [0, 0, -90*deg];
+    }
+
+frame drawer{
+    parent bookshelf;
+    translation [0., -0.25, 0.35];
+    geometry {
+        isa big_table;
+        dimension [0.5, table_size, 0.5];
+    }
+}
+
+frame side_platt1{
+    parent bookshelf;
+    translation [0.25, 0., 0.8];
+    geometry {
+        isa big_table;
+        dimension [table_size, 0.5, 0.4];
+    }
+}
+
+frame side_platt2{
+    parent bookshelf;
+    translation [-0.25, -0., 0.8];
+    geometry {
+        isa big_table;
+        dimension [table_size, 0.5, 0.4];
+    }
+}
+
+frame bookshelf_h1 {
+    parent bookshelf;
+    translation [0., -0., 0.6];
+    geometry {
+        isa table;
+        dimension [0.5, .5, table_size];
+    }
+}
+
+frame bookshelf_h2 {
+    parent bookshelf;
+    translation [0., -0., 1.0];
+    geometry {
+        isa big_table;
+        dimension [0.5, .5, table_size];
+    }
+}
+

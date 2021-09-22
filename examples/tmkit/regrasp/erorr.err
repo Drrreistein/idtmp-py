@@ -1,0 +1,46 @@
+Unhandled FILE-DOES-NOT-EXIST in thread #<SB-THREAD:THREAD RUNNING
+                                           {1003DA7333}>:
+  Error opening #P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray"
+
+Backtrace for: #<SB-THREAD:THREAD RUNNING {1003DA7333}>
+0: (SB-DEBUG::DEBUGGER-DISABLED-HOOK #<FILE-DOES-NOT-EXIST "Error opening ~S" {10052252A3}> #<unused argument> :QUIT T)
+1: (SB-DEBUG::RUN-HOOK *INVOKE-DEBUGGER-HOOK* #<FILE-DOES-NOT-EXIST "Error opening ~S" {10052252A3}>)
+2: (INVOKE-DEBUGGER #<FILE-DOES-NOT-EXIST "Error opening ~S" {10052252A3}>)
+3: (ERROR FILE-DOES-NOT-EXIST :PATHNAME #P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray" :FORMAT-CONTROL "Error opening ~S" :FORMAT-ARGUMENTS (#P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray"))
+4: (SB-IMPL::FILE-PERROR #P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray" 2 FILE-DOES-NOT-EXIST :FORMAT-CONTROL "Error opening ~S" :FORMAT-ARGUMENTS (#P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray"))
+5: (SB-IMPL::%OPEN-ERROR #P"/home/lei/tamp/tmkit/example/regrasp/3body-0.robray" 2 :IGNORE-THIS-ARG :ERROR)
+6: (OPEN #P"3body-0.robray" :DIRECTION :INPUT :ELEMENT-TYPE BASE-CHAR :IF-EXISTS NIL :IF-DOES-NOT-EXIST NIL :EXTERNAL-FORMAT :DEFAULT :CLASS SB-SYS:FD-STREAM)
+7: (ALEXANDRIA:READ-FILE-INTO-STRING #P"3body-0.robray" :BUFFER-SIZE 4096 :EXTERNAL-FORMAT NIL)
+8: (ROBRAY::CURLY-PARSE-FILE "3body-0.robray")
+9: (ROBRAY::LOAD-CURLY-SCENE "3body-0.robray")
+10: (ROBRAY:LOAD-SCENE-FILE "3body-0.robray" :TYPE NIL :RELOAD NIL :OVERRIDE-TEXTURE NIL :BIND-C-GEOM T :EMIT-POVRAY T :COMPILE T :MESH-UP-AXIS "Z" :MESH-FORWARD-AXIS "Y")
+11: ((LABELS ROBRAY::REC :IN ROBRAY::%SCENE-GRAPH) #<ROBRAY:SCENE-GRAPH ("collision_head_1" "collision_head_2" "collision_head_link_1-collision" "collision_head_link_2-collision" "display-visual" "display_joint" "dummy" "head-visual" "head_camera" "head_nod" "head_pan" "left_e0" ...)> 8)
+12: (SYCAMORE-UTIL::FOLD-1 #<FUNCTION (LABELS ROBRAY::REC :IN ROBRAY::%SCENE-GRAPH) {521889EB}> #<ROBRAY:SCENE-GRAPH NIL> ("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray"))
+13: (ROBRAY::%SCENE-GRAPH ("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray"))
+14: ((LABELS ROBRAY::REC :IN ROBRAY::%SCENE-GRAPH) #<ROBRAY:SCENE-GRAPH NIL> ("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray"))
+15: (SYCAMORE-UTIL::FOLD-1 #<FUNCTION (LABELS ROBRAY::REC :IN ROBRAY::%SCENE-GRAPH) {521889EB}> #<ROBRAY:SCENE-GRAPH NIL> (("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray")))
+16: (ROBRAY::%SCENE-GRAPH (("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray")))
+17: (TMSMT:TMP-DRIVER :TIMES-FILE NIL :START-SCENE ("package://baxter_description/urdf/baxter.urdf" "allowed-collision.robray" "3body-0.robray") :GOAL-SCENE ("3body-1.robray") :PDDL ("tm-blocks.pddl") :GUI T :SCRIPTS ("tm-blocks.py") :VERBOSE NIL :MAX-STEPS 10 :OUTPUT "plan.tmp" :WRITE-FACTS NIL :MOTION-TIMEOUT NIL :START-PLAN "q0.tmp" :START NIL :PREFIX-CACHE T :CONSTRAINTS :STATE)
+18: ((FLET SB-UNIX::BODY :IN SB-THREAD::NEW-LISP-THREAD-TRAMPOLINE))
+19: ((FLET "WITHOUT-INTERRUPTS-BODY-4" :IN SB-THREAD::NEW-LISP-THREAD-TRAMPOLINE))
+20: ((FLET SB-THREAD::WITH-MUTEX-THUNK :IN SB-THREAD::NEW-LISP-THREAD-TRAMPOLINE))
+21: ((FLET "WITHOUT-INTERRUPTS-BODY-1" :IN SB-THREAD::CALL-WITH-MUTEX))
+22: (SB-THREAD::CALL-WITH-MUTEX #<CLOSURE (FLET SB-THREAD::WITH-MUTEX-THUNK :IN SB-THREAD::NEW-LISP-THREAD-TRAMPOLINE) {7F2C2036ED7B}> #<SB-THREAD:MUTEX "thread result lock" owner: #<SB-THREAD:THREAD RUNNING {1003DA7333}>> NIL T NIL)
+23: (SB-THREAD::NEW-LISP-THREAD-TRAMPOLINE #<SB-THREAD:THREAD RUNNING {1003DA7333}> NIL #<CLOSURE (FLET TMSMT::HELPER :IN TMSMT::TMP-COMMAND) {1003DA50EB}> NIL)
+24: ("foreign function: call_into_lisp")
+25: ("foreign function: new_thread_trampoline")
+
+unhandled condition in --disable-debugger mode, quitting
+Starting sampling thread
+Error:   RRTConnect: Unable to sample any valid states for goal tree
+         at line 253 in /build/ompl-SBXfir/ompl-1.4.2+ds1/src/ompl/geometric/planners/rrt/src/RRTConnect.cpp
+Stopping sampling thread
+Starting sampling thread
+Error:   RRTConnect: Unable to sample any valid states for goal tree
+         at line 253 in /build/ompl-SBXfir/ompl-1.4.2+ds1/src/ompl/geometric/planners/rrt/src/RRTConnect.cpp
+Stopping sampling thread
+Starting sampling thread
+CORRUPTION WARNING in SBCL pid 325852(tid 0x7f636fe49700):
+Received signal 11 in non-lisp thread 140065055741696, resignalling to a lisp thread.
+The integrity of this image is possibly compromised.
+Continuing with fingers crossed.

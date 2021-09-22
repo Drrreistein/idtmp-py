@@ -1,0 +1,64 @@
+
+
+def mm 1e-3;
+def cm 1e-2;
+def inch 2.54*cm;
+
+/***********/
+/* Classes */
+/***********/
+class moveable { }
+class stackable { }
+
+class red   { color [1,0,0]; }
+class green { color [0,1,0]; }
+class blue  { color [0,0,1]; }
+
+def block_size 10*cm;
+def table_size 1*cm;
+def tray_size 1*cm;
+
+
+class table {
+    shape box;
+    isa surface;
+    color [.6, .3, .6];
+    alpha 0.5;
+}
+
+def table_depth .5;
+def table_length1 1.5;
+def table_length2 1.3;
+def table_thickness 0.01;
+def table_top table_thickness / 2 + 1*mm;
+
+class big_table {
+    shape box;
+    color [.6, .3, .6];
+    alpha .5;
+    dimension [table_depth, table_length1, table_thickness];
+}
+
+class block2 {
+    shape box;
+    isa moveable;
+    color [1, 0, 0];
+    alpha 1;
+    dimension [block_size, block_size, 2*block_size];
+}
+
+class barrier{
+    shape box;
+    color [0.5,0.5,0.5];
+    alpha 1;
+    dimension [0.15, 0.15, 0.15 ];
+}
+
+def table_stack (block_size + table_size)/2 + .1*mm;
+
+/** Grasp **/
+frame end_effector_grasp {
+    parent right_endpoint;
+    quaternion [0,1,0,0];
+    translation [0,0,0];
+}

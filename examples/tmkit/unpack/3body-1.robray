@@ -1,0 +1,14 @@
+
+include "class.robray"
+include "table.robray"
+
+
+/**********/
+/* Blocks */
+/**********/
+frame body1 {
+    parent region2;
+    geometry{
+        isa block1;
+    }
+}

@@ -1,0 +1,30 @@
+
+include "class.robray"
+include "table.robray"
+
+
+/**********/
+/* Blocks */
+/**********/
+frame body1 {
+    parent region1;
+    translation [0, 0., table_stack];
+    geometry {
+        isa block1;
+    }
+}
+frame body2 {
+    parent region1;
+    translation [0, 0.1, table_stack+block_size/2];
+    geometry {
+        isa block2;
+    }
+}
+
+frame body3 {
+    parent region1;
+    translation [-0.10, 0.05, table_stack+block_size];
+    geometry {
+        isa block3;
+    }
+}
