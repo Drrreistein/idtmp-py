@@ -3067,6 +3067,7 @@ def get_collision_fn(robot, joints, obstacles, attachments, self_collisions, dis
         """
         """1) Joint position is out of limitation."""
         if not all_between(lower_limits, q, upper_limits):
+            print(f'not in joint limits')
             return True
         set_joint_positions(robot, joints, q)
         """Always update the poses of attachments (e.g., the grasped object) during the robot motion."""
@@ -3076,18 +3077,17 @@ def get_collision_fn(robot, joints, obstacles, attachments, self_collisions, dis
         for link1, link2 in check_link_pairs:
             # Self-collisions should not have the max_distance parameter
             if pairwise_link_collision(robot, link1, robot, link2, **kwargs):  # , **kwargs):
-
-                # print('Self collision happens at {}({}), between {}({}) and {}({}).'.format(robot, get_body_name(robot),
-                #                                                                             link1,
-                #                                                                             get_link_name(robot, link1),
-                #                                                                             link2,
-                #                                                                             get_link_name(robot,
-                #                                                                                           link2)))
+                print('Self collision happens at {}({}), between {}({}) and {}({}).'.format(robot, get_body_name(robot),
+                                                                                            link1,
+                                                                                            get_link_name(robot, link1),
+                                                                                            link2,
+                                                                                            get_link_name(robot,
+                                                                                                          link2)))
                 return True
         """3) Moving bodies collide with obstacles."""
         for body1, body2 in check_body_pairs:
             if pairwise_collision(body1, body2, **kwargs):
-                # print('body collision happens between {} and {}.'.format(body1, body2))
+                print('body collision happens between {} and {}.'.format(body1, body2))
                 return True
         return False
 

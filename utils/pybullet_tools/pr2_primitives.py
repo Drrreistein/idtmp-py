@@ -456,7 +456,6 @@ def get_ir_sampler(scn, custom_limits={}, max_attempts=25, collisions=True, lear
         else:
             base_generator = uniform_pose_generator(robot, gripper_pose)
         lower_limits, upper_limits = get_custom_limits(robot, base_joints, custom_limits)
-        embed()
         while True:
             count = 0
             for base_conf in islice(base_generator, max_attempts):

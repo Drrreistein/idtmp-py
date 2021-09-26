@@ -16,6 +16,7 @@
         (:predicates
                 (ontable ?x - block ?loc - location)
                 (handempty)
+                (clear ?loc - location)
                 (holding ?x - block)
                 (cleaned ?x - block)
                 (cooked ?x - block)
@@ -27,7 +28,9 @@
                 :parameters (?x - block ?loc - location)
                 :precondition (and
                         (ontable ?x ?loc)
-                        (handempty))
+                        (handempty)
+                        (not (clear ?loc))
+                        )
                 :effect (and
                         (not (ontable ?x ?loc))
                         (not (handempty))
@@ -38,10 +41,13 @@
                 :parameters (?x - block ?loc - location)
                 :precondition (and
                         (holding ?x)
-                        (not (handempty)))
+                        (clear ?loc)
+                        (not (handempty))
+                        )
                 :effect (and
                         (not (holding ?x))
                         (handempty)
+                        (not (clear ?loc))
                         (ontable ?x ?loc))
         )
 
