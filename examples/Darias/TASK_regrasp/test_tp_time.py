@@ -13,7 +13,7 @@ import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
 from build_scenario import get_scn
 from task_planner import TaskPlanner
-
+import matplotlib.pyplot as plt
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
@@ -274,7 +274,7 @@ def test():
 
     # IDTMP
     tp_total_time.start()    
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=2)
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=2, max_horizon=2)
     tp.incremental()
     goal_constraints = problem.update_goal_in_formula(tp.encoder)
     tp.formula['goal'] = goal_constraints
@@ -299,7 +299,7 @@ def test():
                 logger.info(f"search task plan in horizon: {tp.horizon}")
 
         if tp.horizon > tp.max_horizon:
-            logger.error(f"exceeding task planner maximal horizon")
+            # logger.error(f"exceeding task planner maximal horizon")
             break
 
         logger.info(f"task plan found, in horizon: {tp.horizon}")
@@ -314,26 +314,7 @@ def test():
     print(f"task plan counter: {tp.counter}")
     return results
 
-if __name__=='__main__':
-    durations = dict()
-
-    for reso in np.linspace(0.1,0.02,9):
-        for dir in np.linspace(1, 4, 4):
-            print(f"")
-            print(f"timing resolution:{reso}, dir_num:{dir}")
-            RESOLUTION = reso
-                # global RESOLUTION
-            t = test()
-            # except:
-            #     print(f"test failed")
-            #     # durations[(reso, dir)] = ()
-            #     continue
-            durations[((reso, dir))] = t
-
-    import pickle
-    with open('ttime_vs_resolution.pk', 'wb') as f:
-        pickle.dump(durations, f)
-    embed() 
+def plt_data(durations):
 
     resolutions = []
     dir_nums = []
@@ -361,6 +342,41 @@ if __name__=='__main__':
     ax1.set_xlabel('ground actions')
     ax1.set_ylabel('task planning time / s')
 
+    plt.savefig('tt_time_resolution.png')
     plt.show()
 
+    
+if __name__=='__main__':
+    durations = dict()
+
+    for reso in np.linspace(0.1,0.02,9):
+        for dir in np.linspace(1, 4, 4):
+            print(f"")
+            print(f"timing resolution:{reso}, dir_num:{dir}")
+            RESOLUTION = reso
+            DIR_NUM = int(dir)
+                # global RESOLUTION
+            t = test()
+            # except:
+            #     print(f"test failed")
+            #     # durations[(reso, dir)] = ()
+            #     continue
+            durations[((reso, dir))] = t
+
+    embed() 
+
+    tp_total_time = []
+    ground_actions = []
+    ground_states = []
+    for k, t in durations.items():
+        tp_total_time.append(t['tp_total_time'])
+        ground_actions.append(t['ground_actions'])
+        ground_states.append(t['ground_states'])
+
+    import pickle
+    with open('ttime_vs_resolution2.pk', 'wb') as f:
+        pickle.dump(durations, f)
+
+    plt_data(durations)
+    
     embed() 

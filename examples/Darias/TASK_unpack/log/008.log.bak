@@ -1,0 +1,2481 @@
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Python 3.8.10 (default, May 19 2021, 18:05:58) 
+Type 'copyright', 'credits' or 'license' for more information
+IPython 7.27.0 -- An enhanced Interactive Python. Type '?' for help.
+
+In [1]: failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__1__-1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__1__0
+failed operator:5, put-down c1 region2__1__1
+failed operator:5, put-down c1 region2__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:5, put-down c1 region2__-1__0
+failed operator:5, put-down c1 region2__0__1
+Warning: not valid path generated
+failed operator:5, put-down c1 region2__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+{'tp_formulation': 2.5461790500048664, 'tp_modeling': 0.26690586000404437, 'tp_total_time': 5.941207791987836, 'tp_searching': 1.212236796010984, 'mp_total_time': 134.1694399079861, 'tp_add_constraints': 1.5563890679877659}
+task plan time: 5.9412 s
+motion refiner time: 134.1694 s
+total planning time: 139.38624835014343
+task plan counter: 43
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:5, put-down c1 region2__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:5, put-down c1 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c2 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c2 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+{'tp_formulation': 2.7430543079935887, 'tp_modeling': 0.2973258539896051, 'tp_total_time': 7.419148249013233, 'tp_searching': 1.7283895869913977, 'mp_total_time': 185.93919916599407, 'tp_add_constraints': 2.2713742640080454}
+task plan time: 7.4191 s
+motion refiner time: 185.9392 s
+total planning time: 192.62924027442932
+task plan counter: 54
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:5, put-down c1 region2__0__-1
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__0
+failed operator:5, put-down c1 region2__1__1
+{'tp_formulation': 2.8827342730037344, 'tp_modeling': 0.29520893600783893, 'tp_total_time': 6.18867676600712, 'tp_searching': 1.1637476980031352, 'mp_total_time': 119.59329429200443, 'tp_add_constraints': 1.422930736996932}
+task plan time: 6.1887 s
+motion refiner time: 119.5933 s
+total planning time: 124.93828082084656
+task plan counter: 38
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c2 region1__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:3, put-down c2 region2__0__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:5, put-down c1 region2__0__1
+{'tp_formulation': 2.923885035001149, 'tp_modeling': 0.2941882609993627, 'tp_total_time': 6.76917790398511, 'tp_searching': 1.364294671035168, 'mp_total_time': 162.09552010698826, 'tp_add_constraints': 1.7867819479979516}
+task plan time: 6.7692 s
+motion refiner time: 162.0955 s
+total planning time: 167.9909155368805
+task plan counter: 45
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.9245551969943335, 'tp_modeling': 0.3015322249993915, 'tp_total_time': 6.139095441005338, 'tp_searching': 1.1072052699964843, 'mp_total_time': 130.2062710009959, 'tp_add_constraints': 1.3719413820035697}
+task plan time: 6.1391 s
+motion refiner time: 130.2063 s
+total planning time: 135.48890948295593
+task plan counter: 37
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__-1
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__-1
+{'tp_formulation': 2.795458783992217, 'tp_modeling': 0.2894092010028544, 'tp_total_time': 5.673275674995239, 'tp_searching': 0.9639252050001232, 'mp_total_time': 97.30104396799288, 'tp_add_constraints': 1.207649815005425}
+task plan time: 5.6733 s
+motion refiner time: 97.3010 s
+total planning time: 102.14368343353271
+task plan counter: 35
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+failed operator:5, put-down c1 region2__0__-1
+{'tp_formulation': 3.1909038700032397, 'tp_modeling': 0.33019516399872373, 'tp_total_time': 5.8525352960168675, 'tp_searching': 0.8702182339984574, 'mp_total_time': 88.33120265200341, 'tp_add_constraints': 0.9891092489961011}
+task plan time: 5.8525 s
+motion refiner time: 88.3312 s
+total planning time: 93.23170948028564
+task plan counter: 28
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__1__1
+failed operator:5, put-down c1 region2__0__0
+{'tp_formulation': 3.062961207004264, 'tp_modeling': 0.3136843960019178, 'tp_total_time': 5.885543053012952, 'tp_searching': 0.9335564229950251, 'mp_total_time': 86.95735150800465, 'tp_add_constraints': 1.123499322002317}
+task plan time: 5.8855 s
+motion refiner time: 86.9574 s
+total planning time: 91.96201610565186
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+
+
+failed operator:3, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__1__-1
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__0__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__1__0
+failed operator:3, put-down c2 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 3.3864004269962606, 'tp_modeling': 0.35658779200093704, 'tp_total_time': 7.351079122981901, 'tp_searching': 1.3984434109988797, 'mp_total_time': 125.6554705980052, 'tp_add_constraints': 1.723666146001051}
+task plan time: 7.3511 s
+motion refiner time: 125.6555 s
+total planning time: 132.03118872642517
+task plan counter: 40
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.7934672909977962, 'tp_modeling': 0.27993836600217037, 'tp_total_time': 5.720149462995323, 'tp_searching': 1.0058681150039774, 'mp_total_time': 76.52234701400448, 'tp_add_constraints': 1.2092772480027634}
+task plan time: 5.7201 s
+motion refiner time: 76.5223 s
+total planning time: 81.36711049079895
+task plan counter: 37
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.3892567189905094, 'tp_modeling': 0.2481824120040983, 'tp_total_time': 5.660342960007256, 'tp_searching': 1.172192663012538, 'mp_total_time': 130.40980542098623, 'tp_add_constraints': 1.5057913320124499}
+task plan time: 5.6603 s
+motion refiner time: 130.4098 s
+total planning time: 135.39659643173218
+task plan counter: 45
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__-1__-1
+failed operator:5, put-down c1 region2__1__0
+{'tp_formulation': 2.3776178680091107, 'tp_modeling': 0.24246547099755844, 'tp_total_time': 4.976955638008803, 'tp_searching': 0.9024757310071436, 'mp_total_time': 106.31359507199159, 'tp_add_constraints': 1.103500126992003}
+task plan time: 4.9770 s
+motion refiner time: 106.3136 s
+total planning time: 110.5939826965332
+task plan counter: 37
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+
+
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.474837136000133, 'tp_modeling': 0.25348634499459877, 'tp_total_time': 4.810968519013841, 'tp_searching': 0.7841136470015044, 'mp_total_time': 76.68942263000281, 'tp_add_constraints': 0.9306097879925801}
+task plan time: 4.8110 s
+motion refiner time: 76.6894 s
+total planning time: 80.7608060836792
+task plan counter: 32
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__0__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__0__1
+failed operator:5, put-down c1 region2__0__0
+{'tp_formulation': 2.0643240779972984, 'tp_modeling': 0.2196512350019475, 'tp_total_time': 4.297578511992469, 'tp_searching': 0.7750749889928557, 'mp_total_time': 93.37518876599279, 'tp_add_constraints': 0.937846315002389}
+task plan time: 4.2976 s
+motion refiner time: 93.3752 s
+total planning time: 97.07780408859253
+task plan counter: 36
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+failed operator:1, put-down c3 region1__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.070571756998106, 'tp_modeling': 0.21229110799686168, 'tp_total_time': 4.163472582022223, 'tp_searching': 0.7094268190048751, 'mp_total_time': 65.08859031199245, 'tp_add_constraints': 0.8623454630069318}
+task plan time: 4.1635 s
+motion refiner time: 65.0886 s
+total planning time: 68.64497256278992
+task plan counter: 34
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__-1__-1
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.3583218079984363, 'tp_modeling': 0.24256929699913599, 'tp_total_time': 4.459557701986341, 'tp_searching': 0.6848222940097912, 'mp_total_time': 63.05596375900859, 'tp_add_constraints': 0.8253266679894296}
+task plan time: 4.4596 s
+motion refiner time: 63.0560 s
+total planning time: 66.80805945396423
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+
+
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__-1__-1
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.525296168998466, 'tp_modeling': 0.2615755779988831, 'tp_total_time': 4.845510958002706, 'tp_searching': 0.763140819984983, 'mp_total_time': 72.91390885199871, 'tp_add_constraints': 0.900959379003325}
+task plan time: 4.8455 s
+motion refiner time: 72.9139 s
+total planning time: 77.00815105438232
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__-1
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__-1
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.4041063519944146, 'tp_modeling': 0.2596823370040511, 'tp_total_time': 4.598503976994834, 'tp_searching': 0.7453008299999055, 'mp_total_time': 71.65970328999902, 'tp_add_constraints': 0.8664272810055991}
+task plan time: 4.5985 s
+motion refiner time: 71.6597 s
+total planning time: 75.61759328842163
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__1__1
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__-1__0
+failed operator:5, put-down c1 region2__0__0
+failed operator:5, put-down c1 region2__1__0
+{'tp_formulation': 2.505652210002154, 'tp_modeling': 0.25526718200126197, 'tp_total_time': 5.560945721015742, 'tp_searching': 1.1017381330129865, 'mp_total_time': 150.61028154101223, 'tp_add_constraints': 1.3478643399976136}
+task plan time: 5.5609 s
+motion refiner time: 150.6103 s
+total planning time: 155.4741063117981
+task plan counter: 41
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+
+
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__1__1
+{'tp_formulation': 2.6299824429952423, 'tp_modeling': 0.27220426800340647, 'tp_total_time': 5.0124340019901865, 'tp_searching': 0.8007535819997429, 'mp_total_time': 70.9777366680064, 'tp_add_constraints': 0.9371168809993833}
+task plan time: 5.0124 s
+motion refiner time: 70.9777 s
+total planning time: 75.24560737609863
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+{'tp_formulation': 2.5850386769998295, 'tp_modeling': 0.2641192359951674, 'tp_total_time': 5.3745508620049804, 'tp_searching': 0.9892569039911905, 'mp_total_time': 111.10206454599029, 'tp_add_constraints': 1.1915449970038026}
+task plan time: 5.3746 s
+motion refiner time: 111.1021 s
+total planning time: 115.79018902778625
+task plan counter: 37
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:3, put-down c2 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__-1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__1__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__0__1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__1__0
+{'tp_formulation': 2.345962192997831, 'tp_modeling': 0.24658771699978388, 'tp_total_time': 5.232801192989427, 'tp_searching': 1.0424243699744693, 'mp_total_time': 98.22931858200172, 'tp_add_constraints': 1.2909681239871134}
+task plan time: 5.2328 s
+motion refiner time: 98.2293 s
+total planning time: 102.8691394329071
+task plan counter: 40
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+{'tp_formulation': 2.37695539399283, 'tp_modeling': 0.24264957499690354, 'tp_total_time': 4.88256269897829, 'tp_searching': 0.8671028150056372, 'mp_total_time': 78.441455116008, 'tp_add_constraints': 1.0458551999981864}
+task plan time: 4.8826 s
+motion refiner time: 78.4415 s
+total planning time: 82.62184977531433
+task plan counter: 36
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 5.0634406759963895, 'tp_modeling': 0.5174580999955651, 'tp_total_time': 9.815080206983112, 'tp_searching': 1.6251383279959555, 'mp_total_time': 153.40057699300087, 'tp_add_constraints': 1.9211086359937326}
+task plan time: 9.8151 s
+motion refiner time: 153.4006 s
+total planning time: 79.20932793617249
+task plan counter: 29
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__0__1
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 2.3634626169987314, 'tp_modeling': 0.2462943349928537, 'tp_total_time': 4.81597384998895, 'tp_searching': 0.832967197013204, 'mp_total_time': 82.93781155799297, 'tp_add_constraints': 1.0429947719967458}
+task plan time: 4.8160 s
+motion refiner time: 82.9378 s
+total planning time: 87.09454655647278
+task plan counter: 33
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+failed operator:5, put-down c1 region2__0__1
+{'tp_formulation': 5.2413947060013015, 'tp_modeling': 0.5365598109965504, 'tp_total_time': 10.406533551002212, 'tp_searching': 1.7787334910135542, 'mp_total_time': 189.56514478600366, 'tp_add_constraints': 2.147494002001622}
+task plan time: 10.4065 s
+motion refiner time: 189.5651 s
+total planning time: 111.45333480834961
+task plan counter: 32
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__-1
+failed operator:3, put-down c2 region1__0__0
+failed operator:5, put-down c1 region2__0__1
+{'tp_formulation': 8.589623850002681, 'tp_modeling': 0.8187434559913527, 'tp_total_time': 17.186947250982485, 'tp_searching': 3.02935128201716, 'mp_total_time': 322.1564814700032, 'tp_add_constraints': 3.708965870013344}
+task plan time: 17.1869 s
+motion refiner time: 322.1565 s
+total planning time: 138.548410654068
+task plan counter: 35
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__-1
+failed operator:2, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__-1
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c2 region2__0__-1
+{'tp_formulation': 11.773505825003667, 'tp_modeling': 1.1552843419885903, 'tp_total_time': 23.53846562898252, 'tp_searching': 4.143671472022106, 'mp_total_time': 449.43037316900154, 'tp_add_constraints': 5.019339338028658}
+task plan time: 23.5385 s
+motion refiner time: 449.4304 s
+total planning time: 132.78421831130981
+task plan counter: 34
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region2__-1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, pick-up c2 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__-1__1
+{'tp_formulation': 15.221263406005164, 'tp_modeling': 1.5051075249866699, 'tp_total_time': 31.069087771986233, 'tp_searching': 5.569372015022964, 'mp_total_time': 602.958925520994, 'tp_add_constraints': 6.850607698026579}
+task plan time: 31.0691 s
+motion refiner time: 602.9589 s
+total planning time: 160.06482243537903
+task plan counter: 42
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, pick-up c2 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 18.291105917003733, 'tp_modeling': 1.8056617689835548, 'tp_total_time': 37.59624307499689, 'tp_searching': 6.8405984100245405, 'mp_total_time': 734.7864189429929, 'tp_add_constraints': 8.30326776003858}
+task plan time: 37.5962 s
+motion refiner time: 734.7864 s
+total planning time: 137.3387758731842
+task plan counter: 39
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__1__1
+{'tp_formulation': 21.324865020003926, 'tp_modeling': 2.121674952981266, 'tp_total_time': 43.965610202998505, 'tp_searching': 8.018442542012053, 'mp_total_time': 885.9798301260053, 'tp_add_constraints': 9.701946585042606}
+task plan time: 43.9656 s
+motion refiner time: 885.9798 s
+total planning time: 156.64306354522705
+task plan counter: 38
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__1__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__-1__-1
+failed operator:5, put-down c1 region2__0__-1
+{'tp_formulation': 24.163138973010064, 'tp_modeling': 2.4118418469806784, 'tp_total_time': 51.31278597099299, 'tp_searching': 9.65290052301134, 'mp_total_time': 1089.8559658030135, 'tp_add_constraints': 11.760312486043404}
+task plan time: 51.3128 s
+motion refiner time: 1089.8560 s
+total planning time: 210.23062372207642
+task plan counter: 50
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 27.043404664011177, 'tp_modeling': 2.706260625982395, 'tp_total_time': 56.85553512797196, 'tp_searching': 10.554951177033217, 'mp_total_time': 1187.619562772019, 'tp_add_constraints': 12.803950894049194}
+task plan time: 56.8555 s
+motion refiner time: 1187.6196 s
+total planning time: 102.46434426307678
+task plan counter: 31
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__0__-1
+failed operator:5, put-down c1 region2__1__0
+failed operator:5, put-down c1 region2__0__0
+{'tp_formulation': 30.16848144700998, 'tp_modeling': 3.031204703987896, 'tp_total_time': 62.90529039297326, 'tp_searching': 11.595379453025089, 'mp_total_time': 1328.831665708025, 'tp_add_constraints': 13.998411377044249}
+task plan time: 62.9053 s
+motion refiner time: 1328.8317 s
+total planning time: 146.3971402645111
+task plan counter: 34
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__-1__-1
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 33.386622397014435, 'tp_modeling': 3.3505951629886113, 'tp_total_time': 68.89291635998597, 'tp_searching': 12.591717965024145, 'mp_total_time': 1420.7079820810213, 'tp_add_constraints': 15.055995736052864}
+task plan time: 68.8929 s
+motion refiner time: 1420.7080 s
+total planning time: 97.03346991539001
+task plan counter: 31
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+
+
+{'tp_formulation': 36.38013108801533, 'tp_modeling': 3.643841494991648, 'tp_total_time': 73.80604961799327, 'tp_searching': 13.243820880030398, 'mp_total_time': 1506.9309852750303, 'tp_add_constraints': 15.69950082604555}
+task plan time: 73.8060 s
+motion refiner time: 1506.9310 s
+total planning time: 90.44561505317688
+task plan counter: 25
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:3, put-down c2 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c2 region1__0__-1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__1__-1
+{'tp_formulation': 39.48325858201861, 'tp_modeling': 3.9555591629905393, 'tp_total_time': 81.10929039201437, 'tp_searching': 14.817862905034417, 'mp_total_time': 1780.443393439029, 'tp_add_constraints': 17.622834404046444}
+task plan time: 81.1093 s
+motion refiner time: 1780.4434 s
+total planning time: 279.9975252151489
+task plan counter: 48
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__1__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__2__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+IKfailed: exceeding max iterations
+failed operator:3, put-down c2 region2__2__-2
+{'tp_formulation': 46.35748549502023, 'tp_modeling': 4.430487121990154, 'tp_total_time': 95.68798886101649, 'tp_searching': 17.545624003021658, 'mp_total_time': 1952.225365998027, 'tp_add_constraints': 21.068146181049087}
+task plan time: 95.6880 s
+motion refiner time: 1952.2254 s
+total planning time: 184.21961307525635
+task plan counter: 57
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__1__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 52.98836073202256, 'tp_modeling': 4.8947901419887785, 'tp_total_time': 110.05095087800873, 'tp_searching': 20.28009947701139, 'mp_total_time': 2140.3824418370386, 'tp_add_constraints': 24.566184681043524}
+task plan time: 110.0510 s
+motion refiner time: 2140.3824 s
+total planning time: 200.43580031394958
+task plan counter: 58
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__1__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c2 region1__-1__-1
+{'tp_formulation': 59.55353710001873, 'tp_modeling': 5.353852298983838, 'tp_total_time': 122.19630464299553, 'tp_searching': 22.13292613600788, 'mp_total_time': 2267.41560705506, 'tp_add_constraints': 26.81766381104171}
+task plan time: 122.1963 s
+motion refiner time: 2267.4156 s
+total planning time: 137.1233389377594
+task plan counter: 43
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__1__-2
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 66.1597014030267, 'tp_modeling': 5.810777469985624, 'tp_total_time': 138.30836817500312, 'tp_searching': 25.65877620201718, 'mp_total_time': 2510.8111244710417, 'tp_add_constraints': 31.365345800051728}
+task plan time: 138.3084 s
+motion refiner time: 2510.8111 s
+total planning time: 257.5204222202301
+task plan counter: 72
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__1__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 72.75628564302679, 'tp_modeling': 6.2628956399858, 'tp_total_time': 151.36026874500385, 'tp_searching': 27.903910556015035, 'mp_total_time': 2669.979971188026, 'tp_add_constraints': 34.11388641204758}
+task plan time: 151.3603 s
+motion refiner time: 2669.9800 s
+total planning time: 170.18019461631775
+task plan counter: 51
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region2__2__-2
+failed operator:1, put-down c3 region2__1__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-2__2
+failed operator:1, put-down c3 region2__0__-2
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__1
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:3, put-down c3 region1__1__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 3.0303334190000157, 'tp_modeling': 0.3468403770000066, 'tp_total_time': 7.0960696149998626, 'tp_searching': 1.329333539000089, 'mp_total_time': 117.35040130400009, 'tp_add_constraints': 1.927579359999811}
+task plan time: 7.0961 s
+motion refiner time: 117.3504 s
+total planning time: 123.49901294708252
+task plan counter: 43
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__1
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:5, put-down c1 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region2__-1__1
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:2, put-down c3 region1__1__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__-1__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 5.850792032999976, 'tp_modeling': 0.6330625300000463, 'tp_total_time': 13.811581393999802, 'tp_searching': 2.7116809240002624, 'mp_total_time': 236.74650281500024, 'tp_add_constraints': 3.779018959999462}
+task plan time: 13.8116 s
+motion refiner time: 236.7465 s
+total planning time: 125.36672472953796
+task plan counter: 43
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c2 region1__1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:5, put-down c1 region2__0__-1
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__-1
+{'tp_formulation': 7.928720119000019, 'tp_modeling': 0.8450216430001376, 'tp_total_time': 18.380442689999654, 'tp_searching': 3.5941287870001304, 'mp_total_time': 343.3751243990003, 'tp_add_constraints': 4.9058513329994184}
+task plan time: 18.3804 s
+motion refiner time: 343.3751 s
+total planning time: 110.64083433151245
+task plan counter: 40
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__-1
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__-1__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 9.981548330999914, 'tp_modeling': 1.0568338450000567, 'tp_total_time': 22.825014707999344, 'tp_searching': 4.436824522000023, 'mp_total_time': 432.8667064060002, 'tp_add_constraints': 5.973050091999767}
+task plan time: 22.8250 s
+motion refiner time: 432.8667 s
+total planning time: 93.37574219703674
+task plan counter: 39
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:1, put-down c3 region1__-1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__-1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 12.066432208000066, 'tp_modeling': 1.2698726950001458, 'tp_total_time': 26.775654408998776, 'tp_searching': 5.0751735419999875, 'mp_total_time': 488.67656029899973, 'tp_add_constraints': 6.7184035789999825}
+task plan time: 26.7757 s
+motion refiner time: 488.6766 s
+total planning time: 59.19401216506958
+task plan counter: 31
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 14.113736159999945, 'tp_modeling': 1.478438899000281, 'tp_total_time': 30.589486515998374, 'tp_searching': 5.67247604800022, 'mp_total_time': 549.6127704679997, 'tp_add_constraints': 7.4099757820004015}
+task plan time: 30.5895 s
+motion refiner time: 549.6128 s
+total planning time: 64.18221402168274
+task plan counter: 30
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region2__1__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:2, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 16.155110233999977, 'tp_modeling': 1.6918443940001282, 'tp_total_time': 34.84810479999851, 'tp_searching': 6.459561602000321, 'mp_total_time': 627.8021936559996, 'tp_add_constraints': 8.363348602000656}
+task plan time: 34.8481 s
+motion refiner time: 627.8022 s
+total planning time: 81.9039876461029
+task plan counter: 37
+failed operator:0, pick-up c1 region1__0__0
+
+
+failed operator:2, pick-up c1 region1__0__0
+failed operator:0, pick-up c2 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+Warning: not valid path generated
+failed operator:1, put-down c3 region1__0__1
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+failed operator:2, pick-up c1 region1__0__0
+
+
+failed operator:4, pick-up c1 region1__0__0
+failed operator:3, put-down c3 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+failed operator:4, pick-up c1 region1__0__0
+{'tp_formulation': 18.194241534999975, 'tp_modeling': 1.9027040830000317, 'tp_total_time': 38.64837663999867, 'tp_searching': 7.05457733900036, 'mp_total_time': 689.7938728299998, 'tp_add_constraints': 9.05291044600051}
+task plan time: 38.6484 s
+motion refiner time: 689.7939 s
+total planning time: 65.23355984687805
+task plan counter: 30

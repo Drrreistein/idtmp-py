@@ -3852,7 +3852,6 @@ def inverse_kinematics_helper(robot, link, target_pose, null_space=None):
                                                       physicsClientId=CLIENT)
     else:
         kinematic_conf = p.calculateInverseKinematics(robot, link, target_point, target_quat, physicsClientId=CLIENT)
-    embed()
     if (kinematic_conf is None) or any(map(math.isnan, kinematic_conf)):
         return None
     return kinematic_conf
@@ -3926,11 +3925,11 @@ def inverse_kinematics_random(robot, link, target_pose, obstacles, attachments, 
         if not all_between(lower_limits, kinematic_conf, upper_limits):
             # print(f"IKfailed: {np.round(kinematic_conf,4)} exceeding kinematics joint limits")
             kinematic_conf = None
-            print(f"ik failed: resampling a configuration")
+            # print(f"ik failed: resampling a configuration")
             sample_time += 1
         elif collision_fn(kinematic_conf):
             kinematic_conf = None
-            print(f"ik collided: resampling a configuration")
+            # print(f"ik collided: resampling a configuration")
             sample_time += 1
         else:
             break
@@ -4092,14 +4091,11 @@ def add_line(start, end, color=(0, 0, 0), width=1, lifetime=None, parent=-1, par
                               lifeTime=get_lifetime(lifetime), parentObjectUniqueId=parent, parentLinkIndex=parent_link,
                               physicsClientId=CLIENT)
 
-
 def remove_debug(debug):
     p.removeUserDebugItem(debug, physicsClientId=CLIENT)
 
-
 def remove_all_debug():
     p.removeAllUserDebugItems(physicsClientId=CLIENT)
-
 
 def add_body_name(body, name=None, **kwargs):
     """
@@ -4114,7 +4110,6 @@ def add_body_name(body, name=None, **kwargs):
     position = upper
     return add_text(name, position=position, parent=body, **kwargs)  # removeUserDebugItem
 
-
 def add_segments(points, closed=False, **kwargs):
     lines = []
     for v1, v2 in zip(points, points[1:]):
@@ -4123,10 +4118,8 @@ def add_segments(points, closed=False, **kwargs):
         lines.append(add_line(points[-1], points[0], **kwargs))
     return lines
 
-
 def draw_link_name(body, link):
     return add_text(get_link_name(body, link), position=(0, 0.2, 0), parent=body, parent_link=link)
-
 
 def draw_pose(pose, length=0.1, **kwargs):
     origin_world = tform_point(pose, np.zeros(3))
@@ -4210,7 +4203,6 @@ def draw_ray(ray, ray_result, visible_color=GREEN, occluded_color=RED, **kwargs)
         add_line(ray.start, hit_position, color=visible_color, **kwargs),
         add_line(hit_position, ray.end, color=occluded_color, **kwargs),
     ]
-
 
 #####################################
 

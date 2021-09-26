@@ -1,4 +1,5 @@
-log/
+# log/*.log
+*.log
 A_actionPlans/
 B_fullPlans/
 C_operatorPlans/

@@ -1,4 +1,4 @@
-;20:46:09 20/09
+;17:43:18 25/09
 
 (define (problem regrasp-block)
    (:domain blocks)
@@ -273,10 +273,25 @@
           region_table__5__5 - location
           box1 - block
           -1__0__0__0 - direction
+          -1__0__0__1 - direction
+          -1__0__0__2 - direction
+          -1__0__0__3 - direction
           0__-1__0__0 - direction
+          0__-1__0__1 - direction
+          0__-1__0__2 - direction
+          0__-1__0__3 - direction
           0__0__1__0 - direction
+          0__0__1__1 - direction
+          0__0__1__2 - direction
+          0__0__1__3 - direction
           0__1__0__0 - direction
+          0__1__0__1 - direction
+          0__1__0__2 - direction
+          0__1__0__3 - direction
           1__0__0__0 - direction
+          1__0__0__1 - direction
+          1__0__0__2 - direction
+          1__0__0__3 - direction
    )
 
    (:init
