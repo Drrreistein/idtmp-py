@@ -1,13 +1,12 @@
 #!/bin/bash
 name=$1
-for i in {1..10}; do
+for i in {1..40}; do
 (   
-    if [ `ls $name* | wc -l` = 0 ]; then
+    if [ `ls log | grep $name | wc -l` = 0 ]; then
         filename=$name.log
     else
-        filename=$name`ls $name* | wc -l`.log
+        filename=$name`ls log | grep $name | wc -l`.log
     fi
-
     python3 run_idtmp_regrasp.py >> "log/$filename"
 )
 done

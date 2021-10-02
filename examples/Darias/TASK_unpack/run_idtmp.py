@@ -241,10 +241,9 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind])])
         cmd.execute()
     time.sleep(1)
-    scn.reset()
 
 
-def simulation(visualization):
+def simulation(visualization=1):
 
     # visualization = True
     pu.connect(use_gui=visualization)
@@ -262,6 +261,7 @@ def simulation(visualization):
 
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
+    embed()
 
     # IDTMP
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
@@ -323,10 +323,13 @@ def simulation(visualization):
     print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
     print(f"total planning time: {total_time}")
     print(f"task plan counter: {tp.counter}")
+    os.system('spd-say -t female2 "hi lei simulation done"')
+    embed()
 
-    # while True:
-    #     ExecutePlanNaive(scn, t_plan, m_plan)
-    #     time.sleep(1)
+    while True:
+        ExecutePlanNaive(scn, t_plan, m_plan)
+        scn.reset()
+        time.sleep(1)
 
     pu.disconnect()
 
@@ -420,9 +423,10 @@ def multi_sims(visulization):
     pu.disconnect()
 
 if __name__=="__main__":
+    simulation()
+
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])
-    # simulation(visualization=visualization)
     max_sim = int(sys.argv[3])
     multi_sims(visualization)
 

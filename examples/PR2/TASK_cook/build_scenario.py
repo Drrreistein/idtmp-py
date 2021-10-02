@@ -110,13 +110,13 @@ class PlanningScenario(object):
 
         self.saved_world = WorldSaver()
 
-    # def get_gripper(self, arm='left'):
-    #     # upper = get_max_limit(problem.robot, get_gripper_joints(problem.robot, 'left')[0])
-    #     # set_configuration(gripper, [0]*4)
-    #     # dump_body(gripper)
-    #     if self.gripper is None:
-    #         self.gripper = create_gripper(self.pr2, arm=arm)
-    #     return self.gripper
+    def get_gripper(self, arm='left'):
+        # upper = get_max_limit(problem.robot, get_gripper_joints(problem.robot, 'left')[0])
+        # set_configuration(gripper, [0]*4)
+        # dump_body(gripper)
+        if self.gripper is None:
+            self.gripper = create_gripper(self.pr2, arm=arm)
+        return self.gripper
 
     def reset(self):
         self.saved_world.restore()

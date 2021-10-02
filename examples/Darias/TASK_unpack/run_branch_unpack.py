@@ -13,6 +13,8 @@ from etamp.stream import StreamInfo
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Command, sdg_sample_place, sdg_sample_grasp_dir, \
     sdg_sample_grasp, sdg_ik_grasp, sdg_plan_free_motion, \
     sdg_plan_holding_motion, sdg_sample_stack, Register
+from utils.pybullet_tools.kuka_primitives3 import sdg_sample_grasp_dir_discret, sdg_sample_grasp_discret, \
+    sdg_sample_place_discret, sdg_sample_stack_discret
 from utils.pybullet_tools.utils import WorldSaver, connect, get_pose, set_pose, get_configuration, is_placement, \
     disconnect, get_bodies
 from etamp.progressive3 import solve_progressive, solve_progressive2
@@ -198,6 +200,23 @@ def get_pddlstream_problem(scn):
                    'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies)),
                    'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
                    }
+
+    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
+                                              free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                   'sample-stack': StreamInfo(seed_gen_fn=sdg_sample_stack_discret(all_bodies), every_layer=15,
+                                              free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                   'sample-grasp-dir': StreamInfo(seed_gen_fn=sdg_sample_grasp_dir_discret(robot, scn.dic_body_info),
+                                                  every_layer=15,
+                                                  free_generator=True, discrete=True,
+                                                  p1=[2],
+                                                  p2=[10]),
+                   'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp_discret(robot)),
+                   'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(robot, scn.all_bodies)),
+                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies)),
+                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
+                   }
+                   
+
     action_info = {'move_free': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=move_cost_fn),
                    'move_holding': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=move_cost_fn),
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
@@ -270,10 +289,92 @@ def main(display=True, teleport=False):
     commands = postprocess_plan(scn, exe_plan)
 
     play_commands(commands) 
-
+    embed()
     disconnect()
     print('Finished.')
 
 
+def test(visualization=0, num_rep=100):
+    connect(use_gui=visualization)
+
+    scn = PlanningScenario()
+
+    saved_world = WorldSaver()
+    # dump_world()
+
+    pddlstream_problem = get_pddlstream_problem(scn)
+    _, _, _, _, stream_info, action_info = pddlstream_problem
+    
+    from codetiming import Timer
+    task_planning_timer = Timer(name='task_planning_timer', text='')
+    mcts_timer = Timer(name='mcts_timer', text='')
+    
+    for i in range(num_rep):
+
+        task_planning_timer.reset()
+        mcts_timer.reset()
+
+        st = time.time()
+        new_problem = 1
+        if new_problem:
+            task_planning_timer.start()
+            sk_batch = solve_progressive2(pddlstream_problem,
+                                        num_optms_init=80, target_sk=50)
+            op_plan = sk_batch.generate_operatorPlan(40)  # c1-39
+            task_planning_timer.stop()
+        else:
+            with open('C_operatorPlans/C_op_sas.1.pk', 'rb') as f:
+                op_plan = pk.load(f)
+        assert op_plan is not None
+
+        mcts_timer.start()
+        e_root = ExtendedNode()
+        skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
+                                get_update_env_reward_fn(scn, action_info),
+                                stream_info, scn)
+        selected_branch = PlannerUCT(skeleton_env)
+
+        concrete_plan = selected_branch.think(900, 0)
+        mcts_timer.stop()
+
+        if concrete_plan is None:
+            print('TAMP is failed.', concrete_plan)
+            continue
+
+        total_planning_time = time.time() - st
+        print(f"################################ display time ################################")
+        all_timers = task_planning_timer.timers
+        print(f'task_planning_time {all_timers[task_planning_timer.name]}')
+        print(f'mcts_time {all_timers[mcts_timer.name]}')
+        print(f'total_planning_time {total_planning_time}')
+        print(f"visits {selected_branch.visits}")
+        saved_world.restore()
+
+    exe_plan = None
+    if concrete_plan is not None:
+        exe_plan = []
+    for action in concrete_plan:
+        exe_plan.append((action.name, [arg.value for arg in action.parameters]))
+
+    with open('exe_plan.pk', 'wb') as f:
+        pk.dump((scn, exe_plan), f)
+
+    if not visualization:  # TODO: how to reenable the viewer
+        disconnect()
+        connect(use_gui=True)
+        PlanningScenario()
+    else:
+        saved_world.restore()
+
+    # list_motion = [BodyPath(0,7,51,0), BodyP    action_cost = get_action_cost(action_plan)ath(0,7,8,0), Attach(0,4), ...]
+    commands = postprocess_plan(scn, exe_plan)
+
+    play_commands(commands) 
+    embed()
+
+    disconnect()
+    print('Finished.')
+
 if __name__ == '__main__':
-    main()
+    test()
+    # main()

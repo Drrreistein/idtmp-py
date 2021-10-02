@@ -3077,17 +3077,18 @@ def get_collision_fn(robot, joints, obstacles, attachments, self_collisions, dis
         for link1, link2 in check_link_pairs:
             # Self-collisions should not have the max_distance parameter
             if pairwise_link_collision(robot, link1, robot, link2, **kwargs):  # , **kwargs):
-                print('Self collision happens at {}({}), between {}({}) and {}({}).'.format(robot, get_body_name(robot),
-                                                                                            link1,
-                                                                                            get_link_name(robot, link1),
-                                                                                            link2,
-                                                                                            get_link_name(robot,
-                                                                                                          link2)))
+                print(f"self collision")
+                # print('Self collision happens at {}({}), between {}({}) and {}({}).'.format(robot, get_body_name(robot),
+                #                                                                             link1,
+                #                                                                             get_link_name(robot, link1),
+                #                                                                             link2,
+                #                                                                             get_link_name(robot,
+                #                                                                                           link2)))
                 return True
         """3) Moving bodies collide with obstacles."""
         for body1, body2 in check_body_pairs:
             if pairwise_collision(body1, body2, **kwargs):
-                print('body collision happens between {} and {}.'.format(body1, body2))
+                # print('body collision happens between {} and {}.'.format(body1, body2))
                 return True
         return False
 
@@ -3883,7 +3884,7 @@ def inverse_kinematics(robot, link, target_pose, max_iterations=200, custom_limi
             break
     else:
         set_joint_positions(robot, movable_joints, init_joints)
-        print(f"IKfailed: exceeding max iterations")
+        # print(f"IKfailed: exceeding max iterations")
         return None
     lower_limits, upper_limits = get_custom_limits(robot, movable_joints, custom_limits)
     if not all_between(lower_limits, kinematic_conf, upper_limits):
@@ -3919,7 +3920,7 @@ def inverse_kinematics_random(robot, link, target_pose, obstacles, attachments, 
                 break
         else:
             set_joint_positions(robot, movable_joints, init_joints)
-            print(f"IKfailed: exceeding max iterations")
+            # print(f"IKfailed: exceeding max iterations")
             return None
         lower_limits, upper_limits = get_custom_limits(robot, movable_joints, custom_limits)
         if not all_between(lower_limits, kinematic_conf, upper_limits):

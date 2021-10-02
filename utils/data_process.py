@@ -21,7 +21,6 @@ def duration_vs_resolution():
     # plt.ylabel('resolution')
     # plt.xlabel('total planning time')
     # plt.show()
-
     
     ##  by seaborn 
     times_dataset = {}
@@ -69,8 +68,11 @@ def data_process():
     #     roh_data[file] = data_tmp
     # embed()
     dataset = defaultdict(list)
-    for file in ['010','008','006','004', '002']:
-        file_name = f'time{file}.log'
+    for file in ['etamp', '010','008','006','004', '002']:
+        if file=='etamp':
+            file_name = 'etamp_unpack_clean.log'
+        else:
+            file_name = f'time{file}.log'
         with open(file_name, 'r') as f:
             num = 0
             for s in f:
@@ -86,12 +88,37 @@ def data_process():
                     dataset['task_plan_counter'].append(auto_convert_num(s_list[1]))
             dataset['resolution'].extend(list(np.repeat(file, num)))
 
-    dataset['total_div_task'] = list(np.array(dataset['total_planning_time']) / np.array(dataset['task_plan_time']))
+    dataset['total_div_task'] = list(np.array(dataset['total_planning_time']) / np.array(dataset['task_plan_counter']))
     for k, v in dataset.items():
         print(k, len(v))
 
     data_pd = pd.DataFrame(dataset)
 
+    return data_pd
+
+def txt_to_pandas(file_list):
+    dataset = defaultdict(list)
+    reso = []
+    for file_name in file_list:
+        with open(file_name, 'r') as f:
+            num = 0
+            for s in f:
+                s_list=s.split()
+                dataset[s_list[0]].append(auto_convert_num(s_list[1]))
+                num += 1
+            num /= len(dataset.keys())
+            reso.extend(list(np.repeat(file_name[:-4], int(num))))
+
+    dataset['resolution'] = reso
+    try:
+        dataset['time_per_task'] = list(np.array(dataset['total_planning_time']) / np.array(dataset['visits']))
+    except:
+        print(f"no specified item in dataset")
+        
+    for k, v in dataset.items():
+        print(k, len(v))
+
+    data_pd = pd.DataFrame(dataset)
     return data_pd
 
 def box_plot(data_pd):
@@ -120,7 +147,7 @@ def box_plot(data_pd):
         plt.show()
 
 if __name__=='__main__':
-
+    embed()
     # duration_vs_resolution()
 
     dataset = data_process()

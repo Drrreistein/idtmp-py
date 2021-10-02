@@ -1,18 +1,21 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+
+from IPython import embed
 import numpy as np
 import cProfile
 import pstats
 import argparse
 import pickle as pk
-import time
+import time, os
 from etamp.actions import ActionInfo
 from etamp.stream import StreamInfo
 from utils.pybullet_tools.pr2_primitives import BodyPose, Conf, get_ik_ir_gen, get_motion_gen, \
     get_stable_gen, get_grasp_gen, Attach, Detach, Clean, Cook, control_commands, \
     get_gripper_joints, GripperCommand, apply_commands, State, Command, sdg_sample_place, \
     sdg_sample_grasp, sdg_ik_grasp, sdg_motion_base_joint
+from utils.pybullet_tools.pr2_primitives import sdg_sample_grasp_discret, sdg_sample_place_discret
 from utils.pybullet_tools.pr2_utils import get_arm_joints, ARM_NAMES, get_group_joints, get_group_conf
 from utils.pybullet_tools.utils import WorldSaver, connect, get_pose, set_pose, get_configuration, is_placement, \
     disconnect, get_bodies, connect, get_pose, is_placement, point_from_pose, \
@@ -23,7 +26,7 @@ from etamp.pddlstream.utils import read, INF, get_file_path, find_unique
 
 from etamp.p_uct2 import PlannerUCT
 from etamp.tree_node2 import ExtendedNode
-from etamp.env_sk_branch import SkeletonEnv
+from etamp.env_sk_branch import SkeletonEnv, dist_m
 from build_scenario import PlanningScenario
 
 
@@ -246,12 +249,20 @@ def get_pddlstream_problem(scn):
                    'plan-base-motion': StreamInfo(seed_gen_fn=sdg_motion_base_joint(scn)),
                    }
 
+    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
+                                             free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                   'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp_discret(scn)),
+                   'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(scn)),
+                   'plan-base-motion': StreamInfo(seed_gen_fn=sdg_motion_base_joint(scn)),
+                   }
+
+
     action_info = {'move_base': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=get_const_cost_fn(5)),
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
 
-    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
+    return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
 
 
 #######################################################
@@ -261,6 +272,7 @@ def main():
     connect(use_gui=visualization)
 
     scn = PlanningScenario()
+    saved_world = WorldSaver()
 
     pddlstream_problem = get_pddlstream_problem(scn)
     _, _, _, _, stream_info, action_info = pddlstream_problem
@@ -286,8 +298,104 @@ def main():
                                stream_info, scn)
     selected_branch = PlannerUCT(skeleton_env)
 
-    concrete_plan = selected_branch.think(900, visualization)
+    concrete_plan = selected_branch.think(900, show_tree_nodes=0)
 
+    if concrete_plan is None:
+        print('TAMP is failed.', concrete_plan)
+        disconnect()
+        return
+    thinking_time = time.time() - st
+    print('TAMP is successful. think_time: '.format(thinking_time))
+
+    exe_plan = None
+    if concrete_plan is not None:
+        exe_plan = []
+    for action in concrete_plan:
+        exe_plan.append((action.name, [arg.value for arg in action.parameters]))
+    saved_world.restore()
+    commands = postprocess_plan(scn, exe_plan)
+    play_commands(commands)
+    embed()
+
+    with open('exe_plan.pk', 'wb') as f:
+        pk.dump((scn, exe_plan), f)
+
+    # pr.disable()
+    # pstats.Stats(pr).sort_stats('tottime').print_stats(10)
+
+    if exe_plan is None:
+        disconnect()
+        return
+    disconnect()
+    connect(use_gui=True)
+    PlanningScenario()
+
+    with LockRenderer():
+        commands = postprocess_plan(scn, exe_plan)
+
+    play_commands(commands)
+
+    disconnect()
+
+    print('Finished.')
+
+
+def test():
+    visualization = 0
+    connect(use_gui=visualization)
+    from codetiming import Timer
+    total_planning_timer = Timer(name='total_planning_timer', text='')
+    task_planning_timer = Timer(name='task_planning_timer', text='')
+    mcts_timer = Timer(name='mcts_timer', text='')
+
+    scn = PlanningScenario()
+    saved_world = WorldSaver()
+
+    pddlstream_problem = get_pddlstream_problem(scn)
+    _, _, _, _, stream_info, action_info = pddlstream_problem
+
+    for _ in range(100):
+        total_planning_timer.reset()
+        task_planning_timer.reset()
+        mcts_timer.reset()
+        
+        total_planning_timer.start()
+        task_planning_timer.start()
+        new_problem = 1
+        if new_problem:
+            
+            sk_batch = solve_progressive2(pddlstream_problem,
+                                        num_optms_init=80, target_sk=20)
+            op_plan = sk_batch.generate_operatorPlan(3)  # 6
+
+        else:
+            with open('C_operatorPlans/C_op_sas.1.pk', 'rb') as f:
+                op_plan = pk.load(f)
+
+        e_root = ExtendedNode()
+        assert op_plan is not None
+        skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
+                                get_update_env_reward_fn(scn, action_info),
+                                stream_info, scn)
+        task_planning_timer.stop()
+
+        mcts_timer.start()
+        selected_branch = PlannerUCT(skeleton_env)
+        concrete_plan = selected_branch.think(900, show_tree_nodes=0)
+        mcts_timer.stop()
+
+        total_planning_timer.stop()
+        print(f"################################ display time ################################")
+        all_timers = task_planning_timer.timers
+        print(f'task_planning_time {all_timers[task_planning_timer.name]}')
+        print(f'mcts_time {all_timers[mcts_timer.name]}')
+        print(f'total_planning_time {all_timers[total_planning_timer.name]}')
+        print(f"visits {selected_branch.visits}")
+        saved_world.restore()
+    
+    os.system("spd-say -t female2 'hi lei simulation done'")
+    disconnect()
+    embed()
     if concrete_plan is None:
         print('TAMP is failed.', concrete_plan)
         disconnect()
@@ -310,7 +418,6 @@ def main():
     if exe_plan is None:
         disconnect()
         return
-
     disconnect()
     connect(use_gui=True)
     PlanningScenario()
@@ -325,5 +432,7 @@ def main():
     print('Finished.')
 
 
+
 if __name__ == '__main__':
-    main()
+    test()
+    # main()

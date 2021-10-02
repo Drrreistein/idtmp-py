@@ -23,7 +23,7 @@ logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
-RESOLUTION = 0.1
+RESOLUTION = 0.15
 MOTION_TIMEOUT = 200
 
 class DomainSemantics(object):
@@ -93,7 +93,7 @@ class DomainSemantics(object):
             pu.set_joint_positions(self.sub_robot, self.sub_movable_joints, sub_kinematic_conf)
             if pu.is_pose_close(pu.get_link_pose(self.sub_robot, self.selected_target_link), goal_pose):
                 pu.set_joint_positions(self.robot, self.selected_movable_joints, sub_kinematic_conf)
-                logger.info(f"found ik")
+                # logger.info(f"found ik")
                 ik = pu.get_joint_positions(self.robot, self.arm_joints)
                 res = True
                 break
@@ -249,7 +249,7 @@ class PDDLProblem(object):
         locations = set()
         for region in self.scn.regions:
             (lower, upper) = pu.get_aabb(region)
-            size = np.abs((upper -lower)[:2])
+            size = np.abs((upper - lower)[:2])
             xr = int(np.floor(size[0]/2/RESOLUTION))
             yr = int(np.floor(size[1]/2/RESOLUTION))
             for i in range(xr+1):
@@ -340,7 +340,13 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
             cmd = pk.Command(motion_plan[ind])
             cmd.execute()
         else:
-            time.sleep(1)
+            [a, body, region, i,j] = tp_list
+            target_color = p.getVisualShapeData(scn.bd_body[region])[0][-1]
+            body_color = p.getVisualShapeData(scn.bd_body[body])[0][-1]
+            colors = np.linspace(body_color, target_color, 10)
+            for c in colors:
+                pu.set_color(scn.bd_body[body], c)
+                time.sleep(0.1)
     time.sleep(1)
     scn.reset()
 
@@ -395,7 +401,6 @@ def main():
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
-        embed()
 
         # ------------------- motion plan ---------------------
         mp_total_time.start()
@@ -428,6 +433,81 @@ def main():
 
     pu.disconnect()
 
+def test(visualization=True, rep=20):
+    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
+    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+    total_time = 0
+
+    pu.connect(use_gui=visualization)
+    scn = PlanningScenario()
+    parser = PDDL_Parser()
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    domain_filename = os.path.join(dirname, 'domain_idtmp_cook.pddl')
+    parser.parse_domain(domain_filename)
+    domain_name = parser.domain_name
+    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+    problem = PDDLProblem(scn, parser.domain_name)
+    parser.dump_problem(problem, problem_filename)
+    logger.info(f"problem.pddl dumped")
+    # initial domain semantics
+    domain_semantics = UnpackDomainSemantics(scn)
+    domain_semantics.activate()
+
+    for _ in range(rep):
+        # IDTMP
+        t00 = time.time()
+        tp_total_time.start()
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=14)
+        tp.incremental()
+        tp.modeling()
+        tp_total_time.stop()
+
+        tm_plan = None
+        while tm_plan is None:
+            # ------------------- task plan ---------------------
+            t0 = time.time()
+            t_plan = None
+            while t_plan is None:
+                t_plan = tp.search_plan()
+                if t_plan is None:
+                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                    print(f'')
+                    tp_total_time.start()
+                    tp.incremental()
+                    tp.modeling()
+                    tp_total_time.stop()
+                    logger.info(f"search task plan in horizon: {tp.horizon}")
+                    global MOTION_TIMEOUT 
+                    MOTION_TIMEOUT += 10
+
+            logger.info(f"task plan found, in horizon: {tp.horizon}")
+            for h,p in t_plan.items():
+                logger.info(f"{h}: {p}")
+
+            # ------------------- motion plan ---------------------
+            mp_total_time.start()
+            res, m_plan = tm.motion_refiner(t_plan)
+            mp_total_time.stop()
+
+            scn.reset()
+            if res:
+                logger.info(f"task and motion plan found")
+                break
+            else: 
+                logger.warning(f"motion refine failed")
+                logger.info(f'')
+                tp.add_constraint(m_plan)
+                t_plan = None
+
+        total_time = time.time()-t00
+        all_timers = tp_total_time.timers
+        print(f"all timers: {all_timers}")
+        print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
+        print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
+        print(f"total planning time: {total_time}")
+        print(f"task plan counter: {tp.counter}")
+
 if __name__=="__main__":
-    main()
+    test(int(sys.argv[1]), int(sys.argv[2]))
+    # main()
 
