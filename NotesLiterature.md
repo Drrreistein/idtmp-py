@@ -416,6 +416,29 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 1. add extra constraints to `RRTConnect` planner, but where?
 2. write your own planner which do sampling in cartesian space
 
+### Conclusion
+
+#### idtmp
+
+1. visits(task plan counter) of idtmp go linearly with discret space, rise expotentially with space dimension
+2. motion refining of a candidate task plan failed may be due to two reasons:
+   1. not final solution
+   2. not enough sampling time for motion refining process
+3. task plans in specific horizon for idtmp failed may be due to three reasons, so the problem is if no more task plans in specific horizon generated, should we go deeper? increase the motion_timeout? increase the discrete space?
+   1. indeed the final solution not in current horizon
+   2. feasible solutions are excluded by the sampled discrete space, in other words, discrete space don't represent the original continuous space sufficiently
+   3. motion refining time not enough
+4. several ways to sampling continuous space sufficiently
+   1. discretize the space in single resolution, the resolution should be as small as possible
+   2. randomly sample as dense as possible
+   3. discretize the space in multiple resolution
+   4. incrementally change the discrete space according to the tamp state?
+
+#### idtmp task planner
+
+1. very quick to find a candidate solution when there is in current horizon, but very slow to prove there is no solution when in a long horizon. Therefore, for a very long horizon task it's better to locate the target horizon where candidate solution is rather than iteratively deepening the horizon.
+2. to locate the horizon quicker: using a discrete space as small as possible to represent the continuous space, when the target horizon is found, then resample the conitnuous space with a resonable discretization step
+
 ### Implementation
 
 #### Framework
@@ -463,8 +486,6 @@ data flow
 - <a name="e4">e4 </a>
 - <a name="e4">e4 </a>
 - <a name="e4">e4 </a>
-- <a name="e4">e4 </a>
-- 
 
 ### TODO
 

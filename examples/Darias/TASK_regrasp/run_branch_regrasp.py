@@ -226,7 +226,7 @@ def get_pddlstream_problem(scn):
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
 
-    return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
+    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
 
 
 #######################################################
@@ -262,7 +262,7 @@ def main(display=True, teleport=False, use_bo=0, visualization=1, new_problem=1,
                                stream_info, scn, use_bo=use_bo)
     selected_branch = PlannerUCT(skeleton_env)
 
-    concrete_plan = selected_branch.think(500, visual_UCT)
+    concrete_plan = selected_branch.think(500, visual_UCT=1)
 
     sk_visits = selected_branch.visits
 
@@ -297,7 +297,7 @@ def main(display=True, teleport=False, use_bo=0, visualization=1, new_problem=1,
     return sk_visits
 
 
-def test(visualization=0, num_rep=100):
+def test(visualization=0, num_rep=50):
     visual_UCT = 0
     new_problem = 1
     connect(use_gui=visualization)
@@ -339,7 +339,7 @@ def test(visualization=0, num_rep=100):
                                 stream_info, scn, use_bo=0)
         
         selected_branch = PlannerUCT(skeleton_env)
-        concrete_plan = selected_branch.think(900, visual_UCT)
+        concrete_plan = selected_branch.think(200, visual_UCT)
         mcts_timer.stop()
 
         sk_visits = selected_branch.visits
@@ -378,5 +378,5 @@ def test(visualization=0, num_rep=100):
     return sk_visits
 
 if __name__ == '__main__':
-    test()
-    # main()
+    # test()
+    main()

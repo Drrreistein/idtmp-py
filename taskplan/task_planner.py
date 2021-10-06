@@ -19,7 +19,6 @@ class TaskPlanner(object):
         self.task = translate.pddl.open_file(problem, domain)
         self.max_horizon = max_horizon
         self.encoder = encoder.EncoderSMT(self.task, modifier.LinearModifier())
-
         self.search = search.SearchSMT(self.encoder, ub=max_horizon)
         self.horizon = start_horizon
         self.solver = z3.Solver()
@@ -41,15 +40,16 @@ class TaskPlanner(object):
             return None
         self.model = self.solver.model()
         self.solution = plan.Plan(self.model, self.encoder)
-
         return self.solution.plan
 
     @Timer(name='tp_formulation', text='')
-    def incremental(self):
-        self.horizon += 1
+    def incremental(self, step=1):
+        self.horizon += step
         if self.horizon > self.max_horizon:
             return False
-        self.formula =  self.encoder.encode(self.horizon)
+        # t0 = time.time()
+        self.formula = self.encoder.incrmental(self.horizon)
+        # print(f"incremental formulation time: {time.time()-t0}")
         return True
 
     @Timer(name='tp_modeling', text='')

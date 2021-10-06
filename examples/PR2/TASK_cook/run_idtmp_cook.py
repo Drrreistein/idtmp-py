@@ -23,7 +23,7 @@ logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
-RESOLUTION = 0.15
+RESOLUTION = 0.3
 MOTION_TIMEOUT = 200
 
 class DomainSemantics(object):
@@ -66,7 +66,6 @@ class DomainSemantics(object):
         self.rm = Robot(self.robot)
         self.kin = Kinematics(self.rm)
         self.vis = Visualizer()
-
 
     def plan_base_motion(self, goal_conf, attachment=[]):
         raw_path = pp.plan_joint_motion(self.robot, self.base_joints, goal_conf, attachments=[],
@@ -323,6 +322,10 @@ class PDDLProblem(object):
         self.goal.append(['handempty'])
         self.goal.append(['cooked', 'box1'])
         self.goal.append(['cooked', 'box2'])
+        self.goal.append(['cooked', 'box3'])
+        self.goal.append(['cooked', 'box4'])
+        self.goal.append(['cooked', 'box5'])
+
 
         # ontable = ['or']
         # for loc in self.objects['location']:
@@ -367,18 +370,16 @@ def main():
     problem = PDDLProblem(scn, parser.domain_name)
     parser.dump_problem(problem, problem_filename)
     logger.info(f"problem.pddl dumped")
-    embed()
     # initial domain semantics
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
 
     # IDTMP
     tp_total_time.start()
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=14)
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=29, max_horizon=40)
     tp.incremental()
     tp.modeling()
     tp_total_time.stop()
-
     tm_plan = None
     t00 = time.time()
     while tm_plan is None:
@@ -390,17 +391,31 @@ def main():
             if t_plan is None:
                 logger.warning(f"task plan not found in horizon: {tp.horizon}")
                 print(f'')
+                # if tp.horizon<19:
+                num_constraints = 0
+                for k, v, in tp.formula.items():
+                    if k != 'goal':
+                        num_constraints += len(v)
+                print(f'ground_actions: {len(tp.encoder.action_variables)*len(tp.encoder.action_variables[0])}')
+                print(f'ground_states: {len(tp.encoder.boolean_variables)*len(tp.encoder.boolean_variables[0])}')
+                print(f'number_constraints: {num_constraints}')
+                # else:
+                #     embed()
                 tp_total_time.start()
                 tp.incremental()
                 tp.modeling()
+
                 tp_total_time.stop()
                 logger.info(f"search task plan in horizon: {tp.horizon}")
-                global MOTION_TIMEOUT 
+                global MOTION_TIMEOUT
                 MOTION_TIMEOUT += 10
-
+                print(f"all timers: {tp_total_time.timers}")
+                
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
+
+        embed()
 
         # ------------------- motion plan ---------------------
         mp_total_time.start()
@@ -433,7 +448,7 @@ def main():
 
     pu.disconnect()
 
-def test(visualization=True, rep=20):
+def test(visualization=False, rep=50):
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
     mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
     total_time = 0
@@ -508,6 +523,6 @@ def test(visualization=True, rep=20):
         print(f"task plan counter: {tp.counter}")
 
 if __name__=="__main__":
-    test(int(sys.argv[1]), int(sys.argv[2]))
-    # main()
+    # test()
+    main()
 

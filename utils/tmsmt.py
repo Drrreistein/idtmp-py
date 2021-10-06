@@ -10,17 +10,17 @@ logger = logging.getLogger('tmsmt')
 motion_timeout = 5
 operator_bindings = dict()
 
-def mangle(*args):
+def mangle(*args, symbol='__'):
     s = ''
     for a in args:
         if s=='':
             s += str(a)
         else:
-            s += '__' + str(a)
+            s += symbol + str(a)
     return s
 
-def demangle(s):
-    return s.split(sep='__')
+def demangle(s, symbol='__'):
+    return s.split(sep=symbol)
 
 def plan(operator):
     """

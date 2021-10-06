@@ -215,7 +215,6 @@ class Encoder():
                     var_name = utils.varNameFromBFluent(fluent)
                     self.boolean_variables[step][var_name] = Bool('{}_{}'.format(var_name,step))
 
-
         # Create arithmetic variables for numeric fluents
         self.numeric_variables = defaultdict(dict)
         for step in range(self.horizon+1):
@@ -224,9 +223,6 @@ class Encoder():
                 if not fluent.symbol.startswith('derived!'):
                     var_name = utils.varNameFromNFluent(fluent)
                     self.numeric_variables[step][var_name] = Real('{}_{}'.format(var_name,step))
-
-
-
 
         # Create propositional variables for actions
         self.action_variables = defaultdict(dict)
@@ -372,7 +368,7 @@ class Encoder():
 
         return goal
 
-    def encodeActions(self):
+    def encodeActions(self, start_horizon=0):
         """!
         Encodes universal axioms: each action variable implies its preconditions and effects.
 
@@ -382,9 +378,8 @@ class Encoder():
 
         actions = []
 
-        for step in range(self.horizon):
+        for step in range(start_horizon, self.horizon):
             for action in self.actions:
-
                 # Encode preconditions
                 for pre in action.condition:
                     if utils.isBoolFluent(pre):
@@ -471,7 +466,7 @@ class Encoder():
 
         return actions
 
-    def encodeFrame(self):
+    def encodeFrame(self, start_horizon=0):
         """!
         Encode explanatory frame axioms: a predicate retains its value unless
         it is modified by the effects of an action.
@@ -487,7 +482,7 @@ class Encoder():
 
         sentinel = object()
 
-        for step in range(self.horizon):
+        for step in range(start_horizon, self.horizon):
             # Encode frame axioms for boolean fluents
             for fluent in self.boolean_fluents:
                 var_name = utils.varNameFromBFluent(fluent)
@@ -543,7 +538,7 @@ class Encoder():
         except:
             return self.modifier.do_encode(self.action_variables, self.mutexes, self.horizon)
 
-    def encode(self,horizon):
+    def encode(self, horizon):
         """
         Basic method to build bounded encoding.
 
@@ -869,29 +864,70 @@ class EncoderSMT(Encoder):
 
         # Start encoding formula
 
-        formula = defaultdict(list)
+        self.formula = defaultdict(list)
 
         # Encode initial state axioms
-        formula['initial'] = self.encodeInitialState()
+        self.formula['initial'] = self.encodeInitialState()
 
         # Encode goal state axioms
-        formula['goal'] = self.encodeGoalState()
+        self.formula['goal'] = self.encodeGoalState()
 
         # Encode universal axioms
-
-        formula['actions'] = self.encodeActions()
+        self.formula['actions'] = self.encodeActions()
 
         # Encode explanatory frame axioms
-        formula['frame'] = self.encodeFrame()
+        self.formula['frame'] = self.encodeFrame()
 
         # Encode execution semantics (lin/par)
 
-        formula['sem'] = self.encodeExecutionSemantics()
+        self.formula['sem'] = self.encodeExecutionSemantics()
 
-        return formula
+        return self.formula
 
+    def incrmental(self, horizon=None):
+        last_horizon = self.horizon
+        if horizon is None:
+            self.horizon += 1
+        else:
+            assert horizon>self.horizon, 'current horizon should bigger than last one'
+            self.horizon = horizon
 
+        # from codetiming import Timer
+        # t_creat_variables = Timer('create_variables', text='')
+        # t_encode_goal = Timer('encode_goal', text='')
+        # t_encode_sem = Timer('encode_sem', text='')
+        # t_encode_frame = Timer('encoe_frame', text='')
+        # t_encode_actions = Timer('encode_actions', text='')
+        # timers = [t_creat_variables, t_encode_goal, t_encode_actions, t_encode_goal, t_encode_sem]
+        # for t in timers:
+        #     t.reset()
 
+        # t_creat_variables.start()
+        self.createVariables()
+        # t_creat_variables.stop()
+
+        # encode goal
+        self.formula['goal'] = self.encodeGoalState()
+
+        # encode execution semantics
+        # t_encode_sem.start()
+        for step in range(last_horizon, self.horizon):
+            pbc = [(var,1) for var in self.action_variables[step].values()]
+            self.formula['sem'].append(PbLe(pbc,1))
+        # t_encode_sem.stop()
+
+        # encode explanatory frame axioms
+        # t_encode_frame.start()
+        self.formula['frame'] += self.encodeFrame(last_horizon)
+        # t_encode_frame.stop()
+
+        # Encode universal axioms
+        # t_encode_actions.start()
+        self.formula['action'] += self.encodeActions(last_horizon)
+        # t_encode_actions.stop()
+
+        # print(f"all timers {t_encode_sem.timers}")
+        return self.formula
 
 class EncoderOMT(Encoder):
     """

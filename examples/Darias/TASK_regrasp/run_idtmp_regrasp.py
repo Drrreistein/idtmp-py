@@ -325,8 +325,8 @@ def main():
                 goal_constraints = problem.update_goal_in_formula(tp.encoder)
                 tp.formula['goal'] = goal_constraints
                 tp.modeling()
-                global MOTION_TIMEOUT
-                MOTION_TIMEOUT += 5
+                # global MOTION_TIMEOUT
+                # MOTION_TIMEOUT += 5
                 logger.info(f"search task plan in horizon: {tp.horizon}")
         tp_total_time.stop()
 

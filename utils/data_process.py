@@ -121,6 +121,19 @@ def txt_to_pandas(file_list):
     data_pd = pd.DataFrame(dataset)
     return data_pd
 
+def txt_to_dict(file_list):
+    dataset = defaultdict(list)
+    for file_name in file_list:
+        with open(file_name, 'r') as f:
+            for s in f:
+                s_list=s.split()
+                dataset[s_list[0]].append(auto_convert_num(s_list[1]))
+        
+    for k, v in dataset.items():
+        print(k, len(v))
+
+    return dataset
+
 def box_plot(data_pd):
 
     indices = list(data_pd.axes[1])

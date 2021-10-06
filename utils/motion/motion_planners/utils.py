@@ -4,7 +4,7 @@ import time
 
 INF = float('inf')
 
-RRT_ITERATIONS = 20
+RRT_ITERATIONS = 500
 RRT_RESTARTS = 2
 RRT_SMOOTHING = 20
 

@@ -366,7 +366,7 @@ class PlanningScenario3(object):
                 set_pose(self.bd_body['box_S1'], Pose(Point(x=-0.02, y=0.72, z=0.1)))
                 set_pose(self.bd_body['box_S2'], Pose(Point(x=-0.02, y=1.08, z=0.1)))
                 set_pose(self.bd_body['box_S3'], Pose(Point(x=0.14, y=0.9, z=0.1)))
-                set_pose(self.bd_body['box_S4'], Pose(Point(x=0.49, y=0.95, z=0.1)))
+                set_pose(self.bd_body['box_S4'], Pose(Point(x=0.49, y=0.95, z=-0.1)))
 
                 set_camera(160, -35, 1.8, Point())
 

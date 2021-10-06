@@ -174,15 +174,17 @@ class Plan():
         max_step = max(encoder.boolean_variables.keys())
         failed_action = encoder.action_variables[failed_step][plan[failed_step]]
 
+        action_str = str(failed_action)[:str(failed_action).rfind('_')]
+
         horizon_state = []
         horizon_action = []
-        action_str = str(failed_action)[:-2]
         for i in range(max_step):
             horizon_state.append([])
             horizon_action.append(encoder.action_variables[int(i)][action_str])
 
         for s in encoder.boolean_variables[failed_step].values():
-            state_str = str(s)[:-2]
+            # state_str = str(s)[:-2]
+            state_str = str(s)[:str(s).rfind('_')]
             for i in range(max_step):
                 if model[s]:
                     horizon_state[i].append(encoder.boolean_variables[int(i)][state_str])
