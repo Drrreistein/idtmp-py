@@ -6,7 +6,7 @@ import logging
 from logging_utils import ColoredLogger
 logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('tmsmt')
-
+from plan_cache import PlanCache
 motion_timeout = 5
 operator_bindings = dict()
 
@@ -96,6 +96,7 @@ def motion_refiner(task_plan:dict):
     """
     validate task planner in motion refiner
     """
+        
     paths = []
     for id, op in task_plan.items():
         op = op[1:-1]
@@ -106,7 +107,7 @@ def motion_refiner(task_plan:dict):
             # logger.error("motion refining failed")
             logger.error(f"failed operator:{id}, {op}")
             print(f"failed operator:{id}, {op}")
-            return False, id
+            return False, paths, id
         else:
-            paths.append(path)
-    return True, paths
+            paths.append(tuple(path))
+    return True, paths, 0

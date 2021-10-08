@@ -2,6 +2,8 @@ from IPython import embed
 import os, sys, time, re
 
 from codetiming import Timer
+from plan_cache import PlanCache
+from copy import deepcopy
 
 import tmsmt as tm
 import numpy as np
@@ -12,7 +14,7 @@ import pybullet as p
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
-from build_scenario import PlanningScenario, PlanningScenario_twolayers
+from build_scenario import PlanningScenario, PlanningScenario_twolayers, PlanningScenario9b
 from task_planner import TaskPlanner
 
 from logging_utils import *
@@ -21,7 +23,7 @@ logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
 RESOLUTION = 0.1
-MOTION_ITERATION = 500
+MOTION_ITERATION = 200
 
 class DomainSemantics(object):
     def __init__(self, scene):
@@ -240,14 +242,39 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind], attachments=attachment)])
         elif 'pick-up' == tp_list[0]:
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind])])
-        cmd.execute()
+        cmd.execute(time_step=0.01)
     time.sleep(1)
 
+def SetState(scn, task_plan, motion_plan):
+    robot = scn.robots[0]
+    ind = -1
+    for _,tp in task_plan.items():
+        ind += 1
+        if ind>=len(motion_plan):
+            break
+        path = [motion_plan[ind][0], motion_plan[ind][-1]]
+        tp_list = re.split(' |__', tp[1:-1])
+        if 'put-down' == tp_list[0]:
+            end_effector_link = pu.link_from_name(robot, pk.TOOL_FRAMES[pu.get_body_name(robot)])
+            body = scn.bd_body[tp_list[1]]
+            body_pose = pu.get_pose(body)
+            tcp_pose = pu.get_link_pose(robot, end_effector_link)
+            grasp_pose = pu.multiply(pu.invert(tcp_pose), body_pose)
+            # grasp_pose = ((0,0,0.035),(1,0,0,0))
+            approach_pose = (( 0. ,  0. , -0.02), (0.0, 0.0, 0.0, 1.0))
+            grasp = pk.BodyGrasp(body, grasp_pose, approach_pose, robot, attach_link=end_effector_link)
+            attachment = [grasp.attachment()]
+            cmd = pk.Command([pk.BodyPath(robot, path, attachments=attachment)])
+        elif 'pick-up' == tp_list[0]:
+            cmd = pk.Command([pk.BodyPath(robot, path)])
+        cmd.execute()
+    
 def simulation(visualization=1):
 
     # visualization = True
     pu.connect(use_gui=visualization)
-    scn = PlanningScenario_twolayers()
+    # scn = PlanningScenario_twolayers()
+    scn = PlanningScenario()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
@@ -260,7 +287,7 @@ def simulation(visualization=1):
 
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
-    embed()
+
     # IDTMP
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
     mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
@@ -297,19 +324,121 @@ def simulation(visualization=1):
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
+
         # ------------------- motion plan ---------------------
         mp_total_time.start()
-        res, m_plan = tm.motion_refiner(t_plan)
+        res, m_plan, failed_step = tm.motion_refiner(t_plan)
         mp_total_time.stop()
         scn.reset()
         if res:
             logger.info(f"task and motion plan found")
             break
-        else: 
+        else:
             logger.warning(f"motion refine failed")
             logger.info(f'')
             tp_total_time.start()
-            tp.add_constraint(m_plan, typ='general', cumulative=False)
+            tp.add_constraint(failed_step, typ='general', cumulative=False)
+            tp_total_time.stop()
+            t_plan = None
+
+    all_timers = tp_total_time.timers
+    print(all_timers)
+    total_time = time.time()-t00
+    print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
+    print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
+    print(f"total planning time: {total_time}")
+    print(f"task plan counter: {tp.counter}")
+    os.system('spd-say -t female2 "hi lei simulation done"')
+    embed()
+
+    while True:
+        ExecutePlanNaive(scn, t_plan, m_plan)
+        scn.reset()
+        time.sleep(1)
+
+    pu.disconnect()
+
+def simulation_plancache(visualization=1):
+
+    # visualization = True
+    pu.connect(use_gui=visualization)
+    # scn = PlanningScenario_twolayers()
+    scn = PlanningScenario9b()
+    parser = PDDL_Parser()
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
+    
+    parser.parse_domain(domain_filename)
+    domain_name = parser.domain_name
+    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+    problem = PDDLProblem(scn, parser.domain_name)
+    parser.dump_problem(problem, problem_filename)
+
+    domain_semantics = UnpackDomainSemantics(scn)
+    domain_semantics.activate()
+
+    # IDTMP
+    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
+    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+
+    tp_total_time.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=17, max_horizon=19)
+    tp.incremental()
+    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+    tp.formula['goal'] = goal_constraints
+    tp.modeling()
+
+    tp_total_time.stop()
+
+    tm_plan = None
+    t00 = time.time()
+    path_cache = PlanCache()
+    while tm_plan is None:
+        # ------------------- task plan ---------------------
+        t_plan = None
+        tp_total_time.start()
+        while t_plan is None:
+            t_plan = tp.search_plan()
+            if t_plan is None:
+                logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                print(f'')
+                tp.incremental()
+                goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+                tp.formula['goal'] = goal_constraints
+                tp.modeling()
+                logger.info(f"search task plan in horizon: {tp.horizon}")
+                global MOTION_ITERATION
+                MOTION_ITERATION += 10
+        tp_total_time.stop()
+
+        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        for h,p in t_plan.items():
+            logger.info(f"{h}: {p}")
+
+        # ------------------- motion plan ---------------------
+        mp_total_time.start()
+        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        if depth>=0:
+            t_plan_to_validate = deepcopy(t_plan)
+            for _ in range(depth+1):
+                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+            print('found plan prefixed')
+            SetState(scn, t_plan, prefix_m_plans)
+            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            m_plan = prefix_m_plans + post_m_plan
+        else:
+            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        mp_total_time.stop()
+        scn.reset()
+        if res:
+            logger.info(f"task and motion plan found")
+            break
+        else:
+            path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
+            logger.warning(f"motion refine failed")
+            logger.info(f'')
+            tp_total_time.start()
+            tp.add_constraint(failed_step, typ='general', cumulative=False)
             tp_total_time.stop()
             t_plan = None
 
@@ -420,7 +549,9 @@ def multi_sims(visulization):
     pu.disconnect()
 
 if __name__=="__main__":
-    simulation()
+    # simulation()
+
+    simulation_plancache()
 
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])

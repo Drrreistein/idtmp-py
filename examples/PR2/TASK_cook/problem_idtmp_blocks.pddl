@@ -1,4 +1,4 @@
-;21:48:24 05/10
+;19:29:02 07/10
 
 (define (problem clean-and-cook)
    (:domain blocks)
@@ -68,9 +68,6 @@
         (handempty)
         (cooked box1)
         (cooked box2)
-        (cooked box3)
-        (cooked box4)
-        (cooked box5)
    ))
 
 )

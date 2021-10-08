@@ -205,8 +205,11 @@ def get_pddlstream_problem(scn):
                    'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
                    }
 
-    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn, resolution=0.05), every_layer=15,
-                                              free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+    stream_info_discret = {
+                    # 'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn, resolution=0.1), every_layer=15,
+                    #                           free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                    'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn, resolution=0.1), every_layer=15,
+                                              free_generator=True, discrete=False, p1=list(range(9)), p2=list(np.ones(9))),
                    'sample-stack': StreamInfo(seed_gen_fn=sdg_sample_stack_discret(all_bodies), every_layer=15,
                                               free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
                    'sample-grasp-dir': StreamInfo(seed_gen_fn=sdg_sample_grasp_dir_discret(robot, scn.dic_body_info),
@@ -226,7 +229,7 @@ def get_pddlstream_problem(scn):
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
 
-    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
+    return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
 
 
 #######################################################
@@ -262,7 +265,7 @@ def main(display=True, teleport=False, use_bo=0, visualization=1, new_problem=1,
                                stream_info, scn, use_bo=use_bo)
     selected_branch = PlannerUCT(skeleton_env)
 
-    concrete_plan = selected_branch.think(500, visual_UCT=1)
+    concrete_plan = selected_branch.think(500, show_tree_nodes=1)
 
     sk_visits = selected_branch.visits
 
@@ -378,5 +381,5 @@ def test(visualization=0, num_rep=50):
     return sk_visits
 
 if __name__ == '__main__':
-    # test()
-    main()
+    test()
+    # main()

@@ -439,6 +439,12 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 1. very quick to find a candidate solution when there is in current horizon, but very slow to prove there is no solution when in a long horizon. Therefore, for a very long horizon task it's better to locate the target horizon where candidate solution is rather than iteratively deepening the horizon.
 2. to locate the horizon quicker: using a discrete space as small as possible to represent the continuous space, when the target horizon is found, then resample the conitnuous space with a resonable discretization step
 
+#### idtmp improvement
+
+1. when task planning in specific horizon failed, increase horizon, motion-timeout and discretization space simutanously to ensure probabilistic completeness.
+2. for the sake of efficiency, start the task planner from deeper horizon not necessarily from  the very beginning based on engineering experience or run task planner with smallest discretization space.
+3. reuse the motion refining result, when an action in task plan is validated as feasible. e.g. organise the motion result in a tree, in which the node should be represented as (state $s$, action $a$, path $p$)
+
 ### Implementation
 
 #### Framework
@@ -469,7 +475,13 @@ data flow
   - duplicate for different steps, may save failed solutions in set,in order to avoid checking same solution latter 
 - [ ] There is still com valid solution in step 2 phase, but SMT solver could not find it in time and then jump to deeper step
 
+#### code improvement
 
+1. task planner is able to encode disconjunction goal
+2. reorganize the main code just the same as the pseudo-code of idtmp
+3. use the self-written pybullet interface
+4. update the motion failed constraints to collision objects constraints
+5. collision_check in task_cook
 
 ### Reference
 

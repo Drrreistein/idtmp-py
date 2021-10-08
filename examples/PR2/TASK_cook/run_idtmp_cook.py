@@ -3,10 +3,12 @@ from IPython import embed
 import os, sys, time, re
 import pickle
 from prompt_toolkit.filters import app
+from plan_cache import PlanCache
 
 import tmsmt as tm
 import numpy as np
 from codetiming import Timer
+from copy import deepcopy
 
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet as p
@@ -322,9 +324,9 @@ class PDDLProblem(object):
         self.goal.append(['handempty'])
         self.goal.append(['cooked', 'box1'])
         self.goal.append(['cooked', 'box2'])
-        self.goal.append(['cooked', 'box3'])
-        self.goal.append(['cooked', 'box4'])
-        self.goal.append(['cooked', 'box5'])
+        # self.goal.append(['cooked', 'box3'])
+        # self.goal.append(['cooked', 'box4'])
+        # self.goal.append(['cooked', 'box5'])
 
 
         # ontable = ['or']
@@ -352,6 +354,25 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
                 time.sleep(0.1)
     time.sleep(1)
     scn.reset()
+
+def SetState(scn, task_plan, motion_plan):
+    robot = scn.robots[0]
+    ind = -1
+    for _,tp in task_plan.items():
+        ind += 1
+        if ind>=len(motion_plan):
+            path = [motion_plan[ind][0], motion_plan[ind][-1]]
+        tp_list = re.split(' |__', tp[1:-1])
+        if 'put-down' == tp_list[0] or 'pick-up' == tp_list[0]:
+            cmd = pk.Command(path)
+            cmd.execute()
+        else:
+            [a, body, region, i,j] = tp_list
+            target_color = p.getVisualShapeData(scn.bd_body[region])[0][-1]
+            body_color = p.getVisualShapeData(scn.bd_body[body])[0][-1]
+            colors = np.linspace(body_color, target_color, 10)
+            for c in colors:
+                pu.set_color(scn.bd_body[body], c)
 
 def main():
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
@@ -448,7 +469,113 @@ def main():
 
     pu.disconnect()
 
-def test(visualization=False, rep=50):
+def sim_plancache():
+    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
+    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+    total_time = 0
+
+    visualization = True
+    pu.connect(use_gui=visualization)
+    scn = PlanningScenario()
+    parser = PDDL_Parser()
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    domain_filename = os.path.join(dirname, 'domain_idtmp_cook.pddl')
+    parser.parse_domain(domain_filename)
+    domain_name = parser.domain_name
+    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+    problem = PDDLProblem(scn, parser.domain_name)
+    parser.dump_problem(problem, problem_filename)
+    logger.info(f"problem.pddl dumped")
+    # initial domain semantics
+    domain_semantics = UnpackDomainSemantics(scn)
+    domain_semantics.activate()
+
+    # IDTMP
+    tp_total_time.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=40)
+    tp.incremental()
+    tp.modeling()
+    tp_total_time.stop()
+    tm_plan = None
+    t00 = time.time()
+    path_cache = PlanCache()
+    while tm_plan is None:
+        # ------------------- task plan ---------------------
+        t0 = time.time()
+        t_plan = None
+        while t_plan is None:
+            t_plan = tp.search_plan()
+            if t_plan is None:
+                logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                print(f'')
+                # if tp.horizon<19:
+                num_constraints = 0
+                for k, v, in tp.formula.items():
+                    if k != 'goal':
+                        num_constraints += len(v)
+                print(f'ground_actions: {len(tp.encoder.action_variables)*len(tp.encoder.action_variables[0])}')
+                print(f'ground_states: {len(tp.encoder.boolean_variables)*len(tp.encoder.boolean_variables[0])}')
+                print(f'number_constraints: {num_constraints}')
+                # else:
+                #     embed()
+                tp_total_time.start()
+                tp.incremental()
+                tp.modeling()
+
+                tp_total_time.stop()
+                logger.info(f"search task plan in horizon: {tp.horizon}")
+                global MOTION_TIMEOUT
+                MOTION_TIMEOUT += 10
+                print(f"all timers: {tp_total_time.timers}")
+                
+        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        for h,p in t_plan.items():
+            logger.info(f"{h}: {p}")
+
+        embed()
+        # ------------------- motion plan ---------------------
+        mp_total_time.start()
+        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        if depth>=0:
+            t_plan_to_validate = deepcopy(t_plan)
+            for _ in range(depth+1):
+                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+            print('found plan prefixed')
+            SetState(scn, t_plan, prefix_m_plans)
+            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            m_plan = prefix_m_plans + post_m_plan
+        else:
+            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        mp_total_time.stop()
+        scn.reset()
+        if res:
+            logger.info(f"task and motion plan found")
+            break
+        else:
+            path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
+            logger.warning(f"motion refine failed")
+            logger.info(f'')
+            tp_total_time.start()
+            tp.add_constraint(failed_step, typ='general', cumulative=False)
+            tp_total_time.stop()
+            t_plan = None
+
+    total_time = time.time()-t00
+    all_timers = tp_total_time.timers
+    print(f"all timers: {all_timers}")
+    print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
+    print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
+    print(f"total planning time: {total_time}")
+    print(f"task plan counter: {tp.counter}")
+
+    embed()
+    while True:
+        ExecutePlanNaive(scn, t_plan, m_plan)
+        time.sleep(1)
+
+    pu.disconnect()
+
+def multisim(visualization=False, rep=50):
     tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
     mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
     total_time = 0
@@ -523,6 +650,7 @@ def test(visualization=False, rep=50):
         print(f"task plan counter: {tp.counter}")
 
 if __name__=="__main__":
+    sim_plancache()
     # test()
     main()
 
