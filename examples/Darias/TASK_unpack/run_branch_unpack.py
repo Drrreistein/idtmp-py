@@ -10,6 +10,7 @@ from IPython import embed
 import time
 from etamp.actions import ActionInfo
 from etamp.stream import StreamInfo
+from motion.motion_planners.rrt import rrt
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Command, sdg_sample_place, sdg_sample_grasp_dir, \
     sdg_sample_grasp, sdg_ik_grasp, sdg_plan_free_motion, \
     sdg_plan_holding_motion, sdg_sample_stack, Register
@@ -67,7 +68,6 @@ def extract_motion(action_plan):
     print(list_motion)
     print('----------------------------------')
     return list_motion
-
 
 def move_cost_fn(*args):
     """
@@ -146,7 +146,7 @@ def play_commands(commands):
 
 #######################################################
 
-def get_pddlstream_problem(scn):
+def get_pddlstream_problem(scn, discret=False):
     # assert (not are_colliding(tree, kin_cache))
     robot = scn.robots[0]
     movable = scn.movable_bodies
@@ -201,8 +201,11 @@ def get_pddlstream_problem(scn):
                    'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
                    }
 
-    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
-                                              free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+    stream_info_discret = {
+                    # 'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
+                    #                           free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                    'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
+                                              free_generator=True, discrete=True, p1=list(range(9)), p2=list(np.ones(9))),
                    'sample-stack': StreamInfo(seed_gen_fn=sdg_sample_stack_discret(all_bodies), every_layer=15,
                                               free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
                    'sample-grasp-dir': StreamInfo(seed_gen_fn=sdg_sample_grasp_dir_discret(robot, scn.dic_body_info),
@@ -212,18 +215,19 @@ def get_pddlstream_problem(scn):
                                                   p2=[10]),
                    'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp_discret(robot)),
                    'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(robot, scn.all_bodies)),
-                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies)),
-                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
+                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies, rrt_iteration=20)),
+                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies, rrt_iteration=20)),
                    }
-                   
 
     action_info = {'move_free': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=move_cost_fn),
                    'move_holding': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=move_cost_fn),
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
-    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
+    if discret:
+        return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
 
+    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
 
 #######################################################
 
@@ -294,7 +298,7 @@ def main(display=True, teleport=False):
     print('Finished.')
 
 
-def test(visualization=0, num_rep=100):
+def test(visualization=0, num_rep=50):
     connect(use_gui=visualization)
 
     scn = PlanningScenario()
@@ -307,12 +311,12 @@ def test(visualization=0, num_rep=100):
     
     from codetiming import Timer
     task_planning_timer = Timer(name='task_planning_timer', text='')
-    mcts_timer = Timer(name='mcts_timer', text='')
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='')
     
     for i in range(num_rep):
 
         task_planning_timer.reset()
-        mcts_timer.reset()
+        motion_refiner_timer.reset()
 
         st = time.time()
         new_problem = 1
@@ -327,7 +331,7 @@ def test(visualization=0, num_rep=100):
                 op_plan = pk.load(f)
         assert op_plan is not None
 
-        mcts_timer.start()
+        motion_refiner_timer.start()
         e_root = ExtendedNode()
         skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
                                 get_update_env_reward_fn(scn, action_info),
@@ -335,7 +339,7 @@ def test(visualization=0, num_rep=100):
         selected_branch = PlannerUCT(skeleton_env)
 
         concrete_plan = selected_branch.think(900, 0)
-        mcts_timer.stop()
+        motion_refiner_timer.stop()
 
         if concrete_plan is None:
             print('TAMP is failed.', concrete_plan)
@@ -345,9 +349,9 @@ def test(visualization=0, num_rep=100):
         print(f"################################ display time ################################")
         all_timers = task_planning_timer.timers
         print(f'task_planning_time {all_timers[task_planning_timer.name]}')
-        print(f'mcts_time {all_timers[mcts_timer.name]}')
+        print(f'motion_refiner_time {all_timers[motion_refiner_timer.name]}')
         print(f'total_planning_time {total_planning_time}')
-        print(f"visits {selected_branch.visits}")
+        print(f"final_visits {selected_branch.visits}")
         saved_world.restore()
 
     exe_plan = None
@@ -376,5 +380,5 @@ def test(visualization=0, num_rep=100):
     print('Finished.')
 
 if __name__ == '__main__':
-    test()
-    # main()
+    # test()
+    main()

@@ -4,10 +4,13 @@
 import sys
 import os.path
 import re
-
 import parser_custom
 
 import tasks
+
+# from . import parser_custom
+
+# from . import tasks
 from IPython import embed
 def parse_pddl_file(type, filename):
   try:

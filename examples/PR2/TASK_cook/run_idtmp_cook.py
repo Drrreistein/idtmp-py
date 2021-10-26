@@ -3,6 +3,7 @@ from IPython import embed
 import os, sys, time, re
 import pickle
 from prompt_toolkit.filters import app
+from motion.motion_planners.utils import take
 from plan_cache import PlanCache
 
 import tmsmt as tm
@@ -18,15 +19,15 @@ import pybullet_tools.pr2_primitives as pp
 import pybullet_tools.pr2_utils as ppu
 from build_scenario import PlanningScenario
 from task_planner import TaskPlanner
-from pybullet_manipulator import *
+# from pybullet_manipulator import *
 
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
-RESOLUTION = 0.3
-MOTION_TIMEOUT = 200
+RESOLUTION = 0.1
+MOTION_ITERATION = 200
 
 class DomainSemantics(object):
     def __init__(self, scene):
@@ -51,7 +52,9 @@ class DomainSemantics(object):
         self.custom_limits = []
 
         self.base_lower_limits, self.base_upper_limits = pp.get_custom_limits(self.robot, self.base_joints, self.custom_limits)
-        self.arm_lower_limits, self.arm_upper_limits = pp.get_custom_limits(self.robot, self.arm_joints, self.custom_limits)
+        self.arm_joints_limits = pp.get_custom_limits(self.robot, self.arm_joints, self.custom_limits)
+        self.arm_lower_limits, self.arm_upper_limits = self.arm_joints_limits
+
         self.disabled_collision_pairs={}
         self.sample_fn = pp.get_sample_fn(self.robot, self.arm_joints)
         self.arm_link = pp.get_gripper_link(self.robot, self.arm)
@@ -64,14 +67,9 @@ class DomainSemantics(object):
         self.sub_robot = pu.clone_body(self.robot, links=self.selected_links, visual=False, collision=False)  # TODO: joint limits
         self.sub_movable_joints = pu.get_movable_joints(self.sub_robot)
 
-        # use the self defined pybullet interface
-        self.rm = Robot(self.robot)
-        self.kin = Kinematics(self.rm)
-        self.vis = Visualizer()
-
-    def plan_base_motion(self, goal_conf, attachment=[]):
-        raw_path = pp.plan_joint_motion(self.robot, self.base_joints, goal_conf, attachments=[],
-                                obstacles=self.base_motion_obstacles, custom_limits=self.custom_limits,
+    def plan_base_motion(self, goal_conf, obstacles, attachment=[]):
+        raw_path = pp.plan_joint_motion(self.robot, self.base_joints, goal_conf, attachments=attachment,
+                                obstacles=obstacles, custom_limits=self.custom_limits,
                                 self_collisions=pp.SELF_COLLISIONS,
                                 restarts=4, iterations=50, smooth=50)
         if raw_path is None:
@@ -79,14 +77,15 @@ class DomainSemantics(object):
         return True, raw_path
 
     def plan_arm_motion(self, goal_conf, obstacles, attachment=[]):
-        raw_path = pp.plan_joint_motion(self.robot, self.arm_joints, goal_conf, obstacles=obstacles,self_collisions=self.self_collision, 
+        raw_path = pp.plan_joint_motion(self.robot, self.arm_joints, goal_conf, obstacles=obstacles, self_collisions=self.self_collision, 
             disabled_collisions=self.disabled_collision_pairs, attachments=attachment,
-            max_distance=self.max_distance, iterations=MOTION_TIMEOUT)
+            max_distance=self.max_distance, iterations=MOTION_ITERATION)
         if raw_path is None:
             return False, None
         return True, raw_path
 
     def get_arm_IK(self, goal_pose, max_iteration=20):
+        init_conf = pu.get_joint_positions(self.robot, self.arm_joints)
         res, ik = False, None
         for _ in range(max_iteration):
             sub_kinematic_conf = pu.inverse_kinematics_helper(self.sub_robot, self.selected_target_link, goal_pose)
@@ -94,14 +93,20 @@ class DomainSemantics(object):
             pu.set_joint_positions(self.sub_robot, self.sub_movable_joints, sub_kinematic_conf)
             if pu.is_pose_close(pu.get_link_pose(self.sub_robot, self.selected_target_link), goal_pose):
                 pu.set_joint_positions(self.robot, self.selected_movable_joints, sub_kinematic_conf)
-                # logger.info(f"found ik")
                 ik = pu.get_joint_positions(self.robot, self.arm_joints)
+                if not pu.all_between(self.arm_lower_limits, ik, self.arm_upper_limits):
+                    # print(f"IK ARM: ik of goal pose not in joint limits")
+                    pu.set_joint_positions(self.robot, self.arm_joints, init_conf)
+                    return False, None
                 res = True
                 break
         return res, ik
 
+    def linear_interpolation(self, arr1, arr2, num=10):
+        arrs = np.linspace(arr1, arr2, num)
+        return [tuple(arr) for arr in arrs]
+
     def motion_plan(self, body, goal_pose, attaching=False):
-        init_conf = pp.get_joint_positions(self.robot, self.movable_joints)
 
         # attachment
         if attaching:
@@ -116,6 +121,15 @@ class DomainSemantics(object):
             obstacles = self.scn.all_bodies
             attachment = []
 
+        arm_init_conf = pp.get_joint_positions(self.robot, self.arm_joints)
+        start_pose = pu.get_link_pose(self.robot, self.end_effector_link)
+        deapproach_pose = pu.multiply(start_pose, ((-0.1,0,0),(0,0,0,1)))
+        pu.draw_pose(deapproach_pose)
+        res, deapproach_conf = self.get_arm_IK(deapproach_pose, max_iteration=20)
+        if not res:
+            return False, None
+        init_conf = pp.get_joint_positions(self.robot, self.movable_joints)
+
         self.base_collision_fn = pu.get_collision_fn(self.robot, self.base_joints, obstacles, attachment, self.self_collision, self.disabled_collision_pairs,
                                     custom_limits=self.custom_limits, max_distance=self.max_distance)
         self.arm_collision_fn = pu.get_collision_fn(self.robot, self.arm_joints, obstacles, attachment, self.self_collision, self.disabled_collision_pairs,
@@ -129,39 +143,48 @@ class DomainSemantics(object):
         pu.draw_pose(approach_pose)
         pu.draw_pose(((0,0,0),(0,0,0,1)), length=1)
         base_conf_generator = pp.learned_pose_generator(self.robot, goal_pose, arm='left',grasp_type='top')
-
         # get base and arm conf
         for base_conf in islice(base_conf_generator, 100):
-            if (not pu.all_between(self.base_lower_limits, base_conf, self.base_upper_limits)) or self.base_collision_fn(base_conf):
-                print(f"IK BASE: not in joint limits or collision checked")
+            # find ik of base
+            if not pu.all_between(self.base_lower_limits, base_conf, self.base_upper_limits):
+                print(f"IK BASE: not in joint limits")
+                pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
+                continue
+            if self.base_collision_fn(base_conf):
+                print(f"IK BASE: collision checked")
                 pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
                 continue
             pu.set_joint_positions(self.robot, self.base_joints, base_conf)
 
+            # find arm ik of goal pose
             self.sub_robot = pu.clone_body(self.robot, links=self.selected_links, visual=False, collision=False)  # TODO: joint limits
             res, arm_goal_conf = self.get_arm_IK(goal_pose, max_iteration=20)
-            if (not res) or not pu.all_between(self.arm_lower_limits, arm_goal_conf, self.arm_upper_limits):
-                print(f"IK ARM: ik of goal pose not in joint limits")
+            if (not res):
+                print(f"IK ARM: no ik found")
                 pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
                 continue
-            res, arm_approach_conf = self.get_arm_IK(approach_pose, max_iteration=20)
-            if (not res) or not pu.all_between(self.arm_lower_limits, arm_approach_conf, self.arm_upper_limits):
-                print(f"IK ARM: ik of approach pose not in joint limits")
-                pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
-                continue
-            pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
 
-            res, tmp_base_path = self.plan_base_motion(base_conf, attachment)
+            # find arm ik of approach pose
+            res, arm_approach_conf = self.get_arm_IK(approach_pose, max_iteration=20)
+            if (not res):
+                print(f"IK ARM: no ik found")
+                pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
+                continue
+
+            pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
+            # motion planning of base
+            res, tmp_base_path = self.plan_base_motion(base_conf, obstacles, attachment)
             if not res:
                 print(f"PLAN BASE: failed")
                 pu.set_joint_positions(self.robot, self.movable_joints, init_conf)
                 continue
+            pu.set_joint_positions(self.robot, self.base_joints, base_conf)
 
+            # motion planning of arm
             res, tmp_arm_path = self.plan_arm_motion(arm_approach_conf, obstacles, attachment)
-
             if res:
                 base_path = pk.BodyPath(self.robot, tmp_base_path, self.base_joints, attachments=attachment)
-                arm_path = pk.BodyPath(self.robot, tmp_arm_path+[arm_goal_conf], self.arm_joints, attachments=attachment)
+                arm_path = pk.BodyPath(self.robot, self.linear_interpolation(arm_init_conf, tmp_arm_path[0])+tmp_arm_path+self.linear_interpolation(tmp_arm_path[-1], arm_goal_conf), self.arm_joints, attachments=attachment)
                 pu.set_joint_positions(self.robot, self.base_joints, base_conf)
                 pu.set_joint_positions(self.robot, self.arm_joints, arm_goal_conf)
                 for a in attachment:
@@ -171,6 +194,7 @@ class DomainSemantics(object):
                 return True, [base_path, arm_path]
             else:
                 print(f"PLAN ARM: failed")
+
         else:
             print(f"no valid ik or path found")
             return False, None
@@ -334,7 +358,7 @@ class PDDLProblem(object):
         #     if 'region2' in loc:
         #         ontable.append(['ontable','c1',loc])
 
-def ExecutePlanNaive(scn, task_plan, motion_plan):
+def ExecutePlanNaive(scn, task_plan, motion_plan, speed=0.01):
     robot = scn.robots[0]
     ind = -1
     for _,tp in task_plan.items():
@@ -343,7 +367,7 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
         tp_list = re.split(' |__', tp[1:-1])
         if 'put-down' == tp_list[0] or 'pick-up' == tp_list[0]:
             cmd = pk.Command(motion_plan[ind])
-            cmd.execute()
+            cmd.execute(time_step=speed)
         else:
             [a, body, region, i,j] = tp_list
             target_color = p.getVisualShapeData(scn.bd_body[region])[0][-1]
@@ -361,11 +385,13 @@ def SetState(scn, task_plan, motion_plan):
     for _,tp in task_plan.items():
         ind += 1
         if ind>=len(motion_plan):
-            path = [motion_plan[ind][0], motion_plan[ind][-1]]
+            break
+        path = [motion_plan[ind][0], motion_plan[ind][-1]]
         tp_list = re.split(' |__', tp[1:-1])
         if 'put-down' == tp_list[0] or 'pick-up' == tp_list[0]:
+
             cmd = pk.Command(path)
-            cmd.execute()
+            cmd.execute(time_step=0.0001)
         else:
             [a, body, region, i,j] = tp_list
             target_color = p.getVisualShapeData(scn.bd_body[region])[0][-1]
@@ -428,15 +454,13 @@ def main():
 
                 tp_total_time.stop()
                 logger.info(f"search task plan in horizon: {tp.horizon}")
-                global MOTION_TIMEOUT
-                MOTION_TIMEOUT += 10
+                # global MOTION_ITERATION
+                # MOTION_ITERATION += 10
                 print(f"all timers: {tp_total_time.timers}")
                 
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
-
-        embed()
 
         # ------------------- motion plan ---------------------
         mp_total_time.start()
@@ -462,7 +486,6 @@ def main():
     print(f"total planning time: {total_time}")
     print(f"task plan counter: {tp.counter}")
 
-    embed()
     while True:
         ExecutePlanNaive(scn, t_plan, m_plan)
         time.sleep(1)
@@ -470,11 +493,14 @@ def main():
     pu.disconnect()
 
 def sim_plancache():
-    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
-    total_time = 0
+    task_planning_timer = Timer(name='task_planning_time', text='')
+    motion_planning_timer = Timer(name='motion_planning_time', text='')
+    total_planning_timer = Timer(name='total_planning_time', text='')
 
-    visualization = True
+    task_planning_timer.reset()
+    total_planning_timer.reset()
+    motion_planning_timer.reset()
+
     pu.connect(use_gui=visualization)
     scn = PlanningScenario()
     parser = PDDL_Parser()
@@ -491,20 +517,24 @@ def sim_plancache():
     domain_semantics.activate()
 
     # IDTMP
-    tp_total_time.start()
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=40)
+    total_planning_timer.start()
+    task_planning_timer.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=12)
     tp.incremental()
     tp.modeling()
-    tp_total_time.stop()
+    task_planning_timer.stop()
     tm_plan = None
     t00 = time.time()
     path_cache = PlanCache()
-    while tm_plan is None:
+    tamp_timeout = 1000
+    while tm_plan is None and time.time()-t00<tamp_timeout:
         # ------------------- task plan ---------------------
         t0 = time.time()
         t_plan = None
         while t_plan is None:
+            task_planning_timer.start()
             t_plan = tp.search_plan()
+            task_planning_timer.stop()
             if t_plan is None:
                 logger.warning(f"task plan not found in horizon: {tp.horizon}")
                 print(f'')
@@ -513,28 +543,29 @@ def sim_plancache():
                 for k, v, in tp.formula.items():
                     if k != 'goal':
                         num_constraints += len(v)
-                print(f'ground_actions: {len(tp.encoder.action_variables)*len(tp.encoder.action_variables[0])}')
-                print(f'ground_states: {len(tp.encoder.boolean_variables)*len(tp.encoder.boolean_variables[0])}')
-                print(f'number_constraints: {num_constraints}')
+                print(f'ground_actions {len(tp.encoder.action_variables)*len(tp.encoder.action_variables[0])}')
+                print(f'ground_states {len(tp.encoder.boolean_variables)*len(tp.encoder.boolean_variables[0])}')
+                print(f'number_constraints {num_constraints}')
                 # else:
                 #     embed()
-                tp_total_time.start()
-                tp.incremental()
+                task_planning_timer.start()
+                if not tp.incremental():
+                    task_planning_timer.stop()
+                    print(f"{tp.max_horizon} exceeding, TAMP is failed")
+                    return False
                 tp.modeling()
-
-                tp_total_time.stop()
+                task_planning_timer.stop()
                 logger.info(f"search task plan in horizon: {tp.horizon}")
-                global MOTION_TIMEOUT
-                MOTION_TIMEOUT += 10
-                print(f"all timers: {tp_total_time.timers}")
-                
+                # global MOTION_ITERATION
+                # MOTION_ITERATION += 10
+                # print(f"all timers: {task_planning_timer.timers}")
+
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
 
-        embed()
         # ------------------- motion plan ---------------------
-        mp_total_time.start()
+        motion_planning_timer.start()
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
         if depth>=0:
             t_plan_to_validate = deepcopy(t_plan)
@@ -546,7 +577,8 @@ def sim_plancache():
             m_plan = prefix_m_plans + post_m_plan
         else:
             res, m_plan, failed_step = tm.motion_refiner(t_plan)
-        mp_total_time.stop()
+        motion_planning_timer.stop()
+
         scn.reset()
         if res:
             logger.info(f"task and motion plan found")
@@ -555,29 +587,31 @@ def sim_plancache():
             path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
             logger.warning(f"motion refine failed")
             logger.info(f'')
-            tp_total_time.start()
+            task_planning_timer.start()
             tp.add_constraint(failed_step, typ='general', cumulative=False)
-            tp_total_time.stop()
+            task_planning_timer.stop()
             t_plan = None
 
-    total_time = time.time()-t00
-    all_timers = tp_total_time.timers
-    print(f"all timers: {all_timers}")
-    print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
-    print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
-    print(f"total planning time: {total_time}")
-    print(f"task plan counter: {tp.counter}")
-
-    embed()
-    while True:
-        ExecutePlanNaive(scn, t_plan, m_plan)
-        time.sleep(1)
+    if time.time()-t00>tamp_timeout:
+        total_planning_timer.stop()
+        print(f"{tamp_timeout} s Timeout, TAMP is failed")
+        return False
+    else:
+        total_planning_timer.stop()
+        all_timers = task_planning_timer.timers
+        print(f"TAMP succeed")
+        print(f"all timers: {all_timers}")
+        print("task_planning_time {:0.4f} s".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f} s".format(all_timers[motion_planning_timer.name]))
+        print("total_planning_time {:0.4f} s".format(all_timers[total_planning_timer.name]))
+        print(f"final_visits {tp.counter}")
 
     pu.disconnect()
 
-def multisim(visualization=False, rep=50):
-    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+def multisim():
+    task_planning_timer = Timer(name='task_planning_time', text='')
+    motion_planning_timer = Timer(name='motion_planning_time', text='')
+    total_planning_timer = Timer(name='total_planning_time', text='')
     total_time = 0
 
     pu.connect(use_gui=visualization)
@@ -595,14 +629,19 @@ def multisim(visualization=False, rep=50):
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
 
-    for _ in range(rep):
+    for _ in range(max_sim):
         # IDTMP
         t00 = time.time()
-        tp_total_time.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=14)
+        task_planning_timer.reset()
+        total_planning_timer.reset()
+        motion_planning_timer.reset()
+
+        total_planning_timer.start()
+        task_planning_timer.start()
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=14)
         tp.incremental()
         tp.modeling()
-        tp_total_time.stop()
+        task_planning_timer.stop()
 
         tm_plan = None
         while tm_plan is None:
@@ -610,26 +649,26 @@ def multisim(visualization=False, rep=50):
             t0 = time.time()
             t_plan = None
             while t_plan is None:
+                task_planning_timer.start()
                 t_plan = tp.search_plan()
                 if t_plan is None:
                     logger.warning(f"task plan not found in horizon: {tp.horizon}")
                     print(f'')
-                    tp_total_time.start()
                     tp.incremental()
                     tp.modeling()
-                    tp_total_time.stop()
                     logger.info(f"search task plan in horizon: {tp.horizon}")
-                    global MOTION_TIMEOUT 
-                    MOTION_TIMEOUT += 10
+                    # global MOTION_ITERATION 
+                    # MOTION_ITERATION += 10
+                task_planning_timer.stop()
 
             logger.info(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
                 logger.info(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
-            mp_total_time.start()
+            motion_planning_timer.start()
             res, m_plan = tm.motion_refiner(t_plan)
-            mp_total_time.stop()
+            motion_planning_timer.stop()
 
             scn.reset()
             if res:
@@ -640,17 +679,19 @@ def multisim(visualization=False, rep=50):
                 logger.info(f'')
                 tp.add_constraint(m_plan)
                 t_plan = None
-
+        total_planning_timer.stop()
         total_time = time.time()-t00
-        all_timers = tp_total_time.timers
+        all_timers = total_planning_timer.timers
         print(f"all timers: {all_timers}")
-        print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
-        print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
-        print(f"total planning time: {total_time}")
-        print(f"task plan counter: {tp.counter}")
+        print("task_planning_time {:0.4f} s".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f} s".format(all_timers[motion_planning_timer.name]))
+        print("total_planning_time {:0.4f} s".format(all_timers[total_planning_timer.name]))
+        print(f"final_visits {tp.counter}")
 
 if __name__=="__main__":
-    sim_plancache()
-    # test()
-    main()
-
+    visualization = bool(int(sys.argv[1]))
+    RESOLUTION = float(sys.argv[2])
+    max_sim = int(sys.argv[3])
+    MOTION_ITERATION = int(sys.argv[4])
+    for _ in range(max_sim):
+        sim_plancache()

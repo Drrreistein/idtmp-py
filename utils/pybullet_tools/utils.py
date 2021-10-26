@@ -3863,11 +3863,10 @@ def is_pose_close(pose, target_pose, pos_tolerance=1e-3, ori_tolerance=1e-3 * np
     (target_point, target_quat) = target_pose
     if (target_point is not None) and not np.allclose(point, target_point, atol=pos_tolerance, rtol=0):
         return False
-    if (target_quat is not None) and not np.allclose(quat, target_quat, atol=ori_tolerance, rtol=0):
+    if (target_quat is not None) and not (np.allclose(quat, target_quat, atol=ori_tolerance, rtol=0) or (np.allclose(quat, -np.array(target_quat), atol=ori_tolerance, rtol=0))):
         # TODO: account for quaternion redundancy
         return False
     return True
-
 
 def inverse_kinematics(robot, link, target_pose, max_iterations=200, custom_limits={}, **kwargs):
     movable_joints = get_movable_joints(robot)

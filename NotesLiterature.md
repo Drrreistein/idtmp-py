@@ -285,6 +285,8 @@ generated, a **formula?** so that the formula is satisfiable only if there is a 
 
 ### E. Task Motion Planning
 
+<img src="docs/types_of_tamp.png" alt="styles_of_integrated_tamp" style="zoom: 80%;" />
+
 #### Problem Description
 
 ##### [STRIPS](https://en.wikipedia.org/wiki/Stanford_Research_Institute_Problem_Solver)
@@ -402,6 +404,55 @@ criteria on the difficulty of tamp problems
 
 <img src="/home/lei/tamp/docs/image-20210809110305312.png" alt="image-20210809110305312" style="zoom:50%;" />
 
+### F. TAMP and Learning
+
+#### learn to guide tamp using score-space representation
+
+Intuitions:
+
+1. what to predict: solution constraints instead of the complete solution or subgoals
+2. how to represent problem instances: score-space, scores of solution constraints
+3. how to transfer the learned knowledge: using the expectation and correlation of scores of solution constraints to determine which solution constraints to try next for a new problem
+
+methods:
+
+1. sample experience data, score-space matrix of solution constraints vs. problem instances
+2. get covariance of score-space matrix
+3. for new problem instances: always try the solution with biggest variance first; when succeed, solution found, when not, updating covariance matrix, try next solution with biggest variance
+
+Conclusions:
+
+- +simple, easy to compute, learning by planning?
+- +orders of magnitudes faster than an unguided planner
+- +no need of hand-designed representation of  problem instances
+- -computational expensive to get the initial score-space matrix, 
+- -planning experiences only transferable in the same simulation scene
+
+
+
+#### Learning Feasibility for Task and Motion Planning in Tabletop Environments
+
+<img src='./docs/learning_feasibility_tamp.png' style=20%>
+
+Intuition:
+
+- basically it uses the framework of TMKit
+
+- beside the TMKit, it will learn a model to check feasibility of each operator in task plan before using motion planner to refine the operator
+
+Learning Process
+
+1. learning from a scene with a fixed robot and two rectangular prism objects
+2. input: scene and operator
+3. model the scene with feature vector which indicates the location of objects and relation btw. objects
+4. output: feasible or infeasible
+
+approximation:
+
+1. extra fixed object: ignore
+2. multiple objects, check feasibility of each object-pair
+3. object with weird shape, check feasibility using the inscribed rectangular prism
+
 
 
 ### Experiment
@@ -441,9 +492,15 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 
 #### idtmp improvement
 
-1. when task planning in specific horizon failed, increase horizon, motion-timeout and discretization space simutanously to ensure probabilistic completeness.
-2. for the sake of efficiency, start the task planner from deeper horizon not necessarily from  the very beginning based on engineering experience or run task planner with smallest discretization space.
-3. reuse the motion refining result, when an action in task plan is validated as feasible. e.g. organise the motion result in a tree, in which the node should be represented as (state $s$, action $a$, path $p$)
+1. when task planning in specific horizon failed, increase horizon, motion-timeout and discretization space simutanously to ensure probabilistic completeness, which increasing discretization space was not mentioned in Dantam 2018.
+2. for the sake of efficiency, start the task planner not necessarily from the very beginning (first horizon) based on engineering experience or run task planner with smallest discretization space.
+3. done: reuse the motion refining result, when an action in task plan is validated as feasible. e.g. organise the motion result in a tree, in which the node should be represented as (state $s$, action $a$, path $p$)
+4. reuse the information from former horizon(horizon $x$) for latter horizon(horizon $y$), e.g. you can save the failed task plan and related failed step in horizon $x$ into a list, check these plans in horizon $y$ as late as possible. All failed task plans are prefered to be ranked and check it later in the order of its ranking
+5. if you don't want the technique in 4, you can actually compute the task and motion plan in several horizon parallel, because there is no shared information btw. different horizon.
+
+#### etamp
+
+
 
 ### Implementation
 
@@ -508,5 +565,15 @@ data flow
 - [x] add extra pick-up direction in z-axis: 
 - [x] convert py2 to py3, ~/tamp/idtmp/tmp, almost...
 - [x] OMTPlanner not able to encode grammar like OR in goal of problem.pddl
-- [ ] task_cook not implemented
-- [ ] update add_motion_constraints
+- [x] task_cook not implemented
+- [x] update add_motion_constraints
+- [ ] 
+- [ ] update code with my pybullet SDK
+- [ ] other tamp framework
+- [ ] visualize discrete space
+- [ ] difference btw. run_etamp and run_branch
+- [ ] test etamp using run_etamp
+- [ ] task planner is able to encode disconjunction goal
+- [ ] reorganize the main code just the same as the pseudo-code of idtmp
+- [ ] update the motion failed constraints to collision objects constraints
+  - [ ] collision_check in task_cook

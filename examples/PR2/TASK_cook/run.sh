@@ -1,12 +1,3 @@
 #!/bin/bash
-name=$1
-for i in {1..50}; do
-(   
-    if [ `ls log | grep $name | wc -l` = 0 ]; then
-        filename=$name.log
-    else
-        filename=$name`ls log | grep $name | wc -l`.log
-    fi
-    python3 run_idtmp_cook.py >> "log/$filename"
-)
-done
+python3 run_eTAMP_block0.py 0 0 100 >> log2/etamp_cook_con.log
+python3 run_eTAMP_block0.py 0 1 100 >> log2/etamp_cook_010.log

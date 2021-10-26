@@ -6,6 +6,7 @@ C_operatorPlans/
 __pycache__/
 found_plans/
 output/
+examples/*.png
 
 *.prof
 exe_plan.pk

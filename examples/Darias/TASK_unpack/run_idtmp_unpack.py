@@ -307,24 +307,24 @@ def simulation(visualization=1):
     path_cache = PlanCache()
 
     # IDTMP
-    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
 
-    tp_total_time.start()
+    task_planning_timer.start()
     tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
     tp.incremental()
     goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
     tp.formula['goal'] = goal_constraints
     tp.modeling()
 
-    tp_total_time.stop()
+    task_planning_timer.stop()
 
     tm_plan = None
     t00 = time.time()
     while tm_plan is None:
         # ------------------- task plan ---------------------
         t_plan = None
-        tp_total_time.start()
+        task_planning_timer.start()
         while t_plan is None:
             t_plan = tp.search_plan()
             if t_plan is None:
@@ -337,26 +337,27 @@ def simulation(visualization=1):
                 logger.info(f"search task plan in horizon: {tp.horizon}")
                 global MOTION_ITERATION
                 MOTION_ITERATION += 10
-        tp_total_time.stop()
+        task_planning_timer.stop()
 
         logger.info(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
 
         # ------------------- motion plan ---------------------
-        mp_total_time.start()
+        motion_refiner_timer.start()
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
         if depth>=0:
             t_plan_to_validate = deepcopy(t_plan)
             for _ in range(depth+1):
                 t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
             print('found plan prefixed')
+            logger.info(f'found plan prefixed')
             SetState(scn, t_plan, prefix_m_plans)
             res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
             m_plan = prefix_m_plans + post_m_plan
         else:
             res, m_plan, failed_step = tm.motion_refiner(t_plan)
-        mp_total_time.stop()
+        motion_refiner_timer.stop()
         scn.reset()
         if res:
             logger.info(f"task and motion plan found")
@@ -365,18 +366,18 @@ def simulation(visualization=1):
             path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
             logger.warning(f"motion refine failed")
             logger.info(f'')
-            tp_total_time.start()
+            task_planning_timer.start()
             tp.add_constraint(failed_step, typ='general', cumulative=False)
-            tp_total_time.stop()
+            task_planning_timer.stop()
             t_plan = None
 
-    all_timers = tp_total_time.timers
+    all_timers = task_planning_timer.timers
     print(all_timers)
     total_time = time.time()-t00
-    print("task_plan_time {:0.4f}".format(all_timers[tp_total_time.name]))
-    print("motion_refiner_time {:0.4f}".format(all_timers[mp_total_time.name]))
+    print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+    print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
     print(f"total_planning_time {total_time}")
-    print(f"task_plan_counter {tp.counter}")
+    print(f"final_visits {tp.counter}")
     os.system('spd-say -t female2 "hi lei simulation done"')
     embed()
 
@@ -410,24 +411,24 @@ def multi_sims(visualization=1):
     i=0
     while i<10:
         i+=1
-        tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-        mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+        task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+        motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
 
-        tp_total_time.start()
+        task_planning_timer.start()
         tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
         tp.modeling()
 
-        tp_total_time.stop()
+        task_planning_timer.stop()
 
         tm_plan = None
         t00 = time.time()
         while tm_plan is None:
             # ------------------- task plan ---------------------
             t_plan = None
-            tp_total_time.start()
+            task_planning_timer.start()
             while t_plan is None:
                 t_plan = tp.search_plan()
                 if t_plan is None:
@@ -440,16 +441,16 @@ def multi_sims(visualization=1):
                     logger.info(f"search task plan in horizon: {tp.horizon}")
                     global MOTION_ITERATION
                     MOTION_ITERATION += 10
-            tp_total_time.stop()
+            task_planning_timer.stop()
 
             logger.info(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
                 logger.info(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
-            mp_total_time.start()
+            motion_refiner_timer.start()
             res, m_plan = tm.motion_refiner(t_plan)
-            mp_total_time.stop()
+            motion_refiner_timer.stop()
             scn.reset()
             if res:
                 logger.info(f"task and motion plan found")
@@ -457,18 +458,18 @@ def multi_sims(visualization=1):
             else: 
                 logger.warning(f"motion refine failed")
                 logger.info(f'')
-                tp_total_time.start()
+                task_planning_timer.start()
                 tp.add_constraint(m_plan, typ='general', cumulative=False)
-                tp_total_time.stop()
+                task_planning_timer.stop()
                 t_plan = None
 
-        all_timers = tp_total_time.timers
+        all_timers = task_planning_timer.timers
         print(all_timers)
         total_time = time.time()-t00
-        print("task_plan_time {:0.4f}".format(all_timers[tp_total_time.name]))
-        print("motion_refiner_time {:0.4f}".format(all_timers[mp_total_time.name]))
+        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
         print(f"total_planning_time {total_time}")
-        print(f"task_plan_counter {tp.counter}")
+        print(f"final_visits {tp.counter}")
         embed()
 
     pu.disconnect()
@@ -494,30 +495,33 @@ def multi_sims_path_cache(visualization=0):
 
     # IDTMP
     i=0
-    tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-    mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
+    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+    total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
 
-    while i<50:
+    while i<max_sim:
         path_cache = PlanCache()
-        tp_total_time.reset()
-        mp_total_time.reset()
+        task_planning_timer.reset()
+        motion_refiner_timer.reset()
+        total_planning_timer.reset()
         i+=1
-
-        tp_total_time.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
+        
+        total_planning_timer.start()
+        task_planning_timer.start()
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=10)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
         tp.modeling()
 
-        tp_total_time.stop()
+        task_planning_timer.stop()
 
         tm_plan = None
-        t00 = time.time()
+        
         while tm_plan is None:
             # ------------------- task plan ---------------------
             t_plan = None
-            tp_total_time.start()
+            task_planning_timer.start()
             while t_plan is None:
                 t_plan = tp.search_plan()
                 if t_plan is None:
@@ -530,16 +534,16 @@ def multi_sims_path_cache(visualization=0):
                     logger.info(f"search task plan in horizon: {tp.horizon}")
                     global MOTION_ITERATION
                     MOTION_ITERATION += 10
-            tp_total_time.stop()
+            task_planning_timer.stop()
 
             logger.info(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
                 logger.info(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
-            mp_total_time.start()
+            motion_refiner_timer.start()
             res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=None)
-            mp_total_time.stop()
+            motion_refiner_timer.stop()
             scn.reset()
             if res:
                 logger.info(f"task and motion plan found")
@@ -547,29 +551,31 @@ def multi_sims_path_cache(visualization=0):
             else:
                 logger.warning(f"motion refine failed")
                 logger.info(f'')
-                tp_total_time.start()
+                task_planning_timer.start()
                 tp.add_constraint(failed_step, typ='general', cumulative=False)
-                tp_total_time.stop()
+                task_planning_timer.stop()
                 t_plan = None
-        all_timers = tp_total_time.timers
+        all_timers = task_planning_timer.timers
         print(all_timers)
-        total_time = time.time()-t00
-        print("task_plan_time {:0.4f}".format(all_timers[tp_total_time.name]))
-        print("motion_refiner_time {:0.4f}".format(all_timers[mp_total_time.name]))
-        print(f"total_planning_time {total_time}")
-        print(f"task_plan_counter {tp.counter}")
-    embed()
-    while True:
-        ExecutePlanNaive(scn, t_plan, m_plan)
-        time.sleep(1)
+        total_planning_timer.stop()
+        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+        print(f"total_planning_time {all_timers[total_planning_timer.name]}")
+        print(f"final_visits {tp.counter}")
+
+    # os.system('spd-say -t female2 "hi lei, simulation done"')
+    # while True:
+    #     ExecutePlanNaive(scn, t_plan, m_plan)
+    #     time.sleep(1)
     pu.disconnect()
 
 if __name__=="__main__":
-    multi_sims_path_cache()
-    # simulation()
 
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
-    multi_sims(visualization)
+    MOTION_ITERATION = int(sys.argv[4])
+    multi_sims_path_cache(visualization=visualization)
+
+    # multi_sims(visualization)
 

@@ -100,7 +100,6 @@ def collision_constraint(scene,op,objs):
 ## Problem is with the "Clear" predicate
 def make_state(scene, configuration, is_goal):
     '''Map the scene graph `scene' to a task state expression'''
-
     ## terms in the expression
     conjunction = []
     occupied = {}

@@ -7,6 +7,7 @@ import pickle as pk
 import time, os
 from etamp.actions import ActionInfo
 from etamp.stream import StreamInfo
+from run_idtmp_regrasp import MOTION_ITERATION
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Command, sdg_sample_place, sdg_sample_grasp_dir, \
     sdg_sample_grasp, sdg_ik_grasp, sdg_plan_free_motion, \
     sdg_plan_holding_motion, sdg_sample_stack, Register
@@ -23,7 +24,7 @@ from etamp.env_sk_branch import SkeletonEnv
 from build_scenario import get_scn
 
 from etamp.constraint_graph import Constraint
-
+MOTION_ITERATION=500
 
 def get_fixed(robot, movable):
     rigid = [body for body in get_bodies() if body != robot]
@@ -67,7 +68,6 @@ def extract_motion(action_plan):
     print('----------------------------------')
     return list_motion
 
-
 def move_cost_fn(*args):
     """
     :param c: Commands
@@ -77,13 +77,10 @@ def move_cost_fn(*args):
     distance = t.distance()
     return distance + 0.1
 
-
 def get_const_cost_fn(cost):
     def fn(*args):
         return cost
-
     return fn
-
 
 def get_action_cost(plan):
     cost = None
@@ -94,7 +91,6 @@ def get_action_cost(plan):
                 cost += paction.pa_info.cost_fn(*paction.args)
         # print('Action Cost ====================== ', cost)
     return cost
-
 
 def get_update_env_reward_fn(scn, action_info):
     def get_actions_cost(exe_plan):
@@ -134,7 +130,6 @@ def get_update_env_reward_fn(scn, action_info):
 
     return fn
 
-
 def play_commands(commands):
     use_control = False
     if use_control:
@@ -142,10 +137,9 @@ def play_commands(commands):
     else:
         commands.refine(num_steps=10).execute(time_step=0.002)
 
-
 #######################################################
 
-def get_pddlstream_problem(scn):
+def get_pddlstream_problem(scn, discrete=False):
     # assert (not are_colliding(tree, kin_cache))
 
     robot = scn.robots[0]
@@ -197,12 +191,11 @@ def get_pddlstream_problem(scn):
                                                   every_layer=15,
                                                   free_generator=True, discrete=True,
                                                   p1=[0, 1, 2, 3, 4],
-                                                  # p1=[0],
                                                   p2=[5, 5, 5, 5, 5]),
                    'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp(robot)),
                    'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(robot, scn.all_bodies)),
-                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies)),
-                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
+                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies, rrt_iteration=MOTION_ITERATION)),
+                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies, rrt_iteration=MOTION_ITERATION)),
                    }
 
     stream_info_discret = {
@@ -219,8 +212,8 @@ def get_pddlstream_problem(scn):
                                                   p2=[5, 5, 5, 5, 5]),
                    'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp_discret(robot)),
                    'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(robot, scn.all_bodies)),
-                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies)),
-                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
+                   'plan-free-motion': StreamInfo(seed_gen_fn=sdg_plan_free_motion(robot, all_bodies, rrt_iteration=500)),
+                   'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies, rrt_iteration=500)),
                    }
 
     action_info = {'move_free': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=move_cost_fn),
@@ -228,9 +221,9 @@ def get_pddlstream_problem(scn):
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
-
-    return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
-
+    if discrete:
+        return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info    
+    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
 
 #######################################################
 
@@ -316,12 +309,12 @@ def test(visualization=0, num_rep=50):
 
     from codetiming import Timer
     task_planning_timer = Timer(name='task_planning_timer', text='')
-    mcts_timer = Timer(name='mcts_timer', text='')
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='')
 
     for i in range(num_rep):
         st = time.time()
 
-        mcts_timer.reset()
+        motion_refiner_timer.reset()
         task_planning_timer.reset()
 
         if new_problem:
@@ -335,7 +328,7 @@ def test(visualization=0, num_rep=50):
                 op_plan = pk.load(f)
         assert op_plan is not None
 
-        mcts_timer.start()
+        motion_refiner_timer.start()
         e_root = ExtendedNode()
         skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
                                 get_update_env_reward_fn(scn, action_info),
@@ -343,7 +336,7 @@ def test(visualization=0, num_rep=50):
         
         selected_branch = PlannerUCT(skeleton_env)
         concrete_plan = selected_branch.think(200, visual_UCT)
-        mcts_timer.stop()
+        motion_refiner_timer.stop()
 
         sk_visits = selected_branch.visits
 
@@ -354,8 +347,8 @@ def test(visualization=0, num_rep=50):
         total_planning_time = time.time() - st
         print(f"################################ display time ################################")
         all_timers = task_planning_timer.timers
-        print(f'task_plan_time {all_timers[task_planning_timer.name]}')
-        print(f'mcts_time {all_timers[mcts_timer.name]}')
+        print(f'task_planning_time {all_timers[task_planning_timer.name]}')
+        print(f'motion_refiner_time {all_timers[motion_refiner_timer.name]}')
         print(f'total_planning_time {total_planning_time}')
         print(f"final_visits {selected_branch.visits}")
         saved_world.restore()
@@ -381,5 +374,5 @@ def test(visualization=0, num_rep=50):
     return sk_visits
 
 if __name__ == '__main__':
-    test()
-    # main()
+    # test()
+    main()

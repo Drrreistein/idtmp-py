@@ -52,7 +52,6 @@ class PlanningScenario(object):
 
                 }
                 self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
                 initial_conf = get_carry_conf(self.arm_left, self.grasp_type)
                 set_arm_conf(self.pr2, self.arm_left, initial_conf)
                 open_arm(self.pr2, self.arm_left)

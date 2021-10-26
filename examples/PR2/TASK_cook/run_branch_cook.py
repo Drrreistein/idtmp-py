@@ -192,7 +192,7 @@ def play_commands(commands):
 
 #######################################################
 
-def get_pddlstream_problem(scn):
+def get_pddlstream_problem(scn, discret=False):
     """"""
 
     robot = scn.robots[0]
@@ -249,21 +249,20 @@ def get_pddlstream_problem(scn):
                    'plan-base-motion': StreamInfo(seed_gen_fn=sdg_motion_base_joint(scn)),
                    }
 
-    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
-                                             free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn, resolution=0.1), every_layer=15,
+                                             free_generator=True, discrete=False, p1=list(range(9)), p2=list(np.ones(9))),
                    'sample-grasp': StreamInfo(seed_gen_fn=sdg_sample_grasp_discret(scn)),
                    'inverse-kinematics': StreamInfo(seed_gen_fn=sdg_ik_grasp(scn)),
                    'plan-base-motion': StreamInfo(seed_gen_fn=sdg_motion_base_joint(scn)),
                    }
 
-
     action_info = {'move_base': ActionInfo(optms_cost_fn=get_const_cost_fn(5), cost_fn=get_const_cost_fn(5)),
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
-
-    return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
-
+    if discret:
+        return domain_pddl, stream_pddl, init, goal, stream_info_discret, action_info
+    return domain_pddl, stream_pddl, init, goal, stream_info, action_info
 
 #######################################################
 

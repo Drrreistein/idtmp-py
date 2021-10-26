@@ -5,5 +5,5 @@
 ### Requirements
 
 - [z3](https://github.com/Z3Prover/z3/wiki/Slides), SMT solver `pip install z3-solver`
-- 
+- pybullet, robot simulator, python interface of bullet,`pip install pybullet`
 

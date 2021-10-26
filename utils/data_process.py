@@ -111,7 +111,7 @@ def txt_to_pandas(file_list):
 
     dataset['resolution'] = reso
     try:
-        dataset['time_per_task'] = list(np.array(dataset['total_planning_time']) / np.array(dataset['visits']))
+        dataset['time_per_task'] = list(np.array(dataset['total_planning_time']) / np.array(dataset['final_visits']))
     except:
         print(f"no specified item in dataset")
         
@@ -142,7 +142,7 @@ def box_plot(data_pd):
     for ind in indices:
         sns.set_theme(style="ticks")
         # Initialize the figure with a logarithmic x axis
-        f, ax = plt.subplots(figsize=(7, 6))
+        f, ax = plt.subplots(figsize=(18, 10))
         ax.set_title(f'{ind}')
         # ax.set_xscale("log")
         # Plot the orbital period with horizontal boxes
