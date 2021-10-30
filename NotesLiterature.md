@@ -567,7 +567,7 @@ data flow
 - [x] OMTPlanner not able to encode grammar like OR in goal of problem.pddl
 - [x] task_cook not implemented
 - [x] update add_motion_constraints
-- [ ] 
+- [ ] run multiple scene parallel in pybullet
 - [ ] update code with my pybullet SDK
 - [ ] other tamp framework
 - [ ] visualize discrete space

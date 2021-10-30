@@ -3892,6 +3892,27 @@ def inverse_kinematics(robot, link, target_pose, max_iterations=200, custom_limi
     set_joint_positions(robot, movable_joints, init_joints)
     return kinematic_conf
 
+def inverse_kinematics_naive(robot, link, target_pose, max_iterations=200, custom_limits={}, **kwargs):
+    movable_joints = get_movable_joints(robot)
+    init_joints = get_joint_positions(robot, movable_joints)
+    for iterations in range(max_iterations):
+        # TODO: stop is no progress
+        # TODO: stop if collision or invalid joint limits
+        kinematic_conf = inverse_kinematics_helper(robot, link, target_pose)
+        if kinematic_conf is None:
+            set_joint_positions(robot, movable_joints, init_joints)
+            return None
+        set_joint_positions(robot, movable_joints, kinematic_conf)
+        if is_pose_close(get_link_pose(robot, link), target_pose, **kwargs):
+            break
+    else:
+        set_joint_positions(robot, movable_joints, init_joints)
+        # print(f"IKfailed: exceeding max iterations")
+        return None
+    set_joint_positions(robot, movable_joints, init_joints)
+    return kinematic_conf
+
+
 def inverse_kinematics_random(robot, link, target_pose, obstacles, attachments, self_collisions, disabled_collisions, max_distance, max_iterations=200, custom_limits={}, movable_joints=None, **kwargs):
     if movable_joints==None:
         movable_joints = get_movable_joints(robot)

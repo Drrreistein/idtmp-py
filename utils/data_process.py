@@ -6,7 +6,7 @@ import seaborn as sns
 import pandas as pd
 from collections import defaultdict
 from IPython import embed
-
+import os, sys
 def duration_vs_resolution():
     # times = {'t010':np.loadtxt('total_time_010.txt'), 
     #         't008':np.loadtxt('total_time_008.txt'), 

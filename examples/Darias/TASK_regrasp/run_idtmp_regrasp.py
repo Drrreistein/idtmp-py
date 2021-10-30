@@ -24,7 +24,7 @@ logging.basicConfig(filename='./log/logging.log',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
 logger = logging.getLogger('MAIN')
-
+from feasibility_check import FeasibilityChecker
 EPSILON = 0.01
 RESOLUTION = 0.1
 DIR_NUM = 1
@@ -305,6 +305,34 @@ def SetState(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, path)])
         cmd.execute()
 
+def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
+    # check feasibility of task plan from learned model
+    if feasibility_checker:
+        isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
+        if not isfeasible:
+            return isfeasible, None, failed_step
+
+    # using plan cache to avoid to resample an known operator
+    if path_cache is not None:
+        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        if depth>=0:
+            t_plan_to_validate = deepcopy(t_plan)
+            print(f"found prefixed operator")
+            for _ in range(depth+1):
+                min_key = min(t_plan_to_validate.keys())
+                print(f"{min_key}: {t_plan_to_validate.pop(min_key)}"   )
+            SetState(scn, t_plan, prefix_m_plans)
+
+            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            m_plan = prefix_m_plans + post_m_plan
+        else:
+            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
+    else:
+        res, m_plan, failed_step = tm.motion_refiner(t_plan)
+
+    return res, m_plan, failed_step
+
 def main():
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
@@ -412,7 +440,6 @@ def main():
         time.sleep(1)
 
     pu.disconnect()
-
 
 def test():
     task_planning_timer = Timer(name='task_planning_time', text='', logger=logger.info)
@@ -531,7 +558,12 @@ def multisim_plancache():
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_regrasp.pddl')
-    
+
+    if feasible_check:
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+    else:
+        feasible_checker = None
+
     parser.parse_domain(domain_filename)
     domain_name = parser.domain_name
     problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
@@ -539,10 +571,10 @@ def multisim_plancache():
     parser.dump_problem(problem, problem_filename)
 
     domain_semantics = RegraspDomainSemantics(scn)
-    domain_semantics.activate() 
+    domain_semantics.activate()
 
     # IDTMP
-    for _ in range(50):
+    for _ in range(max_sim):
         path_cache = PlanCache()
         task_planning_timer.reset()
         motion_refiner_timer.reset()
@@ -590,18 +622,18 @@ def multisim_plancache():
                 print(f"{h}: {p}")
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
-
-            depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
-            if depth>=0:
-                t_plan_to_validate = deepcopy(t_plan)
-                for _ in range(depth+1):
-                    t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
-                print('found plan prefixed')
-                SetState(scn, t_plan, prefix_m_plans)
-                res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
-                m_plan = prefix_m_plans + post_m_plan
-            else:
-                res, m_plan, failed_step = tm.motion_refiner(t_plan)
+            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache)
+            # depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+            # if depth>=0:
+            #     t_plan_to_validate = deepcopy(t_plan)
+            #     for _ in range(depth+1):
+            #         t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+            #     print('found plan prefixed')
+            #     SetState(scn, t_plan, prefix_m_plans)
+            #     res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            #     m_plan = prefix_m_plans + post_m_plan
+            # else:
+            #     res, m_plan, failed_step = tm.motion_refiner(t_plan)
             motion_refiner_timer.stop()
 
             scn.reset()
@@ -641,5 +673,6 @@ if __name__=="__main__":
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
     MOTION_ITERATION = int(sys.argv[4])
+    feasible_check = bool(int(sys.argv[5]))
     multisim_plancache()
 

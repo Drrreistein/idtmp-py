@@ -56,7 +56,6 @@ class BodyPose(object):
     def __repr__(self):
         return 'p{}'.format(id(self) % 1000)
 
-
 class BodyGrasp(object):
     def __init__(self, body, grasp_pose, approach_pose, robot, attach_link):
         self.body = body
@@ -75,7 +74,6 @@ class BodyGrasp(object):
 
     def __repr__(self):
         return 'g{}'.format(id(self) % 1000)
-
 
 def grasp_dir_o2e(direction_o, robot, body, pose, body_info):
     ellipsoid_frame, _, _, _, _ = get_ellipsoid_frame(body, body_info, robot)
@@ -324,7 +322,7 @@ class Command(object):
                 user_input(msg)
                 # print(msg)
 
-    def execute(self, time_step=0.05):
+    def execute(self, time_step=0.02):
         for i, body_path in enumerate(self.body_paths):
             for j in body_path.iterator():
                 # time.sleep(time_step)

@@ -13,18 +13,18 @@
      <inertial>
       <mass value="0.5" />
       <!-- center of mass (com) is defined w.r.t. link local coordinate system -->
-      <origin xyz="0 0 0.09" />
+      <origin xyz="0 0 0" />
       <inertia  ixx="0.00053333333" ixy="0.0"  ixz="0.0"  iyy="0.00161666666"  iyz="0.0"  izz="0.00161666666" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0.09" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <box size="0.08 0.08 0.18" />
       </geometry>
       <material name="Color"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0.09" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <box size="0.08 0.08 0.18" />
       </geometry>

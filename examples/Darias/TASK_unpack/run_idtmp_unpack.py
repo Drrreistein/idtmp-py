@@ -6,6 +6,7 @@ from codetiming import Timer
 from copy import deepcopy
 import tmsmt as tm
 import numpy as np
+from utils.pybullet_tools.utils import WorldSaver
 import z3
 
 # `utils` in '~/tamp/idtmp'
@@ -22,7 +23,7 @@ logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
 EPSILON = 0.01
-RESOLUTION = 0.08
+RESOLUTION = 0.1
 MOTION_ITERATION = 20
 
 class DomainSemantics(object):
@@ -221,8 +222,7 @@ class PDDLProblem(object):
         # formula['goal'] = z3.And(conj)
         return z3.And(conj)
 
-def ExecutePlanNaive(scn, task_plan, motion_plan):
-
+def ExecutePlanNaive(scn, task_plan, motion_plan, time_step=0.01):
     robot = scn.robots[0]
     ind = -1
     for _,tp in task_plan.items():
@@ -241,7 +241,7 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind], attachments=attachment)])
         elif 'pick-up' == tp_list[0]:
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind])])
-        cmd.execute()
+        cmd.execute(time_step=time_step)
     time.sleep(1)
 
 def SetState(scn, task_plan, motion_plan):
@@ -269,14 +269,24 @@ def SetState(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, tele_port_path)])
         cmd.execute()
 
-def motion_planning(scn, t_plan, path_cache=None):
+def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
+    # check feasibility of task plan from learned model
+    if feasibility_checker:
+        isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
+        if not isfeasible:
+            return isfeasible, None, failed_step
+
+    # using plan cache to avoid to resample an known operator
     if path_cache is not None:
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
         if depth>=0:
             t_plan_to_validate = deepcopy(t_plan)
+            print(f"found prefixed operator")
             for _ in range(depth+1):
-                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+                min_key = min(t_plan_to_validate.keys())
+                print(f"{min_key}: {t_plan_to_validate.pop(min_key)}"   )
             SetState(scn, t_plan, prefix_m_plans)
+
             res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
             m_plan = prefix_m_plans + post_m_plan
         else:
@@ -284,8 +294,9 @@ def motion_planning(scn, t_plan, path_cache=None):
         path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
     else:
         res, m_plan, failed_step = tm.motion_refiner(t_plan)
+
     return res, m_plan, failed_step
-    
+
 def simulation(visualization=1):
 
     # visualization = True
@@ -475,11 +486,10 @@ def multi_sims(visualization=1):
     pu.disconnect()
 
 def multi_sims_path_cache(visualization=0):
-
     # visualization = True
     pu.connect(use_gui=visualization)
     scn = PlanningScenario()
-    
+    saved_world = WorldSaver()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
@@ -492,6 +502,10 @@ def multi_sims_path_cache(visualization=0):
 
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
+    if feasible_check:
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+    else:
+        feasible_checker = None
 
     # IDTMP
     i=0
@@ -508,7 +522,7 @@ def multi_sims_path_cache(visualization=0):
         
         total_planning_timer.start()
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=10)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
@@ -527,7 +541,9 @@ def multi_sims_path_cache(visualization=0):
                 if t_plan is None:
                     logger.warning(f"task plan not found in horizon: {tp.horizon}")
                     print(f'')
-                    tp.incremental()
+                    if not tp.incremental():
+                        print(f"exceed maximal task plan horizon: {tp.max_horizon}")
+                        break
                     goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
                     tp.formula['goal'] = goal_constraints
                     tp.modeling()
@@ -536,13 +552,15 @@ def multi_sims_path_cache(visualization=0):
                     MOTION_ITERATION += 10
             task_planning_timer.stop()
 
+            if tp.horizon>tp.max_horizon:
+                break
             logger.info(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
+                print(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
-            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=None)
+            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
             motion_refiner_timer.stop()
             scn.reset()
             if res:
@@ -566,16 +584,114 @@ def multi_sims_path_cache(visualization=0):
     # os.system('spd-say -t female2 "hi lei, simulation done"')
     # while True:
     #     ExecutePlanNaive(scn, t_plan, m_plan)
+    #     saved_world.restore()
     #     time.sleep(1)
     pu.disconnect()
 
-if __name__=="__main__":
+# def multi_sims_path_cache(visualization=0):
 
+#     # visualization = True
+#     pu.connect(use_gui=visualization)
+#     scn = PlanningScenario()
+#     saved_world = WorldSaver()
+    
+#     parser = PDDL_Parser()
+#     dirname = os.path.dirname(os.path.abspath(__file__))
+#     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
+    
+#     parser.parse_domain(domain_filename)
+#     domain_name = parser.domain_name
+#     problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+#     problem = PDDLProblem(scn, parser.domain_name)
+#     parser.dump_problem(problem, problem_filename)
+
+#     domain_semantics = UnpackDomainSemantics(scn)
+#     domain_semantics.activate()
+
+#     # IDTMP
+#     i=0
+#     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+#     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+#     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
+
+#     while i<max_sim:
+#         path_cache = PlanCache()
+#         task_planning_timer.reset()
+#         motion_refiner_timer.reset()
+#         total_planning_timer.reset()
+#         i+=1
+
+#         total_planning_timer.start()
+#         task_planning_timer.start()
+#         tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=10)
+#         tp.incremental()
+#         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+#         tp.formula['goal'] = goal_constraints
+#         tp.modeling()
+
+#         task_planning_timer.stop()
+
+#         tm_plan = None
+        
+#         while tm_plan is None:
+#             # ------------------- task plan ---------------------
+#             t_plan = None
+#             task_planning_timer.start()
+#             while t_plan is None:
+#                 t_plan = tp.search_plan()
+#                 if t_plan is None:
+#                     logger.warning(f"task plan not found in horizon: {tp.horizon}")
+#                     print(f'')
+#                     tp.incremental()
+#                     goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+#                     tp.formula['goal'] = goal_constraints
+#                     tp.modeling()
+#                     logger.info(f"search task plan in horizon: {tp.horizon}")
+#                     global MOTION_ITERATION
+#                     MOTION_ITERATION += 10
+#             task_planning_timer.stop()
+
+#             logger.info(f"task plan found, in horizon: {tp.horizon}")
+#             for h,p in t_plan.items():
+#                 logger.info(f"{h}: {p}")
+
+#             # ------------------- motion plan ---------------------
+#             motion_refiner_timer.start()
+#             res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache)
+#             motion_refiner_timer.stop()
+#             scn.reset()
+#             if res:
+#                 logger.info(f"task and motion plan found")
+#                 break
+#             else:
+#                 logger.warning(f"motion refine failed")
+#                 logger.info(f'')
+#                 task_planning_timer.start()
+#                 tp.add_constraint(failed_step, typ='general', cumulative=False)
+#                 task_planning_timer.stop()
+#                 t_plan = None
+#         all_timers = task_planning_timer.timers
+#         print(all_timers)
+#         total_planning_timer.stop()
+#         print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+#         print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+#         print(f"total_planning_time {all_timers[total_planning_timer.name]}")
+#         print(f"final_visits {tp.counter}")
+
+#     # os.system('spd-say -t female2 "hi lei, simulation done"')
+#     # while True:
+#     #     ExecutePlanNaive(scn, t_plan, m_plan)
+#         # saved_world.restore()
+#     #     time.sleep(1)
+#     pu.disconnect()
+
+if __name__=="__main__":
+    """ usage
+    python3 run_idtmp_unpack.py 0 0.1 10 20
+    """
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
     MOTION_ITERATION = int(sys.argv[4])
+    feasible_check = bool(int(sys.argv[5]))
     multi_sims_path_cache(visualization=visualization)
-
-    # multi_sims(visualization)
-

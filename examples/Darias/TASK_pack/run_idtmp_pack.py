@@ -17,6 +17,7 @@ import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
 from build_scenario import *
 from task_planner import TaskPlanner
+from feasibility_check import FeasibilityChecker
 
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
@@ -284,7 +285,35 @@ def SetState(scn, task_plan, motion_plan):
         elif 'pick-up' == tp_list[0]:
             cmd = pk.Command([pk.BodyPath(robot, path)])
         cmd.execute()
-    
+
+def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
+    # check feasibility of task plan from learned model
+    if feasibility_checker:
+        isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
+        if not isfeasible:
+            return isfeasible, None, failed_step
+
+    # using plan cache to avoid to resample an known operator
+    if path_cache is not None:
+        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        if depth>=0:
+            t_plan_to_validate = deepcopy(t_plan)
+            print(f"found prefixed operator")
+            for _ in range(depth+1):
+                min_key = min(t_plan_to_validate.keys())
+                print(f"{min_key}: {t_plan_to_validate.pop(min_key)}"   )
+            SetState(scn, t_plan, prefix_m_plans)
+
+            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            m_plan = prefix_m_plans + post_m_plan
+        else:
+            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
+    else:
+        res, m_plan, failed_step = tm.motion_refiner(t_plan)
+
+    return res, m_plan, failed_step
+
 def simulation(visualization=1):
 
     # visualization = True
@@ -380,6 +409,12 @@ def simulation_plancache(visualization=1):
     pu.connect(use_gui=visualization)
     # scn = PlanningScenario_twolayers()
     scn = PlanningScenario4b()
+
+    if feasible_check:
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+    else:
+        feasible_checker = None
+
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
@@ -431,19 +466,21 @@ def simulation_plancache(visualization=1):
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
 
-        # ------------------- motion plan ---------------------
+        # ------------------- motion plan --------------------- 
+        
         mp_total_time.start()
-        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
-        if depth>=0:
-            t_plan_to_validate = deepcopy(t_plan)
-            for _ in range(depth+1):
-                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
-            print('found plan prefixed')
-            SetState(scn, t_plan, prefix_m_plans)
-            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
-            m_plan = prefix_m_plans + post_m_plan
-        else:
-            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
+        # depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        # if depth>=0:
+        #     t_plan_to_validate = deepcopy(t_plan)
+        #     for _ in range(depth+1):
+        #         t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+        #     print('found plan prefixed')
+        #     SetState(scn, t_plan, prefix_m_plans)
+        #     res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+        #     m_plan = prefix_m_plans + post_m_plan
+        # else:
+        #     res, m_plan, failed_step = tm.motion_refiner(t_plan)
         mp_total_time.stop()
         scn.reset()
         if res:
@@ -475,7 +512,7 @@ def simulation_plancache(visualization=1):
 
     pu.disconnect()
 
-def multi_sims(visulization):
+def multi_sims():
 
     # visualization = True
     pu.connect(use_gui=visualization)
@@ -493,16 +530,21 @@ def multi_sims(visulization):
 
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
-
+    if feasible_check:
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+    else:
+        feasible_checker = None
     # IDTMP
     i=0
     while i<max_sim:
+        path_cache = PlanCache()
+
         i+=1
         tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
         mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
 
         tp_total_time.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=12)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
@@ -536,7 +578,7 @@ def multi_sims(visulization):
 
             # ------------------- motion plan ---------------------
             mp_total_time.start()
-            res, m_plan = tm.motion_refiner(t_plan)
+            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
             mp_total_time.stop()
             scn.reset()
             if res:
@@ -546,7 +588,7 @@ def multi_sims(visulization):
                 logger.warning(f"motion refine failed")
                 logger.info(f'')
                 tp_total_time.start()
-                tp.add_constraint(m_plan, typ='general', cumulative=False)
+                tp.add_constraint(failed_step, typ='general', cumulative=False)
                 tp_total_time.stop()
                 t_plan = None
 
@@ -567,10 +609,10 @@ def multi_sims(visulization):
 if __name__=="__main__":
     # simulation()
 
-    simulation_plancache()
-
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
-    multi_sims(visualization)
+    feasible_check = bool(int(sys.argv[4]))
+    # simulation_plancache()
+    multi_sims()
 

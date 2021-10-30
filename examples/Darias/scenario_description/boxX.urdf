@@ -13,18 +13,18 @@
      <inertial>
       <mass value="1.0" />
       <!-- center of mass (com) is defined w.r.t. link local coordinate system -->
-      <origin xyz="0 0 0.10" />
+      <origin xyz="0 0 0" />
       <inertia  ixx="0.01" ixy="0.0"  ixz="0.0"  iyy="0.01"  iyz="0.0"  izz="0.01" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0.07" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <box size="0.14 0.14 0.14" />
       </geometry>
       <material name="Metal"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0.07" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <box size="0.14 0.14 0.14" />
       </geometry>
