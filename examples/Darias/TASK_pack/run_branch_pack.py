@@ -25,12 +25,10 @@ from etamp.tree_node2 import ExtendedNode
 from etamp.env_sk_branch import SkeletonEnv
 from build_scenario import *
 
-
 def get_fixed(robot, movable):
     rigid = [body for body in get_bodies() if body != robot]
     fixed = [body for body in rigid if body not in movable]
     return fixed
-
 
 def postprocess_plan(scn, exe_plan):
     paths = []
@@ -146,7 +144,7 @@ def play_commands(commands):
 
 #######################################################
 
-def get_pddlstream_problem(scn):
+def get_pddlstream_problem(scn, discret=False):
     # assert (not are_colliding(tree, kin_cache))
     robot = scn.robots[0]
     movable = scn.movable_bodies
@@ -204,8 +202,11 @@ def get_pddlstream_problem(scn):
                    'plan-holding-motion': StreamInfo(seed_gen_fn=sdg_plan_holding_motion(robot, all_bodies)),
                    }
 
-    stream_info_discret = {'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
-                                              free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+    stream_info_discret = {
+        #'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn), every_layer=15,
+                                            #   free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
+                    'sample-place': StreamInfo(seed_gen_fn=sdg_sample_place_discret(scn, resolution=0.05), every_layer=15,
+                                              free_generator=True, discrete=True, p1=list(range(9)), p2=list(np.ones(9))),
                    'sample-stack': StreamInfo(seed_gen_fn=sdg_sample_stack_discret(all_bodies), every_layer=15,
                                               free_generator=True, discrete=False, p1=[1, 1, 1], p2=[.2, .2, .2]),
                    'sample-grasp-dir': StreamInfo(seed_gen_fn=sdg_sample_grasp_dir_discret(robot, scn.dic_body_info),
@@ -225,6 +226,8 @@ def get_pddlstream_problem(scn):
                    'place': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    'pick': ActionInfo(optms_cost_fn=get_const_cost_fn(1), cost_fn=get_const_cost_fn(1)),
                    }
+    if discret:
+        return domain_pddl, stream_pddl, init, goal, stream_info, action_info
     return domain_pddl, stream_pddl, init, goal, stream_info, action_info
 
 

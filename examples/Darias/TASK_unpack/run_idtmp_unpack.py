@@ -17,6 +17,7 @@ import pybullet_tools.kuka_primitives3 as pk
 from build_scenario import PlanningScenario
 from task_planner import TaskPlanner
 from plan_cache import PlanCache
+from feasibility_check import FeasibilityChecker
 
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
@@ -527,7 +528,6 @@ def multi_sims_path_cache(visualization=0):
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
         tp.modeling()
-
         task_planning_timer.stop()
 
         tm_plan = None

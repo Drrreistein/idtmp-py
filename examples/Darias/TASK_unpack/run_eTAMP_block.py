@@ -283,7 +283,7 @@ def multisim():
             print(f"final_visits {e_root.num_total_child_visits}")
             print(f"total_node_numbers {e_root.total_node}")
         total_planning_timer.stop()
-        embed()
+
     disconnect()
 
 if __name__ == '__main__':

@@ -186,7 +186,7 @@ class PDDLProblem(object):
                 if 'region2' in loc:
                     ontable.append(['ontable',body,loc])
             self.real_goal.append(ontable)
-        
+
     def _gen_scene_objects(self):
         scene_objects = dict()
 
@@ -516,7 +516,7 @@ def multi_sims():
 
     # visualization = True
     pu.connect(use_gui=visualization)
-    scn = PlanningScenario()
+    scn = PlanningScenario4b()
     
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
@@ -536,73 +536,81 @@ def multi_sims():
         feasible_checker = None
     # IDTMP
     i=0
+    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+    total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
+
     while i<max_sim:
         path_cache = PlanCache()
+        task_planning_timer.reset()
+        motion_refiner_timer.reset()
+        total_planning_timer.reset()
 
         i+=1
-        tp_total_time = Timer(name='tp_total_time', text='', logger=logger.info)
-        mp_total_time = Timer(name='mp_total_time', text='', logger=logger.info)
-
-        tp_total_time.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=12)
+        total_planning_timer.start()
+        task_planning_timer.start()
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=8)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
         tp.modeling()
-
-        tp_total_time.stop()
+        task_planning_timer.stop()
 
         tm_plan = None
         t00 = time.time()
         while tm_plan is None:
             # ------------------- task plan ---------------------
             t_plan = None
-            tp_total_time.start()
+            task_planning_timer.start()
             while t_plan is None:
                 t_plan = tp.search_plan()
                 if t_plan is None:
-                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                    print(f"WARN: task plan not found in horizon: {tp.horizon}")
                     print(f'')
-                    tp.incremental()
+                    if not tp.incremental():
+                        print(f"exceeding maxmial horizon")
+                        break
                     goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
                     tp.formula['goal'] = goal_constraints
                     tp.modeling()
                     logger.info(f"search task plan in horizon: {tp.horizon}")
                     global MOTION_ITERATION
                     MOTION_ITERATION += 10
-            tp_total_time.stop()
-
-            logger.info(f"task plan found, in horizon: {tp.horizon}")
+            task_planning_timer.stop()
+            if tp.horizon>tp.max_horizon:
+                print(f"exceeding maxmial horizon")
+                break
+            print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
+                print(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
-            mp_total_time.start()
+            motion_refiner_timer.start()
             res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
-            mp_total_time.stop()
+            motion_refiner_timer.stop()
             scn.reset()
             if res:
-                logger.info(f"task and motion plan found")
+                print(f"task and motion plan found")
                 break
             else: 
-                logger.warning(f"motion refine failed")
-                logger.info(f'')
-                tp_total_time.start()
+                print(f"WARN: motion refine failed")
+                print(f'')
+                task_planning_timer.start()
                 tp.add_constraint(failed_step, typ='general', cumulative=False)
-                tp_total_time.stop()
+                task_planning_timer.stop()
                 t_plan = None
 
-        all_timers = tp_total_time.timers
+        all_timers = task_planning_timer.timers
         print(all_timers)
-        total_time = time.time()-t00
-        print("task plan time: {:0.4f} s".format(all_timers[tp_total_time.name]))
-        print("motion refiner time: {:0.4f} s".format(all_timers[mp_total_time.name]))
-        print(f"total planning time: {total_time}")
-        print(f"task plan counter: {tp.counter}")
+        total_planning_timer.stop()
+        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+        print(f"total_planning_time {all_timers[total_planning_timer.name]}")
+        print(f"final_visits {tp.counter}")
 
-    # while True:
-    #     ExecutePlanNaive(scn, t_plan, m_plan)
-    #     time.sleep(1)
+        # while True:
+        #     ExecutePlanNaive(scn, t_plan, m_plan)
+        #     time.sleep(1)
 
     pu.disconnect()
 
