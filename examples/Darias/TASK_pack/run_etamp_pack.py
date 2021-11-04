@@ -6,103 +6,6 @@ from codetiming import Timer
 from etamp.block_skeleton import *
 #######################################################
 
-# def exp():
-#     connect(use_gui=visualization)
-
-#     scn = PlanningScenario4b()
-#     task_planning_timer.reset()
-#     motion_refiner_timer.reset()
-#     total_planning_timer.reset()
-
-#     pddlstream_problem = get_pddlstream_problem(scn)
-#     _, _, _, _, stream_info, action_info = pddlstream_problem
-
-#     total_planning_timer.start()
-#     st = time.time()
-#     sk_batch = solve_progressive2(pddlstream_problem,
-#                                   num_optms_init=80, target_sk=50)
-
-#     e_root = ExtendedNode()
-#     concrete_plan = None
-#     num_attempts = 0
-#     thinking_time = 0
-
-#     while concrete_plan is None and thinking_time < 60 * 20:
-#         # Progressive Widening
-#         e_root.visits += 1
-#         # alpha = 0.3
-#         # need_expansion = np.floor(e_root.visits ** alpha) > np.floor(
-#         #     (e_root.visits - 1) ** alpha)
-#         flag_pw = e_root.visits > 0.3 * (len(e_root.children) ** 2)  # c3-0.1, c2-0.3, c1-
-#         need_expansion = e_root.num_children < 1 or flag_pw
-#         need_expansion = need_expansion and (e_root.num_children < sk_batch.num_ap)
-#         task_planning_timer.start()
-#         if need_expansion:
-#             op_plan = sk_batch.get_next_operatorPlan()
-#             assert op_plan is not None
-#             skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
-#                                        get_update_env_reward_fn(scn, action_info), stream_info, scn)
-#             selected_branch = PlannerUCT(skeleton_env)
-#             e_root.add_child(selected_branch)
-#         else:
-#             selected_branch = e_root.select_child_ucb()
-#         task_planning_timer.stop()
-#         motion_refiner_timer.start()
-#         concrete_plan = selected_branch.think(1, 0)
-#         motion_refiner_timer.stop()
-#         # print('total_node: ', e_root.total_node)
-#         num_attempts += 1
-#         thinking_time = time.time() - st
-#     print('think time: ' + str(thinking_time))
-#     total_planning_timer.stop()
-#     # e_root.save_the_tree(idx)
-
-#     disconnect()
-
-#     if concrete_plan is None:
-#         print('TAMP is failed.', concrete_plan)
-#         return -1, -1, thinking_time, -1
-#     print('TAMP is successful.', concrete_plan)
-
-#     all_timers = task_planning_timer.timers
-#     print(all_timers)
-#     total_planning_timer.stop()
-#     print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-#     print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-#     print(f"total_planning_time {all_timers[total_planning_timer.name]}")
-#     print(f"final_visits {e_root.visits}")
-#     return e_root.num_total_child_visits, e_root.total_node, thinking_time, len(e_root.children)
-
-# if __name__ == '__main__':
-
-#     visualization = bool(int(sys.argv[1]))
-#     max_sim = int(sys.argv[2])
-#     feasible_check = bool(int(sys.argv[3]))
-
-#     task_planning_timer = Timer(name='task_planning_timer')
-#     motion_refiner_timer = Timer(name='motion_refiner_timer')
-#     total_planning_timer = Timer(name='total_planning_timer')
-
-#     for _ in range(max_sim):
-#         exp()
-
-#     # list_report_vnts = []
-#     # for i in range(100):
-#     #     print(f'exp {i} -------------------------------------------------------------------')
-#     #     result_vnts = exp()
-#     #     list_report_vnts.append(result_vnts)
-
-#     #     print('======================')
-#     #     for vnt in list_report_vnts:
-#     #         print(vnt)
-#     #     print('======================')
-
-#     #     data1 = [c[0] for c in list_report_vnts]
-#     #     data2 = [c[1] for c in list_report_vnts]
-#     #     data3 = [c[2] for c in list_report_vnts]
-#     #     data4 = [c[3] for c in list_report_vnts]
-#     #     np.savetxt("result_vnts.csv", np.column_stack((data1, data2, data3, data4)), delimiter=",", fmt='%s')
-
 def multisim():
     connect(use_gui=visualization)
 
@@ -145,7 +48,7 @@ def multisim():
 
         queue_candidate_sk = list(range(sk_batch.num_ap))
 
-        while concrete_plan is None and thinking_time < 300:
+        while concrete_plan is None and thinking_time < 1000:
             e_root.visits += 1
             # Progressive Widening
             # alpha = 0.3
@@ -164,6 +67,7 @@ def multisim():
                     actionEssence = sk_batch.get_actionEssence(sk_id)
                     # assert actionEssence is not None
                     if actionEssence is None:
+                        print("actionEssence is None")
                         task_planning_timer.stop()
                         break
                     id_to_actionEssence[sk_id] = actionEssence
@@ -196,6 +100,7 @@ def multisim():
                 else:
                     e_root.visits -= 1
                     if sk_id not in queue_candidate_sk:
+                        print(f"sk_id not in queue_candidate_sk")
                         task_planning_timer.stop()
                         break
                     # assert sk_id not in queue_candidate_sk
@@ -238,6 +143,7 @@ def multisim():
             #         pk.dump(Constraint.ctype_to_constraints, f)
             #         for ctype, cs in Constraint.ctype_to_constraints.items():
             #             print(f"#{ctype}# {cs[0]}: {len([c for c in cs if c.yg <= 0])}-{len([c for c in cs if c.yg > 0])}")
+        total_planning_timer.stop()
 
         print('think time: ' + str(thinking_time))
         # e_root.save_the_tree(idx)
@@ -251,7 +157,7 @@ def multisim():
             print(f'total_planning_time {all_timers[total_planning_timer.name]}')
             print(f"final_visits {e_root.num_total_child_visits}")
             print(f"total_node_numbers {e_root.total_node}")
-        total_planning_timer.stop()
+        embed()
 
     disconnect()
 
@@ -276,3 +182,4 @@ if __name__ == '__main__':
     #     data3 = [c[2] for c in list_report_vnts]
     #     data4 = [c[3] for c in list_report_vnts]
     #     np.savetxt("result_vnts.csv", np.column_stack((data1, data2, data3, data4)), delimiter=",", fmt='%s')
+ 

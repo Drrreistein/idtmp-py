@@ -1,5 +1,8 @@
 from random import random
 import time
+
+from PIL.Image import init
+from numpy.core.defchararray import array
 from build_scenario import ScenarioForiPhoneController
 from IPython import embed
 import csv, uuid, os, sys   
@@ -8,6 +11,128 @@ import pybullet as p
 import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
 import numpy as np
+import requests, json
+import matplotlib.pyplot as plt
+
+class SensorIPhone(object):
+    def __init__(self, url='172.20.10.1'):
+        self.url = url
+        self.clock = 'full'
+
+        self.linear_acc_full = []
+        self.acc_time_full = []
+        self.gyro_full = []
+        self.gyro_time_full = []
+
+        self.init_gyro = np.zeros(3)
+        self.init_acc = np.zeros(3)
+
+        self.linear_vel = np.zeros(3)
+        self.linear_position = np.zeros(3)
+        self.euler_angle = np.zeros(3)
+
+        self.linear_vel_full = [self.linear_vel]
+        self.linear_position_full = [self.linear_position]
+        self.euler_angle_full = [self.euler_angle]
+
+    def get_acc(self):
+        url = f'http://{self.url}/get?lin_accX={self.clock}|lin_acc_time&lin_acc_time={self.clock}&lin_accY={self.clock}|lin_acc_time&lin_accZ={self.clock}|lin_acc_time'
+        r = requests.get(url)
+        tmp_dic = r.json()
+        r.close()
+        accX = tmp_dic['buffer']['lin_accX']['buffer'][-1]
+        accY = tmp_dic['buffer']['lin_accY']['buffer'][-1]
+        accZ = tmp_dic['buffer']['lin_accZ']['buffer'][-1]
+        acc_time = tmp_dic['buffer']['lin_acc_time']['buffer'][-1]
+        self.acc_time_full.append(acc_time)
+        acc = np.array([accX, accY, accZ])
+        self.linear_acc_full.append(acc-self.init_acc)
+
+    def get_gyro(self):
+        url = f'http://{self.url}/get?gyroX={self.clock}|gyro_time&gyro_time={self.clock}&gyroY={self.clock}|gyro_time&gyroZ={self.clock}|gyro_time'
+        r = requests.get(url)
+        tmp_dic = json.loads(r.text)
+        r.close()
+        gyroX = tmp_dic['buffer']['gyroX']['buffer'][-1]
+        gyroY = tmp_dic['buffer']['gyroY']['buffer'][-1]
+        gyroZ = tmp_dic['buffer']['gyroZ']['buffer'][-1]
+        gyro_time = tmp_dic['buffer']['gyro_time']['buffer'][-1]
+        self.gyro_time_full.append(gyro_time)
+        gyro = np.array([gyroX, gyroY, gyroZ])
+        self.gyro_full.append(gyro-self.init_gyro)
+
+    def calc_euler_angle(self):
+        if len(self.gyro_time_full)<2:
+            self.euler_angle = np.zeros(3)
+        else:
+            dt = self.gyro_time_full[-1]-self.gyro_time_full[-2]
+            mean_a = (np.array(self.gyro_full[-1]) + np.array(self.gyro_full[-2]))/2
+            self.euler_angle += dt * mean_a
+        self.euler_angle_full.append(list(self.euler_angle))
+        return self.euler_angle
+
+    def calc_linear_vel_pos(self):
+        if len(self.acc_time_full)<2:
+            self.linear_vel = np.zeros(3)
+            self.linear_position = np.zeros(3)
+        else:
+            dt = self.acc_time_full[-1]-self.acc_time_full[-2]
+            mean_a = (np.array(self.linear_acc_full[-1]) + np.array(self.linear_acc_full[-2]))/2
+            self.linear_position += self.linear_vel * dt + 0.5 * mean_a * dt**2
+            self.linear_vel += dt * mean_a
+        self.linear_vel_full.append(list(self.linear_vel))
+        self.linear_position_full.append(list(self.linear_position))
+        return self.linear_position
+
+    def start_sensing(self):
+        while True:
+            self.sense_once()
+        # except:
+        #     print(f"get sensor data failed, retry")
+        #     time.sleep(0.001)
+
+    def sense_once(self):
+        self.get_acc()
+        self.get_gyro()
+        self.calc_euler_angle()
+        self.calc_linear_vel_pos()
+
+    def sensor_calibration(self, init_robot_pose):
+        self.init_robot_pose = init_robot_pose
+        print(f"sensor calibration")
+        print(f"wait ...")
+        sum_acc, sum_ang_v, sum_rot = np.zeros(3),np.zeros(3),np.zeros(3)
+        num_sample = 50
+        for _ in range(num_sample):
+            self.sense_once()
+
+        self.init_position = np.sum(self.linear_position_full[-num_sample:], 0)/num_sample
+        self.init_rotation = np.sum(self.euler_angle_full[-num_sample:], 0)/num_sample
+        self.init_acc = np.sum(self.linear_acc_full[-num_sample:], 0)/num_sample
+        self.init_gyro = np.sum(self.gyro_full[-num_sample:], 0)/num_sample
+
+        self.linear_acc_full = []
+        self.acc_time_full = []
+        self.gyro_full = []
+        self.gyro_time_full = []
+
+        self.linear_vel = np.zeros(3)
+        self.linear_position = np.zeros(3)
+        self.euler_angle = np.zeros(3)
+
+        self.linear_vel_full = [self.linear_vel]
+        self.linear_position_full = [self.linear_position]
+        self.euler_angle_full = [self.euler_angle]
+
+    def _get_position(self):
+        return tuple(np.array(self.init_robot_pose[0]) + (np.array(self.linear_position_full[-1]) - np.array(self.init_position)))
+
+    def _get_rotation(self):
+        d_theta = np.array(self.euler_angle_full[-1]) - np.array(self.init_rotation)
+        return tuple(pu.multiply_quats(self.init_robot_pose[1], pu.quat_from_euler([-d_theta[0],d_theta[1], -d_theta[2]])))
+
+    def get_pose(self):
+        return (self._get_position(), self._get_rotation())
 
 class Sensor(object):
     def __init__(self, filename, init_robot_pose, sampling_rate):
@@ -154,19 +279,28 @@ if __name__=='__main__':
     """ usage
     python3 generate_dataset 0 2
     """
+    # TODO, signal filter in real time
     # load robot from pybullet
-    visualization = int(sys.argv[1])
-    pu.connect(use_gui=visualization)
+    pu.connect(use_gui=1)
     scn = ScenarioForiPhoneController()
+    # robot initial pose
+    init_robot_pose = pu.get_link_pose(scn.robot, scn.end_effector_link)
+
+    # keyboard listener
     kb_controller = KeyBoardController()
     kb_listener = threading.Thread(target=kb_controller.listen_keyboard, args=())
     kb_listener.start()
 
-    # robot initial pose
-    init_robot_pose = pu.get_link_pose(scn.robot, scn.end_effector_link)
-    filename = 'sensor_data.txt'
-    sensor = Sensor(filename, init_robot_pose, sampling_rate=10)
+    # sensor data from an iphone APP, named phyphox
+    pp_sensor = SensorIPhone()
+    pp_listener = threading.Thread(target=pp_sensor.start_sensing, args=())
+    pp_sensor.sensor_calibration(init_robot_pose)
+    pp_listener.start()
 
+    # sensor data from matlab synchronization
+    # filename = 'sensor_data.txt'
+    # sensor = Sensor(filename, init_robot_pose, sampling_rate=10)
+    
     # start control
     print(f"################### start robot control ######################")
     t0 = time.time()
@@ -175,8 +309,11 @@ if __name__=='__main__':
         # d_theta = (tmp_rot - init_sensor_rot) * np.pi/180
         # new_position = init_robot_pose[0] 
         new_position = np.array(pu.get_link_pose(scn.robot, scn.end_effector_link)[0]) + kb_controller.move_linear
-        _, new_rotation = sensor.get_pose()
-        new_pose = (new_position, new_rotation)
+        # _, new_rotation = sensor.get_pose()
+        # new_pose = (new_position, new_rotation)
+        new_pose = pp_sensor.get_pose()
+        new_pose = (new_position, new_pose[1])
+        print(f"new pose {new_pose}")
 
         ik=None
         ik = pu.inverse_kinematics_naive(scn.robot, scn.end_effector_link, new_pose)
@@ -186,4 +323,4 @@ if __name__=='__main__':
             # print(f"ik: {ik}")
             pu.set_joint_positions(scn.robot, scn.movable_joints, ik)
             scn.attachment.assign()
-        time.sleep(0.001)
+        time.sleep(0.01)

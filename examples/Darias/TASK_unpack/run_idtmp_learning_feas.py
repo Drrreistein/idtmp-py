@@ -49,7 +49,7 @@ def multi_sims_path_cache(visualization=0):
         task_planning_timer.stop()
 
         tm_plan = None
-        
+
         while tm_plan is None:
             # ------------------- task plan ---------------------
             t_plan = None
@@ -91,14 +91,22 @@ def multi_sims_path_cache(visualization=0):
                 tp.add_constraint(failed_step, typ='general', cumulative=False)
                 task_planning_timer.stop()
                 t_plan = None
-        all_timers = task_planning_timer.timers
-        print(all_timers)
-        total_planning_timer.stop()
-        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-        print(f"total_planning_time {all_timers[total_planning_timer.name]}")
-        print(f"final_visits {tp.counter}")
+        if feasible_check:
+            feasible_checker.hypothesis_test()
 
+        if res:
+            all_timers = task_planning_timer.timers
+            print(all_timers)
+            total_planning_timer.stop()
+            print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+            print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+            print(f"total_planning_time {all_timers[total_planning_timer.name]}")
+            print(f"final_visits {tp.counter}")
+        else:
+            print("TAMP is failed")
+        saved_world.restore()
+
+        embed()
     # os.system('spd-say -t female2 "hi lei, simulation done"')
     # while True:
     #     ExecutePlanNaive(scn, t_plan, m_plan)
@@ -108,7 +116,7 @@ def multi_sims_path_cache(visualization=0):
 
 if __name__=="__main__":
     """ usage
-    python3 run_idtmp_unpack.py 0 0.1 10 20
+    python3 run_idtmp_unpack.py 0 0.1 10 20 1
     """
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])

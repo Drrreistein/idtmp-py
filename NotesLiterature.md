@@ -1,4 +1,4 @@
-
+##### 
 
 **The Task-Motion Kit An open source , general-purpose task and motion planning framework**
 
@@ -430,11 +430,15 @@ Conclusions:
 
 
 
-#### Learning Feasibility for Task and Motion Planning in Tabletop Environments
+#### Learning Feasibility for Task and Motion Planning in Tabletop Environments, 2019 Wells
 
 <img src='./docs/learning_feasibility_tamp.png' style=20%>
 
 Intuition:
+
+
+
+
 
 - basically it uses the framework of TMKit
 
@@ -453,7 +457,22 @@ approximation:
 2. multiple objects, check feasibility of each object-pair
 3. object with weird shape, check feasibility using the inscribed rectangular prism
 
+#### Deep Visual Heuristics_ Learning Feasibility of Mixed-Integer Programs for robot manipulation, 2020 Driess
 
+- learning feasibility from image
+- ++ extend its generalization than 2019 Wells: rotation of blocks
+- -- but still constrainted by the requirement with same scenario and same robot
+
+#### Robot Motion Planning in learned Latent Space ,2018 Ichter
+
+https://github.com/StanfordASL/LSBMP
+
+- learning a latent space with lower dimension to control a high-dimensional robot with complex dynamic, like humanoid
+
+#### Deep Spatial Autoencoders for Visuomotor Learning, 2016 Finn
+
+- ![image-20211031223712753](docs/image-20211031223712753.png)
+- 
 
 ### Experiment
 
@@ -500,7 +519,45 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 
 #### etamp
 
+- not suitable 
 
+#### SVM feasibility checker 
+
+<img src="docs/total_planning_time_unpack.png" alt="total_planning_time_unpack" style="zoom:80%;" />
+
+<img src="docs/total_planning_time_pack.png" alt="total_planning_time_pack" style="zoom: 50%;" />
+
+intuition:
+
+- feasibility checker using SVM for 0-1 classifier
+- represent the two-object tablet scenario with a feature vector
+
+conclusion:
+
+- simple and easy to implement idea
+- very general method, which can be very convenient to integrate to any other framework
+- much faster than pure `etamp` and `idtmp` is some scenarios
+- -- but not very efficient in some other scenarios because of prediction error, false position cases
+- -- false negative is also dangerous for algorithm completeness and happens also very often
+- -- trained model not transferable to other robot or other non-tablet scenarios, have to train a new one
+- -- huge dataset
+
+#### generating scene from symbolic state with conditional VAE
+
+intuition:
+
+1. given: bunch of robot scenes to train VAE, a model library which VAE can use
+2. training a VAE to understand what a symbolic state(objects and its relations) means, e.g. **on obj region**, **grasped object robot**, so that the learned knowledge can be transfer to other problem with same domain, even other domain but with the same definition of symbolic state
+3. 
+
+#### tamp+learning
+
+- feasibility checker using SVM for 0-1 classifier
+
+- feasibility checker using CNN from 2-d image to feasibility, end-to-end
+- training a VAE to understand what a symbolic state means
+- ? how to transfer the learned knowledge to other scenarios may be still using the same robot
+- ? how to make robot concerning its future state when generating current state, so that 
 
 ### Implementation
 
@@ -567,13 +624,15 @@ data flow
 - [x] OMTPlanner not able to encode grammar like OR in goal of problem.pddl
 - [x] task_cook not implemented
 - [x] update add_motion_constraints
-- [ ] run multiple scene parallel in pybullet
+- [ ] run multiple simulation scene parallel in a single pybullet world
 - [ ] update code with my pybullet SDK
-- [ ] other tamp framework
-- [ ] visualize discrete space
+- [ ] other tamp framework: LGP
+- [x] visualize discrete space
 - [ ] difference btw. run_etamp and run_branch
-- [ ] test etamp using run_etamp
-- [ ] task planner is able to encode disconjunction goal
+- [x] test etamp using run_etamp
+- [ ] task planner is not able to encode disconjunction goal
 - [ ] reorganize the main code just the same as the pseudo-code of idtmp
 - [ ] update the motion failed constraints to collision objects constraints
-  - [ ] collision_check in task_cook
+  - [x] collision_check in task_cook
+- [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
+- [ ] 

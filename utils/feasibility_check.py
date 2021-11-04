@@ -1,8 +1,11 @@
 import pickle
+
+from numpy.lib.type_check import real
 import pybullet_tools.utils as pu
 import numpy as np
 from codetiming import Timer
 import re
+from IPython import embed
 
 class FeasibilityChecker(object):
     def __init__(self, scn, objects, resolution, model_file):
@@ -18,6 +21,35 @@ class FeasibilityChecker(object):
             self.object_properties[bd] = list(np.array(upper)-np.array(lower))
 
         self.load_ml_model(self.model_file)
+        # do some statistics
+        self.call_times = 0
+        self.feasible_call = 0
+        self.infeasible_call = 0
+        self.current_feasibility = 0
+        self.false_infeasible = 0
+        self.false_feasible = 0
+        self.true_feasible = 0
+        self.true_infeasible = 0
+
+    def fc_statistic(self, real_feasibility):
+        if real_feasibility and self.current_feasibility:
+            self.true_feasible += 1
+        if (not real_feasibility) and (not self.current_feasibility):
+            self.true_infeasible += 1
+        if (not real_feasibility) and self.current_feasibility:
+            self.false_feasible += 1
+        if real_feasibility and (not self.current_feasibility):
+            self.false_infeasible += 1
+
+    def hypothesis_test(self):
+        perc_tf = round(self.true_feasible/self.call_times, 4)
+        perc_ti = round(self.true_infeasible/self.call_times, 4)
+        perc_fi = round(self.false_infeasible/self.call_times, 4)
+        perc_ff = round(self.false_feasible/self.call_times, 4)
+        print(f'\t\t\tTrue Feasibility')
+        print(f'\t\t\tfeas\t\tinfeas')
+        print(f'Classifier\tfeas\t{perc_tf}\t{perc_fi}')
+        print(f'Feasibility\tinfeas\t{perc_ff}\t{perc_ti}')
 
     def load_ml_model(self, model_file):
         with open(model_file, 'rb') as file:
@@ -43,6 +75,7 @@ class FeasibilityChecker(object):
 
     @Timer(name='feasible_checking_timer', text='')
     def check_feasibility(self, task_plan):
+        self.call_times += 1
         failed_step = None
         res = True
         init_world = pu.WorldSaver()
@@ -81,5 +114,10 @@ class FeasibilityChecker(object):
                     pu.set_pose(target_body, target_pose)
         init_world.restore()
         if res:
-            print("current task plan is feasible")            
+            self.feasible_call += 1
+            print("current task plan is feasible")
+        else:
+            self.infeasible_call += 1
+            print("current task plan is infeasible")
+        self.current_feasibility = res
         return res, failed_step

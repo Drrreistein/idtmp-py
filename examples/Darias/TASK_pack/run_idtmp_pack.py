@@ -312,6 +312,9 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
     else:
         res, m_plan, failed_step = tm.motion_refiner(t_plan)
 
+    if feasibility_checker:
+        feasibility_checker.fc_statistic(res)
+
     return res, m_plan, failed_step
 
 def simulation(visualization=1):
@@ -517,7 +520,8 @@ def multi_sims():
     # visualization = True
     pu.connect(use_gui=visualization)
     scn = PlanningScenario4b()
-    
+    saved_world = WorldSaver()
+    embed()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
@@ -600,17 +604,24 @@ def multi_sims():
                 task_planning_timer.stop()
                 t_plan = None
 
-        all_timers = task_planning_timer.timers
-        print(all_timers)
-        total_planning_timer.stop()
-        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-        print(f"total_planning_time {all_timers[total_planning_timer.name]}")
-        print(f"final_visits {tp.counter}")
+        feasible_checker.hypothesis_test()
+        if res:
+            all_timers = task_planning_timer.timers
+            print(all_timers)
+            total_planning_timer.stop()
+            print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+            print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+            print(f"total_planning_time {all_timers[total_planning_timer.name]}")
+            print(f"final_visits {tp.counter}")
+        else:
+            print("TAMP is failed") 
 
+        saved_world.restore()
         # while True:
-        #     ExecutePlanNaive(scn, t_plan, m_plan)
-        #     time.sleep(1)
+        ExecutePlanNaive(scn, t_plan, m_plan)
+        time.sleep(1)
+        saved_world.restore()
+
 
     pu.disconnect()
 

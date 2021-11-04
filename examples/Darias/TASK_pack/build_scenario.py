@@ -274,11 +274,14 @@ class PlanningScenario4b(object):
                         fixed_base=True),
                     'region1': load_pybullet("../scenario_description/region_small.urdf", fixed_base=True),
                     'region2': load_pybullet("../scenario_description/region_small.urdf", fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
-                    'c2': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
-                    'c3': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
-                    'c4': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
-
+                    'c1': create_box(0.06,0.06,0.1),
+                    'c2': create_box(0.06,0.06,0.1),
+                    'c3': create_box(0.06,0.06,0.1),
+                    'c4': create_box(0.06,0.06,0.1)
+                    # 'c1': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
+                    # 'c2': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
+                    # 'c3': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
+                    # 'c4': load_pybullet("../scenario_description/boxBm.urdf", fixed_base=False),
                     # 'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
                     # 'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
                 }
@@ -342,7 +345,7 @@ class PlanningScenario4b(object):
                 set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
 
                 # distance_by = 0.0505
-                distance_by = 0.04
+                distance_by = 0.035
                 set_pose(self.bd_body['c1'],Pose(Point(x=0.36-distance_by,y=0.9+distance_by, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
                 set_pose(self.bd_body['c2'],Pose(Point(x=0.36+distance_by,y=0.9+distance_by, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
                 set_pose(self.bd_body['c3'],Pose(Point(x=0.36+distance_by,y=0.9-distance_by, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))

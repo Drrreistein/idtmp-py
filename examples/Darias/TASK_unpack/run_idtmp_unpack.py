@@ -274,8 +274,8 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
     # check feasibility of task plan from learned model
     if feasibility_checker:
         isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
-        if not isfeasible:
-            return isfeasible, None, failed_step
+        # if not isfeasible:
+        #     return isfeasible, None, failed_step
 
     # using plan cache to avoid to resample an known operator
     if path_cache is not None:
@@ -296,6 +296,8 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
     else:
         res, m_plan, failed_step = tm.motion_refiner(t_plan)
 
+    if feasibility_checker:
+        feasibility_checker.fc_statistic(res)
     return res, m_plan, failed_step
 
 def simulation(visualization=1):
@@ -580,6 +582,7 @@ def multi_sims_path_cache(visualization=0):
         print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
         print(f"total_planning_time {all_timers[total_planning_timer.name]}")
         print(f"final_visits {tp.counter}")
+        embed()
 
     # os.system('spd-say -t female2 "hi lei, simulation done"')
     # while True:

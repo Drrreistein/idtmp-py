@@ -1,5 +1,3 @@
-from copyreg import pickle
-from math import dist
 from random import random
 
 from build_scenario import ScenarioForTraining
@@ -101,7 +99,7 @@ if __name__=='__main__':
     """
     visualization = int(sys.argv[1])
     num_process = int(sys.argv[2])
-    print(f"number of processes: {num_process}")
+    # print(f"number of processes: {num_process}")
     assert num_process<9, "CPU overworked"
 
     processes = []
