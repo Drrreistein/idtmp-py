@@ -11,16 +11,16 @@
   </material>
   <link name="base_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0.0000" rpy="0 0 0" />
       <geometry>
-        <box size="0.3 0.3 0.00005" />
+        <box size="1.2 0.8 0.005" />
       </geometry>
       <material name="LightWood"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0.0000" rpy="0 0 0" />
       <geometry>
-        <box size="0.3 0.3 0.005" />
+        <box size="1.2 0.8 0.005" />
       </geometry>
     </collision>
   </link>

@@ -488,9 +488,46 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 
 ### Conclusion
 
+#### ideal TAMP framework
+
+assumptions/predicates
+
+1. fully observable
+
+properties:
+
+1. optimality
+   1. iteratively deepend search
+   2. optimal motion planner
+2. completeness
+   1. resolution completeness
+   2. probability completeness
+3. efficient
+   1. a efficient motion refiner, e.g.
+      1. non-uniform sampling, by learning sampling distributions using conditional VAE
+      2. sampling in lower-dimension, e.g. robot cartesian space, latent space
+      3. path reuse
+   2. learning from experience: less motion refiner/NLP, e.g. learn a feasibility checker
+   3. parallel computing
+   4. smaller branching factor, smaller discretization degree
+   5. ranking the child nodes and motion refining refered to the rank, e.g. MCTS
+4. scalability
+   1. scalable to different number, size and shape of movable objects
+   2. scalable to different scene ??, different unmovable objects, e.g. table, shelf and etc.
+   3. scalable to different robot
+5. extremely long horizon
+   1. better and lite problem and domain definition in pddl/pddlstream
+   2. bottleneck of task planner: so faster or customized task planner
+   3. split the original long task into several subtasks
+   4. define more abstract layer over action-specific domain, which called task-specific domain, e.g. `task_cook` in task-specific domain= `pick_up`+`put_down`+`cook`+`pick_up`+`put_down`+`clean` in action-specific domain
+6. ??generality: learn from experience and and apply to the entire domain
+   1. 
+
 #### idtmp
 
-1. visits(task plan counter) of idtmp go linearly with discret space, rise expotentially with space dimension
+##### how is works
+
+1. visits(task plan counter) of idtmp rise linearly with discret space, rise expotentially with space dimension
 2. motion refining of a candidate task plan failed may be due to two reasons:
    1. not final solution
    2. not enough sampling time for motion refining process
@@ -504,12 +541,29 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
    3. discretize the space in multiple resolution
    4. incrementally change the discrete space according to the tamp state?
 
-#### idtmp task planner
+##### task planner
 
 1. very quick to find a candidate solution when there is in current horizon, but very slow to prove there is no solution when in a long horizon. Therefore, for a very long horizon task it's better to locate the target horizon where candidate solution is rather than iteratively deepening the horizon.
 2. to locate the horizon quicker: using a discrete space as small as possible to represent the continuous space, when the target horizon is found, then resample the conitnuous space with a resonable discretization step
 
-#### idtmp improvement
+##### positives
+
+1. task planner automatically generate old action sequences when going to a deeper horizon for motion refiner to retry, ensure algorithm complexity
+2. possible to compute parallel 
+3. easy to understand its working mechanism
+4. experience like feasible action will be cached for future usage
+5. failed action at specific step will be converted to a constraint for task planner, which will efficient prune the space of action sequence.
+
+##### negatives
+
+1. need experience from user to choose disretization degree for continuous geometric space, when too big=>too big branching factor and huge tree to enumerate, too small=>no solution for tamp
+2. experience to choose sampling timeout threshold for RRT-planner in motion refiner
+3. the algorithm only resolution complete
+4. bottleneck of the SMT-based task planner for long horizon
+5. no learning from experience, always planning from scratch
+6. call motion refiner too much, not time efficient
+
+##### improvement
 
 1. when task planning in specific horizon failed, increase horizon, motion-timeout and discretization space simutanously to ensure probabilistic completeness, which increasing discretization space was not mentioned in Dantam 2018.
 2. for the sake of efficiency, start the task planner not necessarily from the very beginning (first horizon) based on engineering experience or run task planner with smallest discretization space.
@@ -519,7 +573,7 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 
 #### etamp
 
-- not suitable 
+- 
 
 #### SVM feasibility checker 
 
@@ -542,6 +596,10 @@ conclusion:
 - -- trained model not transferable to other robot or other non-tablet scenarios, have to train a new one
 - -- huge dataset
 
+improvement：
+
+- we don't simply throw away the infeasible action but push them to stack to check it with motion refiner later. Thus we use SVM feasibility checker not as a judger but only as a heuristic / reference
+
 #### generating scene from symbolic state with conditional VAE
 
 intuition:
@@ -553,13 +611,29 @@ intuition:
 #### tamp+learning
 
 - feasibility checker using SVM for 0-1 classifier
-
 - feasibility checker using CNN from 2-d image to feasibility, end-to-end
 - training a VAE to understand what a symbolic state means
 - ? how to transfer the learned knowledge to other scenarios may be still using the same robot
-- ? how to make robot concerning its future state when generating current state, so that 
+- ? how to make robot concerning its future state when generating current state, so that
 
-### Implementation
+intuition
+
+- train a autoencoder network, to decode a instantiated scene graph from symbolic state, so that,
+- generate a kinematic feasible / collision free / 
+
+usage
+
+- constraint based task planner (z3) generate action sequence $a_k$ and symbolic state sequence $s_k$;
+- autoencoder generate scene graph $S_k$, given symbolic state $s_(k-1)$, scene graph $S_{k-1}$ and goal state $s_h$ and goal scene graph $S_h$
+- but, this idea benefits who, seems nothing optimized because of this
+
+intuition
+
+- training a network to predict the entire action sequences
+- input: scene graph, action, goal 
+- output: 
+
+###  Implementation
 
 #### Framework
 
@@ -588,6 +662,7 @@ data flow
 - [ ] duplicate candidate solution? see `regrasp/log/plan11.log`
   - duplicate for different steps, may save failed solutions in set,in order to avoid checking same solution latter 
 - [ ] There is still com valid solution in step 2 phase, but SMT solver could not find it in time and then jump to deeper step
+- [ ] rrt in joint space not appropriate for TASK_regrasp, lots of planning false infeasible cases
 
 #### code improvement
 
@@ -635,4 +710,6 @@ data flow
 - [ ] update the motion failed constraints to collision objects constraints
   - [x] collision_check in task_cook
 - [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
-- [ ] 
+- [ ] find a interesting task to show the function of TAMP
+- [ ] write a python module which can convert all generated action sequence into a tree
+

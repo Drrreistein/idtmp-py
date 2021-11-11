@@ -351,8 +351,10 @@ class PDDLProblem(object):
         # self.goal.append(['cooked', 'box3'])
         # self.goal.append(['cooked', 'box4'])
         # self.goal.append(['cooked', 'box5'])
-
-
+        # self.goal.append(['cooked', 'box6'])
+        # self.goal.append(['cooked', 'box7'])
+        # self.goal.append(['cooked', 'box8'])
+        # self.goal.append(['cooked', 'box9'])
         # ontable = ['or']
         # for loc in self.objects['location']:
         #     if 'region2' in loc:
@@ -511,7 +513,7 @@ def sim_plancache():
     problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
     problem = PDDLProblem(scn, parser.domain_name)
     parser.dump_problem(problem, problem_filename)
-    logger.info(f"problem.pddl dumped")
+    print(f"problem.pddl dumped")
     # initial domain semantics
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
@@ -519,7 +521,7 @@ def sim_plancache():
     # IDTMP
     total_planning_timer.start()
     task_planning_timer.start()
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=12)
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=11, max_horizon=100)
     tp.incremental()
     tp.modeling()
     task_planning_timer.stop()
@@ -536,7 +538,7 @@ def sim_plancache():
             t_plan = tp.search_plan()
             task_planning_timer.stop()
             if t_plan is None:
-                logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                print(f"task plan not found in horizon: {tp.horizon}")
                 print(f'')
                 # if tp.horizon<19:
                 num_constraints = 0
@@ -546,6 +548,7 @@ def sim_plancache():
                 print(f'ground_actions {len(tp.encoder.action_variables)*len(tp.encoder.action_variables[0])}')
                 print(f'ground_states {len(tp.encoder.boolean_variables)*len(tp.encoder.boolean_variables[0])}')
                 print(f'number_constraints {num_constraints}')
+                print(f"task planning time: {task_planning_timer.timers['task_planning_time']}")
                 # else:
                 #     embed()
                 task_planning_timer.start()
@@ -555,12 +558,12 @@ def sim_plancache():
                     return False
                 tp.modeling()
                 task_planning_timer.stop()
-                logger.info(f"search task plan in horizon: {tp.horizon}")
+                print(f"search task plan in horizon: {tp.horizon}")
                 # global MOTION_ITERATION
                 # MOTION_ITERATION += 10
-                # print(f"all timers: {task_planning_timer.timers}")
-
-        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        # print(f"all timers: {task_planning_timer.timers}")
+        embed()
+        print(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
             logger.info(f"{h}: {p}")
 
@@ -652,18 +655,17 @@ def multisim():
                 task_planning_timer.start()
                 t_plan = tp.search_plan()
                 if t_plan is None:
-                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                    print(f"WARN: task plan not found in horizon: {tp.horizon}")
                     print(f'')
                     tp.incremental()
                     tp.modeling()
-                    logger.info(f"search task plan in horizon: {tp.horizon}")
+                    print(f"search task plan in horizon: {tp.horizon}")
                     # global MOTION_ITERATION 
                     # MOTION_ITERATION += 10
                 task_planning_timer.stop()
-
-            logger.info(f"task plan found, in horizon: {tp.horizon}")
+            print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
+                print(f"{h}: {p}")
 
             # ------------------- motion plan ---------------------
             motion_planning_timer.start()
@@ -672,10 +674,10 @@ def multisim():
 
             scn.reset()
             if res:
-                logger.info(f"task and motion plan found")
+                print(f"task and motion plan found")
                 break
             else: 
-                logger.warning(f"motion refine failed")
+                print(f"WARN: motion refine failed")
                 logger.info(f'')
                 tp.add_constraint(m_plan)
                 t_plan = None

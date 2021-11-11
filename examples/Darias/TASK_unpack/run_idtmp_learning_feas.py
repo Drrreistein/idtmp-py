@@ -21,7 +21,7 @@ def multi_sims_path_cache(visualization=0):
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     else:
         feasible_checker = None
 

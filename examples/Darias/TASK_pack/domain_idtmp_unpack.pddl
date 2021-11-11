@@ -35,7 +35,7 @@
                 :parameters (?x - block ?loc - location)
                 :precondition (and
                         (holding ?x)
-                        (clear ?loc)
+                        ; (clear ?loc)
                         (not (handempty)))
                 :effect (and
                         (not (holding ?x))

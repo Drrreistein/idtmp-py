@@ -506,7 +506,7 @@ def multi_sims_path_cache(visualization=0):
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     else:
         feasible_checker = None
 
@@ -553,7 +553,6 @@ def multi_sims_path_cache(visualization=0):
                     global MOTION_ITERATION
                     MOTION_ITERATION += 10
             task_planning_timer.stop()
-
             if tp.horizon>tp.max_horizon:
                 break
             logger.info(f"task plan found, in horizon: {tp.horizon}")
@@ -690,7 +689,7 @@ def multi_sims_path_cache(visualization=0):
 
 if __name__=="__main__":
     """ usage
-    python3 run_idtmp_unpack.py 0 0.1 10 20
+    python3 run_idtmp_unpack.py 0 0.1 10 20 0 
     """
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])

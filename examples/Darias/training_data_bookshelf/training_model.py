@@ -54,7 +54,7 @@ def train_svm_model(train, test):
     print(f"acc_train: {acc_train}, acc_test: {acc_test}")
     print(test_accuracy(pred_train_y, train[:,-1]))
     print(test_accuracy(pred_test_y, test[:,-1]))
-    with open("../training_data/svm_model.pk", 'wb') as file:
+    with open("./svm_model.pk", 'wb') as file:
         pickle.dump(clf, file)
     return clf
 
@@ -80,12 +80,12 @@ def train_mlp_model(train, test):
     plt.show()
     print(test_accuracy(pred_train_y, train[:,-1]))
     print(test_accuracy(pred_test_y, test[:,-1]))
-    with open("../training_data/mlp_model.pk", 'wb') as file:
+    with open("./mlp_model.pk", 'wb') as file:
         pickle.dump(clf, file)
     return clf
 
 def save_model(model):
-    with open("../training_data/svm_model.pk", 'wb') as file:
+    with open("./svm_model.pk", 'wb') as file:
         pickle.dump(model, file)
 
 if __name__=="__main__":

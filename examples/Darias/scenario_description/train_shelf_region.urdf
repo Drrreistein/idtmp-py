@@ -1,7 +1,7 @@
-<?xml version="1.0"?>2
+<?xml version="1.0"?>
 <robot name="region">
   <material name="Wood">
-    <color rgba="0.827 0.675 0.463 1.0"/>
+    <color rgba="0.827, 0.675, 0.463, 1.0"/>
   </material>
   <material name="LightWood">
     <color rgba="0.992, 0.871, 0.682, 1.0"/>
@@ -13,14 +13,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.3 0.3 0.00005" />
+        <box size="0.32 0.44 0.005" />
       </geometry>
-      <material name="LightWood"/>
+      <material name="Wood"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.3 0.3 0.005" />
+        <box size="0.32 0.44 0.005" />
       </geometry>
     </collision>
   </link>

@@ -99,7 +99,7 @@ class RegraspDomainSemantics(DomainSemantics):
         x = center[0]
         y = center[1]
         z = center[2]
-        
+
         offset = np.array([m,n,o], dtype=int) * (extend/2+np.array([EPSILON,EPSILON,EPSILON]))
         # body_pose = pu.Pose([x,y,z], pu.euler_from_quat(rotation))
         goal_point = np.array([x,y,z]) + offset
@@ -108,9 +108,10 @@ class RegraspDomainSemantics(DomainSemantics):
         goal_rot = pu.multiply_quats(rotation, pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0)))
         goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
         # goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((0,0,int(p)/DIR_NUM*np.pi*2)))
-
         # pick_pose = pu.multiply(pu.Pose(goal_point, pu.euler_from_quat(goal_rot)), ((0,0,0), pu.quat_from_axis_angle([1,0,0],np.pi)))
         pick_pose = pu.Pose(goal_point, pu.euler_from_quat(goal_rot))
+        # pu.draw_pose(pick_pose)
+
         # print(f"pick pose {pick_pose}")
         res, path = self.motion_plan(body, pick_pose, attaching=False)
         return res, path
@@ -560,7 +561,7 @@ def multisim_plancache():
     domain_filename = os.path.join(dirname, 'domain_idtmp_regrasp.pddl')
 
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/mlp_model.pk')
     else:
         feasible_checker = None
 
@@ -611,7 +612,7 @@ def multisim_plancache():
                     # MOTION_ITERATION += 5
                     logger.info(f"search task plan in horizon: {tp.horizon}")
             task_planning_timer.stop()
-
+            
             if tp.horizon > tp.max_horizon:
                 logger.error(f"exceeding task planner maximal horizon")
                 break

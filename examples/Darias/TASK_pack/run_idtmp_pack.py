@@ -414,7 +414,7 @@ def simulation_plancache(visualization=1):
     scn = PlanningScenario4b()
 
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     else:
         feasible_checker = None
 
@@ -521,7 +521,6 @@ def multi_sims():
     pu.connect(use_gui=visualization)
     scn = PlanningScenario4b()
     saved_world = WorldSaver()
-    embed()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
@@ -535,7 +534,7 @@ def multi_sims():
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     else:
         feasible_checker = None
     # IDTMP
@@ -543,7 +542,7 @@ def multi_sims():
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
-
+    embed()
     while i<max_sim:
         path_cache = PlanCache()
         task_planning_timer.reset()
@@ -553,7 +552,7 @@ def multi_sims():
         i+=1
         total_planning_timer.start()
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=8)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=12)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
@@ -587,7 +586,7 @@ def multi_sims():
             print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
                 print(f"{h}: {p}")
-
+            embed()
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
             res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)

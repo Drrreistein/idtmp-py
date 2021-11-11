@@ -1,3 +1,4 @@
+from collections import defaultdict
 import time
 
 from IPython.core.magic_arguments import construct_parser
@@ -50,6 +51,7 @@ class TaskPlanner(object):
         # t0 = time.time()
         self.formula = self.encoder.incrmental(self.horizon)
         # print(f"incremental formulation time: {time.time()-t0}")
+
         return True
 
     @Timer(name='tp_modeling', text='')
@@ -78,13 +80,25 @@ class TaskPlanner(object):
             self.solver.add(z3.And(self.general_constraints))
         self.solver.push()
 
+    def display_boolean_variables(self):
+        true_boolean_variables = defaultdict(set)
+        for step, variables in self.encoder.boolean_variables.items():
+            for s, val in variables.items():
+                if self.model.eval(val):
+                    true_boolean_variables[step].add(val)
+        return true_boolean_variables
+
+    def display_action_variables(self):
+        true_action_variables = defaultdict(set)
+        for step, variables in self.encoder.action_variables.items():
+            for s, val in variables.items():
+                if self.model.eval(val):
+                    true_action_variables[step].add(val)
+        return true_action_variables
 
         # self.solver.add(z3.And(constraints))
-
         # self.solver.push()
 
         # constraints = self.solution.negate_plan_constraints()
         # self.solver.add(z3.And(constraints))
         # self.solver.push()
-
-

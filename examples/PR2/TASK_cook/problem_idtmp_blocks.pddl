@@ -1,36 +1,12 @@
-;11:17:28 25/10
+;19:09:26 08/11
 
 (define (problem clean-and-cook)
    (:domain blocks)
 
    (:objects
-          sink__-1__-1 - location
-          sink__-1__0 - location
-          sink__-1__1 - location
-          sink__0__-1 - location
           sink__0__0 - location
-          sink__0__1 - location
-          sink__1__-1 - location
-          sink__1__0 - location
-          sink__1__1 - location
-          stove__-1__-1 - location
-          stove__-1__0 - location
-          stove__-1__1 - location
-          stove__0__-1 - location
           stove__0__0 - location
-          stove__0__1 - location
-          stove__1__-1 - location
-          stove__1__0 - location
-          stove__1__1 - location
-          table__-1__-1 - location
-          table__-1__0 - location
-          table__-1__1 - location
-          table__0__-1 - location
           table__0__0 - location
-          table__0__1 - location
-          table__1__-1 - location
-          table__1__0 - location
-          table__1__1 - location
           box1 - block
           box2 - block
           box3 - block
@@ -44,42 +20,18 @@
 
    (:init
           (handempty)
-          (ontable box1 table__-1__-1)
-          (ontable box2 table__0__-1)
-          (ontable box3 table__1__-1)
-          (ontable box4 table__-1__0)
+          (ontable box1 table__0__0)
+          (ontable box2 table__0__0)
+          (ontable box3 table__0__0)
+          (ontable box4 table__0__0)
           (ontable box5 table__0__0)
-          (ontable box6 table__1__0)
-          (ontable box7 table__-1__1)
-          (ontable box8 table__0__1)
-          (ontable box9 table__1__1)
-          (clear sink__0__1)
-          (clear sink__0__0)
-          (clear sink__-1__1)
-          (not (clear table__-1__1))
-          (clear sink__1__0)
-          (clear stove__0__1)
-          (clear stove__-1__1)
-          (clear sink__1__-1)
-          (not (clear table__0__0))
-          (not (clear table__0__-1))
+          (ontable box6 table__0__0)
+          (ontable box7 table__0__0)
+          (ontable box8 table__0__0)
+          (ontable box9 table__0__0)
           (clear stove__0__0)
-          (clear stove__1__1)
-          (clear stove__-1__0)
-          (not (clear table__0__1))
-          (not (clear table__-1__-1))
-          (clear sink__-1__0)
-          (clear stove__0__-1)
-          (clear sink__0__-1)
-          (clear stove__1__-1)
-          (clear stove__-1__-1)
-          (clear sink__-1__-1)
-          (not (clear table__1__1))
-          (not (clear table__1__0))
-          (clear stove__1__0)
-          (not (clear table__1__-1))
-          (clear sink__1__1)
-          (not (clear table__-1__0))
+          (clear sink__0__0)
+          (not (clear table__0__0))
           (not (holding box1))
           (not (holding box2))
           (not (holding box3))
@@ -107,24 +59,8 @@
           (not (cooked box7))
           (not (cooked box8))
           (not (cooked box9))
-          (issink sink__0__1)
-          (issink sink__0__0)
-          (issink sink__-1__1)
-          (issink sink__1__0)
-          (isstove stove__0__1)
-          (isstove stove__-1__1)
-          (issink sink__1__-1)
           (isstove stove__0__0)
-          (isstove stove__1__1)
-          (isstove stove__-1__0)
-          (issink sink__-1__0)
-          (isstove stove__0__-1)
-          (issink sink__0__-1)
-          (isstove stove__1__-1)
-          (isstove stove__-1__-1)
-          (issink sink__-1__-1)
-          (isstove stove__1__0)
-          (issink sink__1__1)
+          (issink sink__0__0)
    )
 
    (:goal

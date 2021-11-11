@@ -1,10 +1,18 @@
-;20:58:33 28/10
+;16:52:25 11/11
 
 (define (problem regrasp-block)
    (:domain blocks)
 
    (:objects
+          region_drawer__-1__-1 - location
+          region_drawer__-1__0 - location
+          region_drawer__-1__1 - location
+          region_drawer__0__-1 - location
           region_drawer__0__0 - location
+          region_drawer__0__1 - location
+          region_drawer__1__-1 - location
+          region_drawer__1__0 - location
+          region_drawer__1__1 - location
           region_shelf__-1__-1 - location
           region_shelf__-1__0 - location
           region_shelf__-1__1 - location
@@ -17,12 +25,18 @@
           region_table__-1__-1 - location
           region_table__-1__0 - location
           region_table__-1__1 - location
+          region_table__-2__-1 - location
+          region_table__-2__0 - location
+          region_table__-2__1 - location
           region_table__0__-1 - location
           region_table__0__0 - location
           region_table__0__1 - location
           region_table__1__-1 - location
           region_table__1__0 - location
           region_table__1__1 - location
+          region_table__2__-1 - location
+          region_table__2__0 - location
+          region_table__2__1 - location
           box1 - block
           -1__0__0__0 - direction
           0__-1__0__0 - direction

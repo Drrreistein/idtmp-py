@@ -20,8 +20,8 @@
                 (holding ?x - block)
                 (cleaned ?x - block)
                 (cooked ?x - block)
-                (issink ?x - block)
-                (isstove ?x - block)
+                (issink ?x - location)
+                (isstove ?x - location)
         )
 
         (:action pick-up
@@ -41,13 +41,13 @@
                 :parameters (?x - block ?loc - location)
                 :precondition (and
                         (holding ?x)
-                        (clear ?loc)
+                        ; (clear ?loc)
                         (not (handempty))
                         )
                 :effect (and
                         (not (holding ?x))
                         (handempty)
-                        (not (clear ?loc))
+                        ; (not (clear ?loc))
                         (ontable ?x ?loc))
         )
 
