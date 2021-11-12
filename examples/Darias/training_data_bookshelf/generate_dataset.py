@@ -43,7 +43,7 @@ def check_feasibility(scn, goal_pose):
         attachment.assign()
         path = pu.plan_joint_motion(scn.robot, scn.movable_joints, goal_conf.configuration, obstacles=obstacles,self_collisions=True, 
         disabled_collisions = pk.DISABLED_COLLISION_PAIR, attachments=[attachment],
-        max_distance=pk.MAX_DISTANCE, iterations=500)
+        max_distance=pk.MAX_DISTANCE, iterations=200)
         if path is None:
             continue
         else:
@@ -135,10 +135,12 @@ def sample_training_data():
 
         dataset_2b = []
         dataset_1b = []
+        saved_world = WorldSaver()
+
         for dir_ind, grsp_dir in grasp_directions.items():
+            saved_world.restore()
 
             pu.set_pose(scn.body_on_table, ((2,2,2),(0,0,0,1)))
-            saved_world = WorldSaver()
 
             extend = pu.get_aabb_extent(pu.get_aabb(scn.body_gripped))
             target_pose = target_pose_vs_grsp_dir(pose1, grsp_dir, np.array(extend))
@@ -149,23 +151,23 @@ def sample_training_data():
             dataset_1b.append(feature_vector_1b+[isfeasible_1b])
             pu.draw_pose(target_pose)
             print(f'1b feasible:{isfeasible_1b}')
-            embed()
-            saved_world.restore()
-            break
+            # embed()
+            # saved_world.restore()
 
             # saved_world = WorldSaver()
-            # for _ in range(5):
-            #     xy2, pose2 = attach_to_table(scn, scn.body_on_table, lwh2, lower, upper)
-            #     dist_theta2 = get_dist_theta(robot_pose, pose2)
-            #     dist_theta12 = get_dist_theta(pose1, pose2)
-            #     feature_vector_2b = lwh1 + lwh2 + dist_theta1 + dist_theta2 + dist_theta12 + [dir_ind]
-            #     isfeasible_2b = isfeasible_1b and int(check_feasibility(scn, target_pose))
-            #     dataset_2b.append(feature_vector_2b+[isfeasible_2b])
-            #     print(f'2b feasible:{isfeasible_2b}')
+            for _ in range(5):
+                saved_world.restore()
 
-            #     saved_world.restore()
+                xy2, pose2 = attach_to_table(scn, scn.body_on_table, lwh2, lower, upper)
+                dist_theta2 = get_dist_theta(robot_pose, pose2)
+                dist_theta12 = get_dist_theta(pose1, pose2)
+                feature_vector_2b = lwh1 + lwh2 + dist_theta1 + dist_theta2 + dist_theta12 + [dir_ind]
+                isfeasible_2b = isfeasible_1b and int(check_feasibility(scn, target_pose))
+                dataset_2b.append(feature_vector_2b+[isfeasible_2b])
+                print(f'2b feasible:{isfeasible_2b}')
         save_dataset(filename_2b, dataset_2b)
         save_dataset(filename_1b, dataset_1b)
+        embed()
 
 if __name__=='__main__':
     """ usage
@@ -182,4 +184,4 @@ if __name__=='__main__':
     # for _ in range(num_process):
     #     processes.append(Process(target=sample_training_data, args=()))
     #     processes[-1].start()
-        # processes[-1].join()
+    #     processes[-1].join()
