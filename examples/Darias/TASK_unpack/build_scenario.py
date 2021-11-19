@@ -9,7 +9,7 @@ import utils.pybullet_tools.kuka_primitives3 as pk
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Register
 from utils.pybullet_tools.utils import WorldSaver, connect, dump_world, get_pose, set_pose, Pose, \
     Point, set_default_camera, stable_z, disconnect, get_bodies, HideOutput, \
-    create_box, \
+    create_box, set_color,\
     load_pybullet, step_simulation, Euler, get_links, get_link_info, get_movable_joints, set_joint_positions, \
     set_camera, get_center_extent, tform_from_pose, attach_viewcone, LockRenderer
 
@@ -44,6 +44,10 @@ class PlanningScenario(object):
                     'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
                     'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
                 }
+                color=[1,0,0]
+                set_color(self.bd_body['region1'], color=color)
+                set_color(self.bd_body['region2'], color=color)
+
                 self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
 
                 self.drawer_links = get_links(self.bd_body['drawer_shelf'])

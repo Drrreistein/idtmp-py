@@ -539,7 +539,7 @@ class LockRenderer(Saver):
 CLIENTS = set()
 
 
-def connect(use_gui=True, shadows=True):
+def connect(use_gui=True, shadows=True, options="--width=640 --height=490"):
     # Shared Memory: execute the physics simulation and rendering in a separate process
     # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/examples/vrminitaur.py#L7
     # make sure to compile pybullet with PYBULLET_USE_NUMPY enabled
@@ -550,7 +550,7 @@ def connect(use_gui=True, shadows=True):
     with HideOutput():
         # options="--width=1024 --height=768"
         #  --window_backend=2 --render_device=0'
-        sim_id = p.connect(method)
+        sim_id = p.connect(method, options=options)
         # sim_id = p.connect(p.GUI, options="--opengl2") if use_gui else p.connect(p.DIRECT)
     assert 0 <= sim_id
     # sim_id2 = p.connect(p.SHARED_MEMORY)
@@ -2968,7 +2968,6 @@ def refine_path(body, joints, waypoints, num_steps):
 
 DEFAULT_RESOLUTION = 0.05
 
-
 def get_extend_fn(body, joints, resolutions=None, norm=2):
     # norm = 1, 2, INF
     if resolutions is None:
@@ -3181,7 +3180,6 @@ def check_initial_end(start_conf, end_conf, collision_fn):
         return False
     return True
 
-
 def plan_joint_motion(robot, joints, end_conf, obstacles=[], attachments=[],
                       self_collisions=True, disabled_collisions=set(),
                       weights=None, resolutions=None, max_distance=MAX_DISTANCE,
@@ -3203,7 +3201,6 @@ def plan_joint_motion(robot, joints, end_conf, obstacles=[], attachments=[],
         for grasp in attachments:
             grasp.assign()  
         print(f"Warning: not valid path generated")
-
     return path
     # return plan_lazy_prm(start_conf, end_conf, sample_fn, extend_fn, collision_fn)
 

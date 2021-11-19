@@ -7,6 +7,7 @@ from plan_cache import PlanCache
 from copy import deepcopy
 
 import tmsmt as tm
+from tmsmt import save_plans, load_plans
 import numpy as np
 import z3
 
@@ -534,6 +535,7 @@ def multi_sims():
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
     if feasible_check:
+        # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     else:
         feasible_checker = None
@@ -542,7 +544,7 @@ def multi_sims():
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
-    embed()
+
     while i<max_sim:
         path_cache = PlanCache()
         task_planning_timer.reset()
@@ -586,7 +588,7 @@ def multi_sims():
             print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
                 print(f"{h}: {p}")
-            embed()
+
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
             res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
@@ -604,7 +606,9 @@ def multi_sims():
                 t_plan = None
 
         feasible_checker.hypothesis_test()
+        embed()
         if res:
+            save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(i).zfill(4)}.json')
             all_timers = task_planning_timer.timers
             print(all_timers)
             total_planning_timer.stop()
@@ -614,13 +618,11 @@ def multi_sims():
             print(f"final_visits {tp.counter}")
         else:
             print("TAMP is failed") 
-
         saved_world.restore()
         # while True:
         ExecutePlanNaive(scn, t_plan, m_plan)
         time.sleep(1)
         saved_world.restore()
-
 
     pu.disconnect()
 
@@ -630,7 +632,10 @@ if __name__=="__main__":
     visualization = bool(int(sys.argv[1]))
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
-    feasible_check = bool(int(sys.argv[4]))
+    MOTION_ITERATION = int(sys.argv[4])
+    feasible_check = bool(int(sys.argv[5]))
+    output_dir = str(sys.argv[6])
+
     # simulation_plancache()
     multi_sims()
 

@@ -78,6 +78,7 @@ def sample_training_data():
         attachment = attach_to_robot(scn, scn.body_gripped, lwh1)
         pu.remove_body(scn.body_on_table)
         lwh2, scn.body_on_table = random_box(scn)
+        embed()
         xy2, pose2 = attach_to_table(scn, scn.body_on_table, lwh2)
         dist_theta2 = get_dist_theta(robot_pose, pose2)
         dataset = []
@@ -101,7 +102,7 @@ if __name__=='__main__':
     num_process = int(sys.argv[2])
     # print(f"number of processes: {num_process}")
     assert num_process<9, "CPU overworked"
-
+    sample_training_data()
     processes = []
     for _ in range(num_process):
         processes.append(Process(target=sample_training_data, args=()))

@@ -486,6 +486,38 @@ Currently available `RRTConnect` find a path in configuration space, it leads to
 1. add extra constraints to `RRTConnect` planner, but where?
 2. write your own planner which do sampling in cartesian space
 
+
+
+#### task unpack
+
+|              | trials | task planning | task planning <br />per trial | motion planning | total planning | total per trial |
+| ------------ | ------ | ------------- | ----------------------------- | --------------- | -------------- | --------------- |
+| etamp_con    | 279.6  | 59.62         | 0.2132                        | 48.49           | 108.14         | 0.3868          |
+| etamp_010    | 183.5  | 55.75         | 0.3037                        | 27.93           | 8370           | 0.4561          |
+| idtmp_010    | 27.5   | 1.47          | 0.0536                        | 41.56           | 43.06          | 1.564           |
+| idtmp_008    | 43.8   | 2.37          | 0.0541                        | 53.53           | 55.94          | 1.2765          |
+| idtmp_006    | 50.1   | 3.65          | 0.0728                        | 63.83           | 67.53          | 1.3474          |
+| idtmp_004    | 101.3  | 6.77          | 0.0669                        | 83.64           | 90.52          | 0.8935          |
+| idtmp_002    | 414.1  | 333.44        | 0.8052                        | 589.93          | 923.78         | 2.2306          |
+| idtmp_010_fc | 66.4   | 3.49          | 0.0526                        | 6.30            | 10.57          | 0.1594          |
+| idtmp_060_fc | 72.8   | 3.56          | 0.0490                        | 7.57            | 11.19          | 0.1538          |
+| idtmp_020_fc | 188.6  | 11.09         | 0.0588                        | 6.71            | 18.49          | 0.0981          |
+
+
+
+#### task regrasp
+
+|              | trials | task planning | task planning <br />per trial | motion planning | total planning | total per trial |
+| ------------ | ------ | ------------- | ----------------------------- | --------------- | -------------- | --------------- |
+| etamp_con    | 277.9  | 11.14         | 0.0401                        | 148.14          | 159.32         | 0.57            |
+| etamp_010    | 305.5  | 11.33         | 0.0371                        | 158.03          | 169.40         | 0.55            |
+| idtmp_010    | 43.9   | 1.10          | 0.0250                        | 15.70           | 16.81          | 0.3828          |
+| idtmp_005    | 100.0  | 5.96          | 0.0596                        | 31.93           | 37.92          | 0.3792          |
+| idtmp_010_fc | 47.7   | 1.12          | 0.0234                        | 10.53           | 11.65          | 0.2445          |
+| idtmp_005_fc | 74.2   | 3.99          | 0.0537                        | 12.61           | 16.61          | 0.2239          |
+
+
+
 ### Conclusion
 
 #### ideal TAMP framework
@@ -573,9 +605,11 @@ properties:
 
 #### etamp
 
-- 
-
 #### SVM feasibility checker 
+
+$x = [[l_1,w_1,h_1],[l_2,w_2,h_2],[d_1, \theta_1],[d_2, \theta_2],[d_{12}, \theta_{12}],grsp\_dir]$
+
+$y\in{infeasible, feasible}$
 
 <img src="docs/total_planning_time_unpack.png" alt="total_planning_time_unpack" style="zoom:80%;" />
 
@@ -599,6 +633,8 @@ conclusion:
 improvement：
 
 - we don't simply throw away the infeasible action but push them to stack to check it with motion refiner later. Thus we use SVM feasibility checker not as a judger but only as a heuristic / reference
+
+
 
 #### generating scene from symbolic state with conditional VAE
 

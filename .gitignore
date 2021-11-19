@@ -1,7 +1,13 @@
 # log/*.log
 *.log
 *.csv
+*.tmp
+*.pdf
+*.mkv
+*.mp4
+*.bak
 A_actionPlans/
+
 B_fullPlans/
 C_operatorPlans/
 __pycache__/

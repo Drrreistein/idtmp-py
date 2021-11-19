@@ -13,14 +13,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.2 0.2 0.00005" />
+        <box size="0.2001 0.2001 0.00005" />
       </geometry>
       <material name="Wood"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.2 0.2 0.005" />
+        <box size="0.2001  0.2001 0.005" />
       </geometry>
     </collision>
   </link>

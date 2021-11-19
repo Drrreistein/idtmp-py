@@ -7,6 +7,7 @@ import pandas as pd
 from collections import defaultdict
 from IPython import embed
 import os, sys
+
 def duration_vs_resolution():
     # times = {'t010':np.loadtxt('total_time_010.txt'), 
     #         't008':np.loadtxt('total_time_008.txt'), 
@@ -138,26 +139,71 @@ def box_plot(data_pd):
 
     indices = list(data_pd.axes[1])
     indices.remove('resolution')
-    
+    medianprops = dict(markerfacecolor='r', color='r')
+
     for ind in indices:
-        sns.set_theme(style="ticks")
+        # sns.set_theme(style="ticks")
         # Initialize the figure with a logarithmic x axis
-        f, ax = plt.subplots(figsize=(18, 10))
+        f, ax = plt.subplots(figsize=(6, 6))
         ax.set_title(f'{ind}')
         # ax.set_xscale("log")
         # Plot the orbital period with horizontal boxes
-        sns.boxplot(x="resolution", y=ind, data=data_pd)
+        sns.boxplot(y=ind, x="resolution", data=data_pd, orient="v", 
+            linewidth=1, medianprops=medianprops, whis=5, width=0.5,
+            fliersize=0, color=[1,1,1])
 
         # Add in points to show each observation
-        sns.stripplot(x="resolution", y=ind, data=data_pd,
-                size=4, color=".3", linewidth=0)
-
+        # sns.stripplot(x="resolution", y=ind, data=data_pd,
+        #         size=4, color=".3", linewidth=0)
         # Tweak the visual presentation
-        ax.xaxis.grid(True)
-        ax.set(ylabel=f"{ind} / s", xlabel="discrete sampling resolution / m")
-        sns.despine(trim=True, left=True)
-        plt.savefig(f"{ind}.png")
+        # ax.xaxis.grid(True)
+
+        # ax.set(ylabel=f"{ind} / s", xlabel="discrete sampling resolution / m")
+        ax.set(ylabel=f"{ind}", xlabel='')
+        ax.set_xticklabels(['idtmp_010','idtmp_008','idtmp_006','idtmp_004','idtmp_002'], fontdict=dict(fontsize=10))
+        # sns.despine(trim=True, left=True)
+        plt.tight_layout()
+        plt.savefig(f"{ind}.pdf")
         plt.show()
+
+def box_plot_fc_vs_none(filelist_no, filelist_fc):
+
+    pd_no = txt_to_pandas(filelist_no)
+    pd_fc = txt_to_pandas(filelist_fc)
+    pd_no['feasible_check'] = len(pd_no) * ['no']
+    pd_fc['feasible_check'] = len(pd_fc) * ['yes']
+    tmp=[]
+    for name in pd_fc['resolution']:
+        tmp.append(name[:-3])
+    pd_fc['resolution'] = tmp
+    data_pd = pd.concat([pd_fc, pd_no])
+
+
+    medianprops = dict(markerfacecolor='r', color='r')
+    max_y = max(data_pd['total_planning_time']) * 1.1
+
+    # Initialize the figure with a logarithmic x axis
+    f, ax = plt.subplots(figsize=(5, 6))
+    # ax.set_title("total planning time", fontdict=dict(fontsize=20))
+    # Plot the orbital period with horizontal boxes
+    sns.boxplot(x="resolution", y='total_planning_time', data=data_pd, orient="v", hue='feasible_check',
+        linewidth=1, medianprops=medianprops, whis=5, width=0.5,fliersize=0, color=[1,1,1])
+
+    # Add in points to show each observation
+    # sns.stripplot(x="resolution", y=ind, data=data_pd,
+    #         size=4, color=".3", linewidth=0)
+    # Tweak the visual presentation
+    # ax.yaxis.grid(True)
+
+    ax.set_ylabel("total planning time [s]", fontdict=dict(fontsize=14))
+    ax.set_xlabel("", fontdict=dict(fontsize=14))
+    
+    ax.set_ylim([0,max_y])
+    xlabels = ['idtmp_010','idtmp_008','idtmp_006','idtmp_004','idtmp_002']
+    ax.set_xticklabels(xlabels, fontdict=dict(fontsize=14))
+    ax.tick_params(labelrotation=30)
+    plt.tight_layout()
+    plt.show()
 
 if __name__=='__main__':
     embed()

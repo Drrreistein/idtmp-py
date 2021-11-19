@@ -9,6 +9,51 @@ logger = logging.getLogger('tmsmt')
 from plan_cache import PlanCache
 motion_timeout = 5
 operator_bindings = dict()
+import json, os
+
+def save_plans(t_plan, m_plan, filename):
+    dirname = os.path.dirname(filename)
+    if not os.path.exists(dirname):
+        print('no output diretory create new one')
+        os.makedirs(dirname)
+
+    tm_plan = dict()
+    tm_plan['t_plan'] = t_plan
+    tm_plan['m_plan'] = m_plan
+
+    with open(filename, 'w') as f:
+        json.dump(tm_plan, f)
+
+def load_plans(filename):
+    assert os.path.exists(filename), f'no file named {filename} exists'
+    with open(filename, 'r') as f:
+        tm_plan = json.load(f)
+    return tm_plan['t_plan'], tm_plan['m_plan']
+
+def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 490]):
+    def execute_output(filename):
+        pu.connect(use_gui=1, options=f'--width={win_size[0]} --height={win_size[1]}')
+        scn = Scenario()
+        t_plan, m_plan = load_plans(filename)
+        while True:
+            ExecutePlanNaive(scn, t_plan, m_plan)
+            import time
+            time.sleep(1)
+            scn.reset()
+    import numpy as np
+    from multiprocessing import Process
+    assert os.path.exists(dir), f"no {dir} found"
+    processes = []
+    filelist = [ file for file in os.listdir(dir) if '.json' in file]
+    for i in range(process):
+        if file is None or not os.path.exists(os.path.join(dir, file)):
+            if not filelist==[]:
+                tmp = np.random.choice(filelist)
+                filelist.remove(tmp)
+        filename = os.path.join(dir, tmp)
+        print(filename)
+        processes.append(Process(target=execute_output, args=(filename,)))
+        processes[-1].start()
 
 def mangle(*args, symbol='__'):
     s = ''

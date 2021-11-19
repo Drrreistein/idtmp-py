@@ -6,14 +6,16 @@ from numpy.core.defchararray import array, mod
 from numpy.core.fromnumeric import cumsum
 from copy import deepcopy
 
+import json
 import tmsmt as tm
+from tmsmt import save_plans, load_plans
 import numpy as np
 import z3
 
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
-from build_scenario import get_scn
+from build_scenario import *
 from task_planner import TaskPlanner
 from plan_cache import PlanCache
 from logging_utils import *
@@ -24,13 +26,14 @@ logging.basicConfig(filename='./log/logging.log',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
 logger = logging.getLogger('MAIN')
-from feasibility_check import FeasibilityChecker
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_bookshelf
 EPSILON = 0.01
 RESOLUTION = 0.1
 DIR_NUM = 1
 MOTION_ITERATION = 500
 # for i in range(7):
 #     custom_limits[i] = (-2*np.pi, 2*np.pi)
+
 
 class DomainSemantics(object):
     def __init__(self, scene):
@@ -198,7 +201,7 @@ class PDDLProblem(object):
     def _goal_state(self):
         self.goal = []
         self.goal.append(['handempty'])
-        ontable = ['ontable','box1','region_shelf__1__0']
+        ontable = ['ontable','box1','region_shelf__0__0']
 
         self.goal.append(ontable)
 
@@ -225,7 +228,6 @@ class PDDLProblem(object):
 
     def _gen_scene_objects(self):
         scene_objects = dict()
-
         # define locations
         locations = set()
         for region in self.scn.regions:
@@ -259,7 +261,7 @@ class PDDLProblem(object):
 
         return scene_objects
 
-def ExecutePlanNaive(scn, task_plan, motion_plan):
+def ExecutePlanNaive(scn, task_plan, motion_plan,time_step=0.01):
 
     robot = scn.robots[0]
     ind = -1
@@ -279,9 +281,35 @@ def ExecutePlanNaive(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind], attachments=attachment)])
         elif 'pick-up' == tp_list[0]:
             cmd = pk.Command([pk.BodyPath(robot, motion_plan[ind])])
-        cmd.execute()
+        cmd.execute(time_step=time_step)
     time.sleep(1)
     scn.reset()
+
+def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 510],time_step=0.1):
+    def execute_output(filename):
+        pu.connect(use_gui=1, options=f'--width={win_size[0]} --height={win_size[1]}')
+        scn = Scenario()
+        t_plan, m_plan = load_plans(filename)
+        while True:
+            ExecutePlanNaive(scn, t_plan, m_plan,time_step=time_step)
+            import time
+            time.sleep(1)
+            scn.reset()
+    import numpy as np
+    from multiprocessing import Process
+    assert os.path.exists(dir), f"no {dir} found"
+    processes = []
+    filelist = [ file for file in os.listdir(dir) if '.json' in file]
+    for i in range(process):
+        if file is None or not os.path.exists(os.path.join(dir, file)):
+            if not filelist==[]:
+                tmp = np.random.choice(filelist)
+                filelist.remove(tmp)
+        filename = os.path.join(dir, tmp)
+        print(filename)
+        processes.append(Process(target=execute_output, args=(filename,)))
+        processes[-1].start()
+
 
 def SetState(scn, task_plan, motion_plan):
     robot = scn.robots[0]
@@ -306,11 +334,65 @@ def SetState(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, path)])
         cmd.execute()
 
+grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1),(1,0,0):0,(-1,0,0):1,(0,1,0):2,(0,-1,0):3,(0,0,1):4}
+def check_feasibility(feasibility_checker, scn, t_plan):
+
+    failed_step = None
+    res = True
+    init_world = pu.WorldSaver()
+    for step, operator in t_plan.items():
+        operator = operator[1:-1]
+        if 'pick-up' in operator:
+            op, obj, region, i, j, m, n, o, p = re.split(' |__', operator)
+
+            target_body = scn.bd_body[obj]
+            grsp_dir = (grasp_directions[tuple(np.array([m,n,o],dtype=int))])
+            target_pose = pu.get_pose(target_body)
+        elif 'put-down' in operator:
+            op, obj, region, i, j = re.split(' |__', operator)
+            target_body = scn.bd_body[obj]
+            region_ind = scn.bd_body[region]
+            aabb = pu.get_aabb(region_ind)
+            center_region = pu.get_aabb_center(aabb)
+            extend_region = pu.get_aabb_extent(aabb)
+
+            aabb_body = pu.get_aabb(target_body)
+            extend_body = pu.get_aabb_extent(aabb_body)
+
+            x = center_region[0] + int(i)*RESOLUTION
+            y = center_region[1] + int(j)*RESOLUTION
+            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 
+            target_pose = ([x,y,z], (0,0,0,1))
+        else:
+            print("unknown operator: feasible by default")
+            continue
+        if region=='region_drawer':
+            region = 'region_table'
+        is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, region, grsp_dir)
+
+        if not is_feasible:
+            print(f"check feasibility: {step}: {operator}: infeasible")
+            failed_step = step
+            break
+        else:
+            print(f"check feasibility: {step}: {operator}: FEASIBLE")
+            if op=='put-down':
+                pu.set_pose(target_body, target_pose)
+    init_world.restore()
+    if is_feasible:
+        print("current task plan is feasible")
+    else:
+        print("current task plan is infeasible")
+    return is_feasible, failed_step
+    
 def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
     # check feasibility of task plan from learned model
+
     if feasibility_checker:
-        isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
+        isfeasible, failed_step = check_feasibility(feasibility_checker, scn, t_plan)
         if not isfeasible:
+            # if len(t_plan.keys())==4:
+            #     embed()
             return isfeasible, None, failed_step
 
     # using plan cache to avoid to resample an known operator
@@ -321,7 +403,7 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
             print(f"found prefixed operator")
             for _ in range(depth+1):
                 min_key = min(t_plan_to_validate.keys())
-                print(f"{min_key}: {t_plan_to_validate.pop(min_key)}"   )
+                print(f"{min_key}: {t_plan_to_validate.pop(min_key)}")
             SetState(scn, t_plan, prefix_m_plans)
 
             res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
@@ -331,12 +413,13 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
         path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
     else:
         res, m_plan, failed_step = tm.motion_refiner(t_plan)
-
+    # if len(t_plan.keys())==4:
+    #     embed()
     return res, m_plan, failed_step
 
 def main():
-    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
-    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+    task_planning_timer = Timer(name='task_planning_timer', text='', logger=print)
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=print)
 
     total_planning_timer = 0
 
@@ -386,16 +469,16 @@ def main():
                 tp.modeling()
                 # global MOTION_ITERATION
                 # MOTION_ITERATION += 5
-                logger.info(f"search task plan in horizon: {tp.horizon}")
+                print(f"search task plan in horizon: {tp.horizon}")
         task_planning_timer.stop()
 
         if tp.horizon > tp.max_horizon:
             logger.error(f"exceeding task planner maximal horizon")
             break
         
-        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        print(f"task plan found, in horizon: {tp.horizon}")
         for h,p in t_plan.items():
-            logger.info(f"{h}: {p}")
+            print(f"{h}: {p}")
             print(f"{h}: {p}")
         # ------------------- motion plan ---------------------
         motion_refiner_timer.start()
@@ -415,13 +498,13 @@ def main():
 
         scn.reset()
         if res:
-            logger.info(f"task and motion plan found")
+            print(f"task and motion plan found")
             break
         else: 
             path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
             t0 = time.time()
             logger.warning(f"motion refine failed")
-            logger.info(f'')
+            print(f'')
             
             task_planning_timer.start()
             tp.add_constraint(failed_step, typ='general', cumulative=False)
@@ -443,9 +526,9 @@ def main():
     pu.disconnect()
 
 def test():
-    task_planning_timer = Timer(name='task_planning_time', text='', logger=logger.info)
-    motion_refiner_timer = Timer(name='motion_refiner_time', text='', logger=logger.info)
-    total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
+    task_planning_timer = Timer(name='task_planning_time', text='', logger=print)
+    motion_refiner_timer = Timer(name='motion_refiner_time', text='', logger=print)
+    total_planning_timer = Timer(name='total_planning_timer', text='', logger=print)
 
     visualization = 1
     pu.connect(use_gui=visualization)
@@ -501,16 +584,16 @@ def test():
                     tp.modeling()
                     global MOTION_ITERATION
                     MOTION_ITERATION += 5
-                    logger.info(f"search task plan in horizon: {tp.horizon}")
+                    print(f"search task plan in horizon: {tp.horizon}")
             task_planning_timer.stop()
 
             if tp.horizon > tp.max_horizon:
                 logger.error(f"exceeding task planner maximal horizon")
                 break
             
-            logger.info(f"task plan found, in horizon: {tp.horizon}")
+            print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
+                print(f"{h}: {p}")
                 print(f"{h}: {p}")
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
@@ -519,12 +602,12 @@ def test():
 
             scn.reset()
             if res:
-                logger.info(f"task and motion plan found")
+                print(f"task and motion plan found")
                 break
             else: 
                 t0 = time.time()
                 logger.warning(f"motion refine failed")
-                logger.info(f'')
+                print(f'')
                 
                 task_planning_timer.start()
                 tp.add_constraint(failed_step, typ='general', cumulative=False)
@@ -548,20 +631,27 @@ def test():
     pu.disconnect()
 
 def multisim_plancache():
-    task_planning_timer = Timer(name='task_planning_time', text='', logger=logger.info)
-    motion_refiner_timer = Timer(name='motion_refiner_time', text='', logger=logger.info)
-    total_planning_timer = Timer(name='total_planning_time', text='', logger=logger.info)
+    task_planning_timer = Timer(name='task_planning_time', text='', logger=print)
+    motion_refiner_timer = Timer(name='motion_refiner_time', text='', logger=print)
+    total_planning_timer = Timer(name='total_planning_time', text='', logger=print)
 
     pu.connect(use_gui=visualization)
-    PlanningScenario = get_scn(2)
-    scn = PlanningScenario()
+    # PlanningScenario = get_scn(2)
+    scn = PlanningScenario_4obs_1box()
+    # scn = PlanningScenario3()
+
     save_world = pu.WorldSaver()
+
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_regrasp.pddl')
 
     if feasible_check:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/mlp_model.pk')
+        feasible_checker = FeasibilityChecker_bookshelf(scn, scn.fb_bodies)
+        feasible_checker.models[('region_table',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_1b/mlp_model.pk')
+        feasible_checker.models[('region_table',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_2b/mlp_model.pk')
+        feasible_checker.models[('region_shelf',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_1b/mlp_model.pk')
+        feasible_checker.models[('region_shelf',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_2b/mlp_model.pk')
     else:
         feasible_checker = None
 
@@ -570,12 +660,12 @@ def multisim_plancache():
     problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
     problem = PDDLProblem(scn, parser.domain_name)
     parser.dump_problem(problem, problem_filename)
+    embed()
 
     domain_semantics = RegraspDomainSemantics(scn)
     domain_semantics.activate()
-
     # IDTMP
-    for _ in range(max_sim):
+    for it in range(max_sim):
         path_cache = PlanCache()
         task_planning_timer.reset()
         motion_refiner_timer.reset()
@@ -601,7 +691,7 @@ def multisim_plancache():
             while t_plan is None:
                 t_plan = tp.search_plan()
                 if t_plan is None:
-                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                    print(f"WARN: task plan not found in horizon: {tp.horizon}")
                     print(f'')
                     if not tp.incremental():
                         break
@@ -610,49 +700,37 @@ def multisim_plancache():
                     tp.modeling()
                     # global MOTION_ITERATION
                     # MOTION_ITERATION += 5
-                    logger.info(f"search task plan in horizon: {tp.horizon}")
+                    print(f"search task plan in horizon: {tp.horizon}")
             task_planning_timer.stop()
-            
+
             if tp.horizon > tp.max_horizon:
-                logger.error(f"exceeding task planner maximal horizon")
+                print(f"WARN: exceeding task planner maximal horizon")
                 break
-            
+
             print(f"task plan found, in horizon: {tp.horizon}")
             for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
                 print(f"{h}: {p}")
+
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
-            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache)
-            # depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
-            # if depth>=0:
-            #     t_plan_to_validate = deepcopy(t_plan)
-            #     for _ in range(depth+1):
-            #         t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
-            #     print('found plan prefixed')
-            #     SetState(scn, t_plan, prefix_m_plans)
-            #     res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
-            #     m_plan = prefix_m_plans + post_m_plan
-            # else:
-            #     res, m_plan, failed_step = tm.motion_refiner(t_plan)
+            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache, feasible_checker)
             motion_refiner_timer.stop()
 
             scn.reset()
             if res:
-                logger.info(f"task and motion plan found")
+                print(f"task and motion plan found")
                 break
             else: 
-                path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
-                t0 = time.time()
-                logger.warning(f"motion refine failed")
-                logger.info(f'')
-
+                print(f"WARN: motion refine failed")
+                print(f'')
                 task_planning_timer.start()
                 tp.add_constraint(failed_step, typ='general', cumulative=False)
                 task_planning_timer.stop()
                 t_plan = None
+
         total_planning_timer.stop()
         if tp.horizon <= tp.max_horizon:
+            save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(it).zfill(4)}.json')
             all_timers = task_planning_timer.timers
             print(f"all timers: {all_timers}")
             print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
@@ -662,11 +740,9 @@ def multisim_plancache():
         else:
             print(f"task and motion plan failed")
         path_cache.print_node(path_cache.root)
-        embed()
         scn.reset()
 
     os.system('spd-say -t female2 "hi lei! simulation done"')
-
     pu.disconnect()
 
 if __name__=="__main__":
@@ -675,5 +751,6 @@ if __name__=="__main__":
     max_sim = int(sys.argv[3])
     MOTION_ITERATION = int(sys.argv[4])
     feasible_check = bool(int(sys.argv[5]))
-    multisim_plancache()
+    output_dir = str(sys.argv[6])
 
+    multisim_plancache()

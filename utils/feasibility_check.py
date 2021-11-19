@@ -20,7 +20,7 @@ class FeasibilityChecker(object):
             lower, upper = pu.get_aabb(bd)
             self.object_properties[bd] = list(np.array(upper)-np.array(lower))
 
-        self.load_ml_model(self.model_file)
+        self.model = self.load_ml_model(self.model_file)
         # do some statistics
         self.call_times = 0
         self.feasible_call = 0
@@ -53,7 +53,8 @@ class FeasibilityChecker(object):
 
     def load_ml_model(self, model_file):
         with open(model_file, 'rb') as file:
-            self.model = pickle.load(file)
+            model = pickle.load(file)
+        return model
 
     def _get_dist_theta(self, pose1, pose2):
         dist = np.linalg.norm(np.array(pose1[0][:2])-np.array(pose2[0][:2]))
@@ -70,6 +71,7 @@ class FeasibilityChecker(object):
             tmp += dist_theta1
             tmp += self._get_dist_theta(self.robot_pose, bd_pose)
             tmp += self._get_dist_theta(target_pose, bd_pose)
+            # tmp += [4]
             feature_vectors.append(tmp)
         return feature_vectors
 
@@ -121,3 +123,97 @@ class FeasibilityChecker(object):
             print("current task plan is infeasible")
         self.current_feasibility = res
         return res, failed_step
+
+    @Timer(name='feasible_checking_simple_timer', text='')
+    def check_feasibility_simple(self, target_body, target_pose):
+        self.call_times += 1
+        feature_vectors = self._get_feature_vector(target_body, target_pose)
+        is_feasible = self.model.predict(feature_vectors)
+        if not np.all(is_feasible):
+            res = False
+        else:
+            res = True
+
+        if res:
+            self.feasible_call += 1
+            print("current task plan is feasible")
+        else:
+            self.infeasible_call += 1
+            print("current task plan is infeasible")
+        return res
+
+class FeasibilityChecker_bookshelf(FeasibilityChecker):
+    def __init__(self, scn, objects):
+
+        self.scn = scn
+        self.objects = set(objects)
+
+        self.models = dict()
+        # self.model_1b_table = None
+        # self.model_mb_table = None
+        # self.model_1b_shelf = None
+        # self.model_mb_shelf = None
+        (robot_position, _) = pu.get_link_pose(scn.robots[0], 0)
+        self.robot_pose = (robot_position, (0,0,0,1))
+        self.object_properties = dict()
+        for bd in self.objects:
+            lower, upper = pu.get_aabb(bd)
+            self.object_properties[bd] = list(np.array(upper)-np.array(lower))
+
+        # do some statistics
+        self.call_times = 0
+        self.feasible_call = 0
+        self.infeasible_call = 0
+        self.current_feasibility = 0
+        self.false_infeasible = 0
+        self.false_feasible = 0
+        self.true_feasible = 0
+        self.true_infeasible = 0
+
+    def _pose_in_same_region(self, pose1, pose2):
+        return np.abs(pose1[0][2]-pose2[0][2])<0.2
+
+    def _get_feature_vector(self, target_body, target_pose, region, grsp_dir):
+        
+        feature_vectors = []
+        dist_theta1 = self._get_dist_theta(self.robot_pose, target_pose)
+
+        for bd in self.objects-{target_body}:
+            bd_pose = pu.get_pose(bd)
+            if not self._pose_in_same_region(bd_pose, target_pose):
+                continue
+            tmp = self.object_properties[target_body] + self.object_properties[bd]
+            tmp += dist_theta1
+            tmp += self._get_dist_theta(self.robot_pose, bd_pose)
+            tmp += self._get_dist_theta(target_pose, bd_pose)
+            tmp += [grsp_dir]
+            feature_vectors.append(tmp)
+        if feature_vectors==[]:
+            tmp = self.object_properties[target_body] + dist_theta1 + [grsp_dir]
+            feature_vectors.append(tmp)
+        
+        if len(tmp)>10:
+            bd_num = 2
+        else:
+            bd_num = 1
+
+        return feature_vectors, self.models[(region, bd_num)]
+
+    def check_feasibility_simple(self, target_body, target_pose, region, grsp_dir):
+
+        self.call_times += 1
+        feature_vectors, model = self._get_feature_vector(target_body, target_pose, region, grsp_dir)
+
+        is_feasible = model.predict(feature_vectors)
+        print(f"body: {target_body}, region: {region}, dir: {grsp_dir}, feas: {is_feasible}")
+        if not np.all(is_feasible):
+            res = False
+        else:
+            res = True
+
+        if res:
+            self.feasible_call += 1
+        else:
+            self.infeasible_call += 1
+
+        return res
