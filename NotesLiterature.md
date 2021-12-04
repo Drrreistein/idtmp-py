@@ -634,7 +634,12 @@ improvement：
 
 - we don't simply throw away the infeasible action but push them to stack to check it with motion refiner later. Thus we use SVM feasibility checker not as a judger but only as a heuristic / reference
 
+#### CNN feasibility checker
 
+- using gray depth image / rendered images by pyBullet
+- using sparse tensor and customized generator as training input to save some memory
+- about $n*10^4, n\in Z^*$ parameters, $n*10^5, n \in Z^*$ training data
+- 
 
 #### generating scene from symbolic state with conditional VAE
 
@@ -748,4 +753,5 @@ data flow
 - [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
 - [ ] find a interesting task to show the function of TAMP
 - [ ] write a python module which can convert all generated action sequence into a tree
+- [ ] 
 

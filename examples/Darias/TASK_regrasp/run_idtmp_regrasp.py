@@ -336,7 +336,6 @@ def SetState(scn, task_plan, motion_plan):
 
 grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1),(1,0,0):0,(-1,0,0):1,(0,1,0):2,(0,-1,0):3,(0,0,1):4}
 def check_feasibility(feasibility_checker, scn, t_plan):
-
     failed_step = None
     res = True
     init_world = pu.WorldSaver()

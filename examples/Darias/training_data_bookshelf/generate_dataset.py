@@ -66,7 +66,7 @@ def save_dataset(filename, dataset):
 def check_feasibility(scn, goal_pose):
     obstacles = list(set(scn.all_bodies))
 
-    # pu.draw_pose(goal_pose)
+    pu.draw_pose(goal_pose)
     start_joints = pu.get_joint_positions(scn.robot, scn.movable_joints)
     init_body_pose = pu.get_pose(scn.body_gripped)
     for _ in range(10):
@@ -143,14 +143,14 @@ def target_pose_vs_grsp_dir(center_pose, grsp_dir, extend):
     center_point, rotation = center_pose
 
     offset = np.array(grsp_dir, dtype=int) * (extend/2+np.array([EPSILON,EPSILON,EPSILON]))
-    goal_point = np.array(center_point) + offset
+    goal_point = tuple(np.array(center_point) + offset)
 
     angle_by_axis = np.array(grsp_dir, dtype=int) * np.pi/2
 
     goal_rot = pu.multiply_quats(rotation, pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0)))
     goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
     target_pose = pu.Pose(goal_point, pu.euler_from_quat(goal_rot))
-    # pu.draw_pose(target_pose)    
+    # pu.draw_pose(target_pose)
 
     return target_pose
 

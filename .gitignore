@@ -6,6 +6,8 @@
 *.mkv
 *.mp4
 *.bak
+*.model
+table*/
 A_actionPlans/
 
 B_fullPlans/

@@ -6,8 +6,13 @@ import numpy as np
 from codetiming import Timer
 import re
 from IPython import embed
+import tensorflow as tf
+from tensorflow.keras import models
+import matplotlib.pyplot as plt
 
+import time
 class FeasibilityChecker(object):
+
     def __init__(self, scn, objects, resolution, model_file):
         self.scn = scn
         self.resolution = resolution
@@ -125,7 +130,7 @@ class FeasibilityChecker(object):
         return res, failed_step
 
     @Timer(name='feasible_checking_simple_timer', text='')
-    def check_feasibility_simple(self, target_body, target_pose):
+    def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
         self.call_times += 1
         feature_vectors = self._get_feature_vector(target_body, target_pose)
         is_feasible = self.model.predict(feature_vectors)
@@ -200,10 +205,8 @@ class FeasibilityChecker_bookshelf(FeasibilityChecker):
         return feature_vectors, self.models[(region, bd_num)]
 
     def check_feasibility_simple(self, target_body, target_pose, region, grsp_dir):
-
         self.call_times += 1
         feature_vectors, model = self._get_feature_vector(target_body, target_pose, region, grsp_dir)
-
         is_feasible = model.predict(feature_vectors)
         print(f"body: {target_body}, region: {region}, dir: {grsp_dir}, feas: {is_feasible}")
         if not np.all(is_feasible):
@@ -215,5 +218,97 @@ class FeasibilityChecker_bookshelf(FeasibilityChecker):
             self.feasible_call += 1
         else:
             self.infeasible_call += 1
+        return res
 
+class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
+    def __init__(self, scn, objects, model_file, threshold=0.5):
+        self.scn = scn
+        self.objects = set(objects)
+        self.model_file = model_file
+        self._load_cnn_model()
+        self.region_bounds = (np.array([-0.25 ,  0.3  ,  0.001]), np.array([0.95 , 1.1  , 0.002]))
+        self.max_height = 0.512
+        self.pixel_size = 0.005
+        self.downsampling_ratio = 10
+        self.threshold = threshold
+        
+        # do some statistics
+        self.call_times = 0
+        self.feasible_call = 0
+        self.infeasible_call = 0
+        self.current_feasibility = 0
+        self.false_infeasible = 0
+        self.false_feasible = 0
+        self.true_feasible = 0
+        self.true_infeasible = 0
+
+        self.image_num = 0
+
+    def _load_cnn_model(self):
+        self.model = models.load_model(self.model_file)
+        self.model.summary()
+        self.input_shape = self.model.input_shape[1:]
+
+    def _png_mat(self, body, mat, lower, upper):
+        mat_targ = mat.copy()
+        l, u = pu.get_aabb(body)
+        h = np.abs((u[2]-l[2])/self.max_height)
+        x0,y0 = np.array(((l-lower)/self.pixel_size)[:2], dtype=int)
+        x1,y1 = np.array(((u-lower)/self.pixel_size)[:2], dtype=int)
+        mat_targ[max(0,x0):x1,max(0,y0):y1] = h
+        return mat_targ
+
+    def display_images(self, images, labels):
+        for i, image in enumerate(images):
+            plt.subplot(1,2,1)
+            plt.imshow(image[:,:,0], cmap='gray')
+            plt.title(f"box1: {np.max(image[:,:,0])}")
+
+            plt.subplot(1,2,2)
+            plt.imshow(image[:,:,1], cmap='gray')
+            plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
+
+            plt.savefig(f'images/image{self.image_num}')
+            self.image_num += 1
+            # print(f"box1: {np.max(image[:,:,0])}, box2: {np.max(image[:,:,1]-image[:,:,0])}")
+            # print(f"feasible: {labels[i]}")
+            # time.sleep(1)
+
+    def _get_images(self, target_body, target_pose):
+        init_pose = pu.get_pose(target_body)
+        pu.set_pose(target_body, target_pose)
+        self.images = []
+        length, width = np.array(((self.region_bounds[1]-self.region_bounds[0])/self.pixel_size)[:2], dtype=int)
+        mat_init = np.array(np.zeros((length, width,1)) * self.region_bounds[1][2]/self.pixel_size/256, dtype=np.float)
+        mat_targ = self._png_mat(target_body, mat_init, self.region_bounds[0], self.region_bounds[1])
+
+        for bd in self.objects-{target_body}:
+            # bd_pose = pu.get_pose(bd)
+            # if not self._pose_in_same_region(bd_pose, target_pose):
+            #     continue
+            mat_full = self._png_mat(bd, mat_targ, self.region_bounds[0], self.region_bounds[1])
+            tmp = np.concatenate((mat_targ, mat_full), axis=2)
+            self.downsampling_ratio = int(tmp.shape[0]/self.input_shape[0])
+            tmp = tmp[::self.downsampling_ratio, ::self.downsampling_ratio, :]
+            assert tmp.shape == self.input_shape, 'shape of the generated image not equals the model input shape'
+            self.images.append(tmp)
+        self.images = np.array(self.images)
+        pu.set_pose(target_body, init_pose)
+
+    def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
+        self._get_images(target_body, target_pose)
+        labels = self.model.predict(self.images)>=self.threshold
+        self.display_images(self.images, labels)
+        is_feasible = labels[:,-1]
+        print(f"body: {target_body}, dir: {grsp_dir}, feas: {is_feasible}")
+
+        if not np.all(is_feasible):
+            res = False
+        else:
+            res = True
+
+        if res:
+            self.feasible_call += 1
+        else:
+            self.infeasible_call += 1
         return res

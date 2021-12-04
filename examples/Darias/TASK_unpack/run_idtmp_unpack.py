@@ -19,7 +19,7 @@ import pybullet_tools.kuka_primitives3 as pk
 from build_scenario import PlanningScenario
 from task_planner import TaskPlanner
 from plan_cache import PlanCache
-from feasibility_check import FeasibilityChecker
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN
 
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
@@ -279,10 +279,58 @@ def SetState(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, tele_port_path)])
         cmd.execute()
 
+grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1),(1,0,0):0,(-1,0,0):1,(0,1,0):2,(0,-1,0):3,(0,0,1):4}
+def check_feasibility(feasibility_checker, scn, t_plan):
+    failed_step = None
+    res = True
+    init_world = pu.WorldSaver()
+    for step, operator in t_plan.items():
+        operator = operator[1:-1]
+        if 'pick-up' in operator:
+            op, obj, region, i, j = re.split(' |__', operator)
+            target_body = scn.bd_body[obj]
+            target_pose = pu.get_pose(target_body)
+        elif 'put-down' in operator:
+            op, obj, region, i, j = re.split(' |__', operator)
+            target_body = scn.bd_body[obj]
+            region_ind = scn.bd_body[region]
+            aabb = pu.get_aabb(region_ind)
+            center_region = pu.get_aabb_center(aabb)
+            extend_region = pu.get_aabb_extent(aabb)
+
+            aabb_body = pu.get_aabb(target_body)
+            extend_body = pu.get_aabb_extent(aabb_body)
+
+            x = center_region[0] + int(i)*RESOLUTION
+            y = center_region[1] + int(j)*RESOLUTION
+            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 
+            target_pose = ([x,y,z], (0,0,0,1))
+        else:
+            print("unknown operator: feasible by default")
+            continue
+        if region=='region_drawer':
+            region = 'region_table'
+        is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir=4)
+
+        if not is_feasible:
+            print(f"check feasibility: {step}: {operator}: infeasible")
+            failed_step = step
+            break
+        else:
+            print(f"check feasibility: {step}: {operator}: FEASIBLE")
+            if op=='put-down':
+                pu.set_pose(target_body, target_pose)
+    init_world.restore()
+    if is_feasible:
+        print("current task plan is feasible")
+    else:
+        print("current task plan is infeasible")
+    return is_feasible, failed_step
+
 def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
     # check feasibility of task plan from learned model
     if feasibility_checker:
-        isfeasible, failed_step = feasibility_checker.check_feasibility(t_plan)
+        isfeasible, failed_step = check_feasibility(feasibility_checker, scn, t_plan)
         if not isfeasible:
             return isfeasible, None, failed_step
 
@@ -466,8 +514,8 @@ def multi_sims(visualization=1):
             task_planning_timer.stop()
 
             logger.info(f"task plan found, in horizon: {tp.horizon}")
-            for h,p in t_plan.items():
-                logger.info(f"{h}: {p}")
+            for h,t in t_plan.items():
+                logger.info(f"{h}: {t}")
 
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
@@ -526,21 +574,21 @@ def multi_sims_path_cache(visualization=0):
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
-    
     parser.parse_domain(domain_filename)
     domain_name = parser.domain_name
     problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
     problem = PDDLProblem(scn, parser.domain_name)
     parser.dump_problem(problem, problem_filename)
-    embed()
-
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
-    if feasible_check:
+    if feasible_check==1:
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
+    elif feasible_check==2:
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_240_160_dir4_unpack.model')
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     else:
         feasible_checker = None
+
     # IDTMP
     i=0
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
@@ -556,7 +604,7 @@ def multi_sims_path_cache(visualization=0):
         
         total_planning_timer.start()
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=5, max_horizon=6)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
@@ -587,8 +635,8 @@ def multi_sims_path_cache(visualization=0):
             if tp.horizon>tp.max_horizon:
                 break
             logger.info(f"task plan found, in horizon: {tp.horizon}")
-            for h,p in t_plan.items():
-                print(f"{h}: {p}")
+            for h,t in t_plan.items():
+                print(f"{h}: {t}")
 
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
@@ -618,12 +666,12 @@ def multi_sims_path_cache(visualization=0):
         else:
             print(f"task and motion plan failed")
 
-
     # os.system('spd-say -t female2 "hi lei, simulation done"')
     # while True:
     #     ExecutePlanNaive(scn, t_plan, m_plan)
     #     saved_world.restore()
     #     time.sleep(1)
+    embed()
     pu.disconnect()
 
 if __name__=="__main__":
@@ -634,7 +682,7 @@ if __name__=="__main__":
     RESOLUTION = float(sys.argv[2])
     max_sim = int(sys.argv[3])
     MOTION_ITERATION = int(sys.argv[4])
-    feasible_check = bool(int(sys.argv[5]))
+    feasible_check = int(sys.argv[5])
     output_dir = str(sys.argv[6])
 
     multi_sims_path_cache(visualization=visualization)
