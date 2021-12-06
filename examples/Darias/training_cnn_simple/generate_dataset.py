@@ -12,7 +12,7 @@ import csv, uuid, os, sys
 from multiprocessing import Process, process
 
 import pybullet as p
-from utils.pybullet_tools.utils import WorldSaver, connect, get_pose, pixel_from_ray, set_joint_positions, set_pose, get_configuration, is_placement, \
+from utils.pybullet_tools.utils import WorldSaver, connect, get_pose, is_fixed_base, pixel_from_ray, set_joint_positions, set_pose, get_configuration, is_placement, \
     disconnect, get_bodies, create_box, remove_body, get_aabb   
 import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 EPSILON = 0.001
 max_height = 0.512
-pixel_size=0.005
+pixel_size=0.002
 
 def get_jacobian():
     jaco_t, jaco_r = pu.compute_jacobian(0, scn.end_effector_link)
@@ -112,9 +112,9 @@ def get_dist_theta(pose1, pose2):
 
 def random_box(scn):
     if region_ind==0:
-        # lwh = list(np.random.uniform([0.04,0.04,0.05],[0.15,0.15,0.3]))
+        lwh = list(np.random.uniform([0.04,0.04,0.05],[0.12,0.12,0.25]))
         # lwh = list(np.random.uniform([0.05,0.05,0.05],[0.05,0.05,0.3]))
-        lwh = [0.05,0.05,np.random.choice([0.1,0.15,0.2])]
+        # lwh = [0.05,0.05,np.random.choice([0.1,0.15,0.2])]
 
     elif region_ind==1:
         lwh = list(np.random.uniform([0.04,0.04,0.05],[0.1,0.1,0.2]))
@@ -215,17 +215,25 @@ def scene_to_mat(scn, region_aabb, max_height=0.512):
     return Image.fromarray( np.concatenate((mat_targ,mat_full), axis=2))
     # return mat_full, mat_targ
 
+
 def save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, pic_name, label_name, render_image=False):
     label_name += '.txt'
     # if np.any(isfeasible_2b):
     #     embed()
     for i in range(len(mat_full_list)):
-        im = Image.fromarray( np.concatenate((mat_targ,mat_full_list[i]), axis=2))
         pic_name_final = f"{pic_name}_{i}"
         if render_image:
-            get_render_image(pic_name_final + ".png")
+            im_gray = Image.fromarray( np.array(np.concatenate((mat_targ[:,:,:1],mat_full_list[i][:,:,:1]), axis=-1), dtype=np.uint8))
+            im_depth = Image.fromarray(np.array(np.concatenate((mat_targ[:,:,1:],mat_full_list[i][:,:,1:]), axis=-1)*255, dtype=np.uint8))
+            pic_name_gray = f"{pic_name}_{i}_gray.png"
+            pic_name_depth = f"{pic_name}_{i}_depth.png"
+            im_gray.save(pic_name_gray)
+            im_depth.save(pic_name_depth)
+
         else:
+            im = Image.fromarray( np.concatenate((mat_targ,mat_full_list[i]), axis=2))
             im.save(pic_name_final + ".png")
+
         labels = pic_name_final.split('/')[-1] + ' ' +  ' '.join(list(np.array(isfeasible_1b, dtype=str)))+ ' ' + ' '.join(list(np.array(isfeasible_2b[i], dtype=str)))
         # write label
         with open(label_name, "a") as file:
@@ -234,39 +242,51 @@ def save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, pic_name, l
             file.write(labels)
             file.write('\n')
 
-pixelWidth = 320
-pixelHeight = 220
-camTargetPos = [0, 0, 0]
-camDistance = 4
-pitch = -10.0
-roll = 0
-upAxisIndex = 2
-def get_render_image(image_name):
-
+camera_max_dist = 2.56
+def get_render_image():
     # https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/examples/eglRenderTest.py
+    # # for both table and shelf
+    # pixelWidth = 540
+    # pixelHeight = 720
+    # viewMatrix = p.computeViewMatrix(
+    #     cameraEyePosition=[1, 0.8, 2],
+    #     cameraTargetPosition=[0.3, 0.8, 0],
+    #     cameraUpVector=[-1, 0, 0])
+    # projectionMatrix = p.computeProjectionMatrixFOV(
+    #     fov=45.0,
+    #     aspect=0.5,
+    #     nearVal=0.1,
+    #     farVal=4)
 
-    #viewMatrix = [1.0, 0.0, -0.0, 0.0, -0.0, 0.1736481785774231, -0.9848078489303589, 0.0, 0.0, 0.9848078489303589, 0.1736481785774231, 0.0, -0.0, -5.960464477539063e-08, -4.0, 1.0]
-    viewMatrix = p.computeViewMatrixFromYawPitchRoll(camTargetPos, camDistance, yaw, pitch, roll,
-                                                     upAxisIndex)
-    projectionMatrix = [
-        1.0825318098068237, 0.0, 0.0, 0.0, 0.0, 1.732050895690918, 0.0, 0.0, 0.0, 0.0,
-        -1.0002000331878662, -1.0, 0.0, 0.0, -0.020002000033855438, 0.0
-    ]
-    start = time.time()
-    width, height, rgb_pixels, depth_pixels = p.getCameraImage(pixelWidth,
+    # only for table
+    pixelWidth = 540
+    pixelHeight = 540
+    viewMatrix = p.computeViewMatrix(
+        cameraEyePosition=[0.6, 0.8, 2],
+        cameraTargetPosition=[0.2, 0.8, 0],
+        cameraUpVector=[-1, 0, 0])
+    projectionMatrix = p.computeProjectionMatrixFOV(
+        fov=35.0,
+        aspect=0.6,
+        nearVal=1.5,
+        farVal=2.5)
+
+    # start = time.time()
+    width, height, rgba_pixels, depth_pixels, seg_pixels = p.getCameraImage(pixelWidth,
                                pixelHeight,
                                viewMatrix=viewMatrix,
                                projectionMatrix=projectionMatrix,
                                shadow=1,
                                lightDirection=[1, 1, 1])
-    print(f"rendering duration: {time.time()-start}")
-    # TODO save depth image
-    return image_name
+    # print(f"rendering duration: {time.time()-start}")
+    # img = Image.fromarray(rgba_pixels)
+    # img.show()
+    image = np.concatenate((rgba_pixels[:,:,:1], depth_pixels.reshape(pixelHeight, pixelWidth,1)), axis=-1)
+    return image
 
 def sample_training_data():
     connect(use_gui=visualization)
     scn = TrainingScenario()
-
     aabb_table = pu.get_aabb(scn.table)
     aabb_shelf = pu.get_aabb(scn.shelf)
     global grasp_directions
@@ -281,21 +301,18 @@ def sample_training_data():
     # pu.draw_pose(robot_pose)
 
     if region_ind==0:
-        region_str = 'table_fixed_size_unpack'
+        region_str = 'table_render'
     else:
         region_str = 'shelf'
     filename = f'{region_str}/' + str(uuid.uuid1())
     # filename_1b = f'./{region_str}_1b/' + str(uuid.uuid1()) + '.csv'
     
     lower, upper = pu.get_aabb(scn.bd_body['region_table'])
-    sampling_lower = (-0.15,0.7,0.001)
-    sampling_upper = (0.5,1.05,0.002)
-    # lower=np.array([0.35, 0.7  , 0.001])
-    # upper=np.array([0.5  , 0.85  , 0.002])
+    # sampling_lower = (-0.15,0.7,0.001)
+    # sampling_upper = (0.5,1.05,0.002)
     length, width = np.array(np.abs(((upper-lower)/pixel_size)[:2]), dtype=int)
     mat_init = np.array(np.ones((length, width,1)) * upper[2]/pixel_size, dtype=np.uint8)
-
-    max_sim = 2000
+    # max_sim = 5000
     bar = IncrementalBar('Countdown', max = max_sim)
     for i in range(max_sim):
         bar.next()
@@ -304,10 +321,10 @@ def sample_training_data():
 
         pu.remove_body(scn.body_gripped)
         lwh1, scn.body_gripped = random_box(scn)
-        xy1, pose1 = attach_to_table(scn, scn.body_gripped, lwh1, sampling_lower, sampling_upper)
-        # pose1 = ((0.375, 0.9, 0.056012659751127014), (0.0, 0.0, 0.0, 1.0))
+        xy1, pose1 = attach_to_table(scn, scn.body_gripped, lwh1, lower, upper)
         # pu.set_pose(scn.body_gripped, ((0.375, 0.9, 0.056012659751127014), (0.0, 0.0, 0.0, 1.0)))
-        mat_targ = png_mat(scn.body_gripped, mat_init, lower, upper)
+        # mat_targ = png_mat(scn.body_gripped, mat_init, lower, upper)
+        mat_targ =  get_render_image()
 
         saved_world = WorldSaver()
         isfeasible_1b = np.zeros(len(grasp_directions), dtype=np.uint8)
@@ -316,7 +333,6 @@ def sample_training_data():
         mat_full_list = []
         num_2b = 5
         isfeasible_2b = np.zeros((num_2b, len(grasp_directions)),dtype=np.uint8)
-
         for dir_ind, grsp_dir in grasp_directions.items():
             # if not dir_ind == 4:
             #     continue
@@ -324,8 +340,9 @@ def sample_training_data():
             pu.set_pose(scn.body_on_table, ((2,2,2),(0,0,0,1)))
             extend = pu.get_aabb_extent(pu.get_aabb(scn.body_gripped))
             target_pose = target_pose_vs_grsp_dir(pose1, grsp_dir, np.array(extend))
-            isfeasible_1b[dir_ind] = int(check_feasibility(scn, target_pose))
             # pu.draw_pose(target_pose)
+            # print(target_pose)
+            isfeasible_1b[dir_ind] = int(check_feasibility(scn, target_pose))
 
             for jj in range(num_2b):
                 xy2, pose2 = attach_to_table(scn, scn.body_on_table, lwh2, lower, upper)
@@ -334,14 +351,18 @@ def sample_training_data():
             for jj in range(num_2b):
                 saved_world.restore()
                 pu.set_pose(scn.body_on_table, pose_list[jj])
-                # pu.set_pose(scn.body_on_table, ((0.32, 0.9, 0.08100309348079285), (0.0, 0.0, 0.0, 1.0)))
                 if len(mat_full_list)<num_2b:
-                    mat_full_list.append(png_mat(scn.body_on_table, mat_targ, lower, upper))
+                    # mat_full = png_mat(scn.body_on_table, mat_targ, lower, upper)
+                    mat_full = get_render_image()
+                    mat_full_list.append(mat_full)
                 isfeasible_2b[jj, dir_ind] = isfeasible_1b[dir_ind] and int(check_feasibility(scn, target_pose))
+                # if dir_ind==4 and not isfeasible_2b[jj,dir_ind]:
+                    # print(isfeasible_2b[jj,dir_ind])
         #         print(f"\nfeasible: \n{isfeasible_1b[dir_ind]} {isfeasible_2b[jj, dir_ind]}")
         # print(f'\n1b feasible:{isfeasible_1b}')
         # print(f'2b feasible:{isfeasible_2b}')
-        save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, filename+'_'+str(i).zfill(4), filename)
+        if not debug:
+            save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, filename+'_'+str(i).zfill(4), filename, render_image=True)
         # save_dataset(filename_2b, dataset_2b)
         # save_dataset(filename_1b, dataset_1b)
     bar.finish()
@@ -353,7 +374,8 @@ if __name__=='__main__':
     visualization = int(sys.argv[1])
     num_process = int(sys.argv[2])
     region_ind = int(sys.argv[3])
-    debug = int(sys.argv[4])
+    max_sim = int(sys.argv[4])
+    debug = int(sys.argv[5])
     # print(f"number of processes: {num_process}")
     assert num_process<=9, "CPU overworked"
     if debug:

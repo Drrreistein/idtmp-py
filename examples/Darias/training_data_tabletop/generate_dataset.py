@@ -72,6 +72,7 @@ def sample_training_data():
     robot_pose = (robot_position, (0,0,0,1))
     # pu.draw_pose(robot_pose)
     filename = './' + str(uuid.uuid1()) + '.csv'
+    embed()
     for _ in range(1000):
         pu.remove_body(scn.body_gripped)
         lwh1, scn.body_gripped = random_box(scn)

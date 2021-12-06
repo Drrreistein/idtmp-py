@@ -15,7 +15,6 @@ from utils.pybullet_tools.body_utils import draw_frame
 
 from copy import copy
 
-
 class PlanningScenario1(object):
     def __init__(self):
         with HideOutput():

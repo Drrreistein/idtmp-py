@@ -65,11 +65,11 @@ class FeasibilityChecker(object):
         dist = np.linalg.norm(np.array(pose1[0][:2])-np.array(pose2[0][:2]))
         theta = np.arctan2(pose1[0][0]-pose2[0][0], pose1[0][1]-pose2[0][1])
         return [dist, theta]
-        
+
     def _get_feature_vector(self, target_body, target_pose):
         feature_vectors = []
         dist_theta1 = self._get_dist_theta(self.robot_pose, target_pose)
-        
+
         for bd in self.objects-{target_body}:
             bd_pose = pu.get_pose(bd)
             tmp = self.object_properties[target_body] + self.object_properties[bd]
@@ -226,9 +226,9 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         self.objects = set(objects)
         self.model_file = model_file
         self._load_cnn_model()
-        self.region_bounds = (np.array([-0.25 ,  0.3  ,  0.001]), np.array([0.95 , 1.1  , 0.002]))
+        self.region_bounds = (np.array([-0.2 ,  0.5 ,  0.001]), np.array([0.6 , 1.1  , 0.002]))
         self.max_height = 0.512
-        self.pixel_size = 0.005
+        self.pixel_size = 0.002
         self.downsampling_ratio = 10
         self.threshold = threshold
         
@@ -268,7 +268,8 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             plt.imshow(image[:,:,1], cmap='gray')
             plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
 
-            plt.savefig(f'images/image{self.image_num}')
+            plt.savefig(f'images2/image{self.image_num}')
+            print(f'images2/image{self.image_num}')
             self.image_num += 1
             # print(f"box1: {np.max(image[:,:,0])}, box2: {np.max(image[:,:,1]-image[:,:,0])}")
             # print(f"feasible: {labels[i]}")

@@ -639,7 +639,10 @@ improvement：
 - using gray depth image / rendered images by pyBullet
 - using sparse tensor and customized generator as training input to save some memory
 - about $n*10^4, n\in Z^*$ parameters, $n*10^5, n \in Z^*$ training data
-- 
+
+better two channels, each channel save one box
+
+<img src="docs/image77.png" alt="image77" style="zoom:67%;" />
 
 #### generating scene from symbolic state with conditional VAE
 
@@ -753,5 +756,12 @@ data flow
 - [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
 - [ ] find a interesting task to show the function of TAMP
 - [ ] write a python module which can convert all generated action sequence into a tree
-- [ ] 
+- [ ] add extra features to ML model: rotation of boxes, height of table, head obstacle
+- [ ] MLP model with extra feature box Z, eMLP
+- [ ] CNN model with object-centered image
+- [ ] CNN model with extra feature box Z, eCNN
+- [ ] CNN model with all directions
+- [ ] CNN model with extra feature box Z and head obstacle 0/1/dist, eeCNN
+- [ ] compare eMLP, eCNN, eeCNN: how many data do they need, generality, end-to-end
+- [ ] test learned model on **random problem instances**, show generality
 

@@ -16,16 +16,15 @@ import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 from copy import copy
 
-
 class TrainingScenario(object):
     def __init__(self):
         with HideOutput():
             with LockRenderer():
                 self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
                                               fixed_base=True)
-                set_pose(self.arm_left, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_left, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
                 self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-                set_pose(self.arm_base, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_base, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
 
                 self.bd_body = {
                     'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
@@ -40,12 +39,13 @@ class TrainingScenario(object):
                         fixed_base=True),
 
                     'region_shelf': create_box(0.35, 0.44, 0.001, color=[0,0,1,0.5]),
-                    'region_table': create_box(1.2, 0.8, 0.001, color=[0,0,1,0.5]),
+                    'region_table': create_box(0.8, 0.6, 0.001, color=[0,0,1,0.5]),
                     # load_pybullet("../scenario_description/train_shelf_region.urdf", fixed_base=True),
                     # 'region_table': load_pybullet("../scenario_description/training_bs_region.urdf", fixed_base=True),
-
                     'c1': load_pybullet("../scenario_description/boxA.urdf", fixed_base=False),
                     'c2': load_pybullet("../scenario_description/boxA.urdf", fixed_base=False),
+                    # 'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
+                    # 'region2': load_pybullet("../scenario_description/region_big.urdf",fixed_base=True),
                 }
                 self.all_bodies = [b for b in self.bd_body.values()]
                 self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
@@ -62,8 +62,11 @@ class TrainingScenario(object):
                 set_pose(self.bd_body['pegboard'],
                          Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
                 set_pose(self.bd_body['region_shelf'],Pose(Point(x=-0.45, y=0.8, z=0.774)))
-                set_pose(self.bd_body['region_table'],Pose(Point(x=0.35, y=0.7, z=stable_z(self.bd_body['region_table'], self.bd_body['floor']))))
-
+                set_pose(self.bd_body['region_table'],Pose(Point(x=0.2, y=0.8, z=stable_z(self.bd_body['region_table'], self.bd_body['floor']))))
+                # set_pose(self.bd_body['region1'],
+                #          Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
+                # set_pose(self.bd_body['region2'],
+                #          Pose(Point(x=0.05, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
         self.body_gripped = self.bd_body['c1']
         self.body_on_table = self.bd_body['c2']
         self.table = self.bd_body['region_table']
@@ -133,7 +136,6 @@ class TrainingScenario(object):
     #     draw_frame(tform_from_pose(get_pose(self.bd_body['camera1'])), None)
 
     #     r.show()
-
 
 #######################################################
 

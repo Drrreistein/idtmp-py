@@ -17,6 +17,7 @@ from utils.pybullet_tools.body_utils import draw_frame
 
 from copy import copy
 from IPython import embed
+EPSILON = 0.005
 
 class PlanningScenario(object):
     def __init__(self):
@@ -38,8 +39,7 @@ class PlanningScenario(object):
                         "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
                         fixed_base=True),
                     'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
-                    'region2': load_pybullet("../scenario_description/region_big.urdf",
-                                             fixed_base=True),
+                    'region2': load_pybullet("../scenario_description/region_big.urdf",fixed_base=True),
                     'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
                     'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
                     'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
@@ -102,11 +102,11 @@ class PlanningScenario(object):
                 set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
 
                 set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
+                         Pose(Point(x=0.375, y=0.9, z=EPSILON+stable_z(self.bd_body['c1'], self.bd_body['region1']))))
                 set_pose(self.bd_body['c2'],
-                         Pose(Point(x=0.32, y=0.9, z=stable_z(self.bd_body['c2'], self.bd_body['region1']))))
+                         Pose(Point(x=0.32, y=0.9, z=EPSILON+stable_z(self.bd_body['c2'], self.bd_body['region1']))))
                 set_pose(self.bd_body['c3'],
-                         Pose(Point(x=0.34, y=0.845, z=stable_z(self.bd_body['c3'], self.bd_body['region1']))))
+                         Pose(Point(x=0.34, y=0.845, z=EPSILON+stable_z(self.bd_body['c3'], self.bd_body['region1']))))
 
                 set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
 

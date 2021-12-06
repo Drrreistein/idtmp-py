@@ -25,7 +25,7 @@ from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
 
-EPSILON = 0.01
+EPSILON = 0.005
 RESOLUTION = 0.1
 MOTION_ITERATION = 20
 
@@ -48,8 +48,7 @@ class DomainSemantics(object):
         kin = Kinematics(rm)
 
     def motion_plan(self, body, goal_pose, attaching=False):
-        # if attaching and self.scn.bd_body[body]=='c2':
-        #     embed()
+
         if attaching:
             body_pose = pu.get_pose(body)
             tcp_pose = pu.get_link_pose(self.robot, self.end_effector_link)
@@ -65,14 +64,15 @@ class DomainSemantics(object):
         # goal_joints = pk.inverse_kinematics(self.robot, self.end_effector_link, goal_pose)
         goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=self.self_collision, 
         disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment, max_distance=self.max_distance)
+
         if goal_joints is None:
             return False, goal_joints
         goal_conf = pk.BodyConf(self.robot, goal_joints, self.movable_joints)
-
         path = pu.plan_joint_motion(self.robot, self.movable_joints, goal_conf.configuration, obstacles=obstacles,self_collisions=self.self_collision, 
         disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment,
         max_distance=self.max_distance, iterations=MOTION_ITERATION)
-
+        # if attaching:
+        #     embed()
         if path is None:
             # logger.error(f"free motion planning failed")
             return False, path
@@ -117,7 +117,7 @@ class UnpackDomainSemantics(DomainSemantics):
 
         x = center_region[0] + int(i)*RESOLUTION
         y = center_region[1] + int(j)*RESOLUTION
-        z = center_region[2] + extend_region[2]/2 + extend_body[2] + EPSILON
+        z = center_region[2] + extend_region[2]/2 + extend_body[2] + EPSILON*2
         
         body_pose = pu.Pose([x,y,z], pu.euler_from_quat(rotation))
         goal_pose = pu.multiply(body_pose, ((0,0,0), pu.quat_from_axis_angle([1,0,0],np.pi)))
@@ -303,7 +303,7 @@ def check_feasibility(feasibility_checker, scn, t_plan):
 
             x = center_region[0] + int(i)*RESOLUTION
             y = center_region[1] + int(j)*RESOLUTION
-            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 
+            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 + EPSILON
             target_pose = ([x,y,z], (0,0,0,1))
         else:
             print("unknown operator: feasible by default")
@@ -333,7 +333,6 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
         isfeasible, failed_step = check_feasibility(feasibility_checker, scn, t_plan)
         if not isfeasible:
             return isfeasible, None, failed_step
-
     # using plan cache to avoid to resample an known operator
     if path_cache is not None:
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
@@ -584,11 +583,14 @@ def multi_sims_path_cache(visualization=0):
     if feasible_check==1:
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_240_160_dir4_unpack.model')
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_200_150_21945_dirall_28.model')
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     else:
         feasible_checker = None
-
+    
+    # print(' ############################# ')
+    # print(f"{pu.get_pose(8)} {pu.get_pose(9)} {pu.get_pose(10)}")
+    # embed()
     # IDTMP
     i=0
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
@@ -604,16 +606,15 @@ def multi_sims_path_cache(visualization=0):
         
         total_planning_timer.start()
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=5, max_horizon=6)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
         tp.modeling()
         task_planning_timer.stop()
 
-        tm_plan = None
-
-        while tm_plan is None:
+        t0 = time.time()
+        while time.time()-t0<1000:
             # ------------------- task plan ---------------------
             t_plan = None
             task_planning_timer.start()
@@ -656,7 +657,11 @@ def multi_sims_path_cache(visualization=0):
 
         total_planning_timer.stop()
         if tp.horizon <= tp.max_horizon:
-            save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(i).zfill(4)}.json')
+            if res:
+                save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(i).zfill(4)}.json')
+            else:
+                print(f"ERROR: no task motion plan found...")
+
             all_timers = task_planning_timer.timers
             print(f"all timers: {all_timers}")
             print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
@@ -671,7 +676,6 @@ def multi_sims_path_cache(visualization=0):
     #     ExecutePlanNaive(scn, t_plan, m_plan)
     #     saved_world.restore()
     #     time.sleep(1)
-    embed()
     pu.disconnect()
 
 if __name__=="__main__":

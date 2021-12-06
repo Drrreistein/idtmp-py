@@ -1,5 +1,6 @@
 # from PIL.Image import merge
 from PIL import Image
+from matplotlib import image
 import matplotlib.pyplot as plt
 import pickle
 from numpy.core.fromnumeric import size
@@ -152,6 +153,7 @@ def get_data(dirname, num=100000, height=120):
     labels = np.zeros((num, 5))
     for k, v in dataset.items():
         img_mat = np.asarray(Image.open(os.path.join(dirname, k+'.png')))
+        img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
         images.append(tf.sparse.from_dense(np.reshape(img_mat[::downsampling, ::downsampling, :]/256, shape)))
         # images[i-1] = img_mat[::downsampling, ::downsampling, :]/256
         # labels.append(v[5:])
@@ -169,6 +171,95 @@ def get_data(dirname, num=100000, height=120):
         :train_data_len], images[train_data_len:test_data_len], labels[train_data_len:test_data_len], \
             images[test_data_len:], labels[test_data_len:]
     return train_images, train_labels, validate_images, validate_labels, test_images, test_labels
+
+
+def get_render_images(dirname, num=100000, height=270):
+
+    all_files = os.listdir(dirname)
+    txt_files = []
+    png_names = []
+    for f in all_files:
+        if 'txt' in f:
+            txt_files.append(f)
+
+    dataset = dict()
+    for f in txt_files:
+        with open(os.path.join(dirname, f), 'r') as file:
+            for s in file:
+                tmp = s[:-1].split(' ')
+                dataset[tmp[0]] = np.array(tmp[1:], dtype=np.uint8)
+
+    for k, v in dataset.items():
+        img_mat = np.asarray(Image.open(os.path.join(dirname, k+'_depth.png')))
+        m,n,_ = img_mat.shape
+        print(f'input shape: {img_mat.shape}')
+        break
+
+    i = 1
+    downsampling = int(m/height)
+    m, n = int(m/downsampling), int(n/downsampling)
+    assert m==height, 'image resolution not consistent'
+    shape = tuple([1] + [m,n,2])
+    labels = np.zeros((num, 5))
+    images = np.zeros((num,m,n,4))
+    for k, v in dataset.items():
+        img_gray = np.asarray(Image.open(os.path.join(dirname, k+'_gray.png')))[::downsampling, ::downsampling, :]/256
+        img_depth = np.asarray(Image.open(os.path.join(dirname, k+'_depth.png')))[::downsampling, ::downsampling, :]/256
+        img_mat = np.concatenate((img_gray, img_depth), axis=-1)
+        # images.append(tf.sparse.from_dense(np.reshape(img_mat[::downsampling, ::downsampling, :]/256, shape)))
+        images[i-1] = img_mat
+        # labels.append(v[5:])
+        labels[i-1] = v[5:]
+        if i >= num:
+            break
+        i += 1
+
+    # images = np.array(images)
+    train_data_len = int(len(images)*0.8)
+    test_data_len = int(len(images)*0.9)
+    # images = tf.sparse.from_dense(images)
+    # return images, labels
+    train_images, train_labels, validate_images, validate_labels, test_images, test_labels = images[:train_data_len], labels[
+        :train_data_len], images[train_data_len:test_data_len], labels[train_data_len:test_data_len], \
+            images[test_data_len:], labels[test_data_len:]
+    return train_images, train_labels, validate_images, validate_labels, test_images, test_labels
+
+def plot_image_by_channels(images):
+    _,_,ch = images.shape
+    row=2
+    col = int(np.ceil(ch/row))
+    plt.ion()
+    ind = 0
+    for i in range(col):
+        for j in range(row):
+            plt.subplot(col, row, i*row+j+1)
+            plt.imshow(images[:,:,ind], cmap='gray')
+            ind += 1
+
+
+def get_balance_data(X,y):
+    unique_y = np.unique(y)
+    min_num_y = len(np.argwhere(y==unique_y[0]))
+    min_y = unique_y[0]
+    y_num = dict()
+    for hh in unique_y:
+        y_num[hh] = len(np.argwhere(y==hh))
+    min_num_y = np.min(list(y_num.values()))
+    for hh,num in y_num.items():
+        step = int(num/min_num_y)
+        if 'args' not in locals():
+            args = np.argwhere(y==hh)[::step]
+        else:
+            args = np.concatenate([args, np.argwhere(y==hh)[::step]], axis=0)
+    args = args[:,0]
+    tmp_X = X[args]
+    tmp_y = y[args]
+
+    return tmp_X, tmp_y
+
+def filter_mat_zeros(mat):
+
+    return mat
 
 def get_data0(dirname, num=100000, height=120):
 
@@ -259,34 +350,34 @@ def png_to_vector(images):
 
 def create_model(input_shape):
     model = models.Sequential()
-    model.add(layers.Conv2D(4, (3,3), input_shape=input_shape))
+    model.add(layers.Conv2D(4, (3,3), padding='same',input_shape=input_shape))
     # model.add(layers.BatchNormalization(axis=-1))
     # model.add(layers.Dropout(0.2))
     model.add(layers.ReLU())
-    model.add(layers.MaxPooling2D(pool_size=(3, 3)))
+    model.add(layers.MaxPooling2D(pool_size=(5, 5)))
 
-    model.add(layers.Conv2D(8, (3,3)))
+    model.add(layers.Conv2D(8, (3,3),padding='same'))
     # model.add(layers.BatchNormalization(axis=-1))
     # model.add(layers.Dropout(0.2))
     model.add(layers.ReLU())
-    model.add(layers.MaxPooling2D(pool_size=(3, 3)))
+    model.add(layers.MaxPooling2D(pool_size=(5, 5)))
 
-    model.add(layers.Conv2D(16, (3, 3)))
-    # model.add(layers.Dropout(0.2))
-    # model.add(layers.BatchNormalization(axis=-1))
-    model.add(layers.ReLU())
-    model.add(layers.MaxPooling2D(pool_size=(3, 3)))
-
-    # model.add(layers.Conv2D(32, (3, 3)))
+    # model.add(layers.Conv2D(8, (3, 3),padding='same'))
     # # model.add(layers.Dropout(0.2))
     # # model.add(layers.BatchNormalization(axis=-1))
     # model.add(layers.ReLU())
-    # model.add(layers.MaxPooling2D(pool_size=(4, 4), strides=(2, 2)))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+    # model.add(layers.Conv2D(8, (3, 3),padding='same'))
+    # # model.add(layers.Dropout(0.2))
+    # # model.add(layers.BatchNormalization(axis=-1))
+    # model.add(layers.ReLU())
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
 
     model.add(layers.Flatten())
     model.add(layers.Dropout(0.2))
-    model.add(layers.Dense(125, activation='relu'))
-    model.add(layers.Dense(1, activation='sigmoid'))
+    model.add(layers.Dense(100, activation='relu'))
+    model.add(layers.Dense(5, activation='sigmoid'))
     model.summary()
     return model
 
@@ -307,8 +398,8 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
         return ans
 
     # Create a new model instance
-    input_shape = np.array(train_images[0].shape[1:])
-    input_shape = train_images[0].shape
+    input_shape = tuple(np.array(train_images[0].shape[1:]))
+    # input_shape = train_images[0].shape
     model = create_model(input_shape)
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
@@ -317,9 +408,11 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
     train_gen = CustomGen(train_images, train_labels, batch_size=100)
     valid_gen = CustomGen(validate_images, validate_labels, batch_size=100)
     test_gen = CustomGen(test_images, test_labels, batch_size=100)
-    history = model.fit(train_gen, epochs=10, batch_size = train_gen.batch_size, validation_data=valid_gen)
+    for i in range(10):
+        history = model.fit(train_gen, epochs=2, batch_size = train_gen.batch_size, validation_data=valid_gen)
     # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
-    evaluate_cnn_model(model, test_gen=test_gen, norm=True)
+        evaluate_cnn_model(model, test_gen=test_gen, norm=True)
+        model.save(f"cnn_200_150_21945_dirall_{i*2+2}.model")
 
     # # The history.history["loss"] entry is a dictionary with as many values as epochs that the
     # # model was trained on.
@@ -338,21 +431,23 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
 
 def evaluate_cnn_model(model, test_images=None, test_labels=None, test_gen=None, threshold=0.5, norm=False):
     if test_gen is not None:
-        test_labels_pred = test_gen.labels.copy()
-        for i in range(test_gen.__len__()):
-            test_images, test_labels = test_gen.__getitem__(i)
-            m, n = i*test_gen.batch_size, (i+1)*test_gen.batch_size
-            test_labels_pred[m:n] = np.array(model.predict(test_images) > threshold, dtype=int)
-        test_labels = test_gen.labels
+        # test_labels_pred = test_gen.labels.copy()
+        # for i in range(test_gen.__len__()):
+        #     test_images, test_labels = test_gen.__getitem__(i)
+        #     m, n = i*test_gen.batch_size, (i+1)*test_gen.batch_size
+        test_labels_pred = np.array(model.predict(test_gen) > threshold, dtype=int)
+        m,n = test_labels_pred.shape
+        test_labels = np.array(test_gen.labels[:m], dtype=np.uint)
     # if norm and (not np.mean(test_images[:30])<1):
     #     test_images = test_images / 256
     # binary accuracy
     else:
         test_labels_pred = np.array(model.predict(test_images) > threshold, dtype=int)
+        test_labels = np.array(test_labels, dtype=int)
+    assert test_labels_pred.shape == test_labels.shape, 'labels shape not consistent'
     m,n = test_labels_pred.shape
     overall_acc = np.sum(test_labels == test_labels_pred) / (m*n)
-    direction_acc = np.sum(test_labels == test_labels_pred,
-                           axis=0)/len(test_labels_pred)
+    direction_acc = np.sum(test_labels == test_labels_pred, axis=0) / m
     print('################ binary accuracy ################')
     print(f'positive threshold: {threshold}')
     print(f"overall accuracy: {overall_acc}")
@@ -378,10 +473,10 @@ def evaluate_cnn_model(model, test_images=None, test_labels=None, test_gen=None,
         else:
             true_neg_num += 1
 
-    print(f"true positive: {true_pos_num/len(test_labels_pred)/5}")
-    print(f"true negative: {true_neg_num/len(test_labels_pred)/5}")
-    print(f"false negative: {false_neg_num/len(test_labels_pred)/5}")
-    print(f"false positive: {false_pos_num/len(test_labels_pred)/5}")
+    print(f"true positive: {true_pos_num/m/n}")
+    print(f"true negative: {true_neg_num/m/n}")
+    print(f"false negative: {false_neg_num/m/n}")
+    print(f"false positive: {false_pos_num/m/n}")
 
     R = true_pos_num/(true_pos_num+false_neg_num)
     P = true_pos_num/(true_pos_num+false_pos_num)
@@ -389,6 +484,8 @@ def evaluate_cnn_model(model, test_images=None, test_labels=None, test_gen=None,
     print(f"recall rate: {R}")
     print(f"precision rate: {P}")
     print(f"f_score: {f_score}")
+
+    return 
 
 def test_accuracy(test_y, real_y):
     num_test = len(real_y)

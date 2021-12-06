@@ -3855,7 +3855,7 @@ def inverse_kinematics_helper(robot, link, target_pose, null_space=None):
     return kinematic_conf
 
 
-def is_pose_close(pose, target_pose, pos_tolerance=1e-3, ori_tolerance=1e-3 * np.pi):
+def is_pose_close(pose, target_pose, pos_tolerance=1e-4, ori_tolerance=1e-4 * np.pi):
     (point, quat) = pose
     (target_point, target_quat) = target_pose
     if (target_point is not None) and not np.allclose(point, target_point, atol=pos_tolerance, rtol=0):
