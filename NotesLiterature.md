@@ -6,7 +6,7 @@
 | -------------- | ------------------------------------------------------------ |
 | **Aim**        | offer a general-purpose task and motion planning framework<br />TMKit is an end-to-end, probabilistically complete TMP and real-time execution<br />allow interaction btw. task planning and motion planning |
 | **Background** | standalone task-motion planning doesn't work well<br />      |
-| **Methods**    | ![image-20210718123017004](/home/lei/tamp/docs/image-20210718123017004.png)<br />interaction btw. task planner and motion planner through `domain semantics`<br />, in which two types of functions are necessary. i) a function mapping from scene graph to a discrete state, ii) a function mapping from discrete task planning to continuous motion plan |
+| **Methods**    | ![image-20210718123017004](docs/image-20210718123017004.png)<br />interaction btw. task planner and motion planner through `domain semantics`<br />, in which two types of functions are necessary. i) a function mapping from scene graph to a discrete state, ii) a function mapping from discrete task planning to continuous motion plan |
 | **Conclusion** | general-purpose and extensible framework;<br />can be generalised across hardware platform, task domains and TMP algorithms |
 | **Comments**   | TMP framework                                                |
 
@@ -18,7 +18,7 @@
 | -------------- | ------------------------------------------------------------ |
 | **Aim**        | challenges of hierarchical TAMP: missing the knowledge about the environment at the symbolic level<br /> |
 | **Background** | monte-carlo tree search(MCTS), <br />top-k planning, used to construct a skeleton space<br />PDDLStream, which arguments the skeleton planner, including motion-planner and pose-sampler? |
-| **Methods**    | two-folds contribution of this article: 1. transform the incomplete domain description into a series of generic planning problems, which can be solved by any top-k planners; 2. solve resultant decision-making problem with tree-structured search algorithm<br />making decision on extended decision spaces over plan skeletons and action parameters<br />top-k planner constructs a skeleton space, where skeleton planner generates a variety of skeleton candidates<br />combining skeleton space with **motion parameter spaces?** into the extended decision space<br />MCTS ensure the balance of exploration-exploitation: selection, expansion, simulation and backup<br />![image-20210719170702781](/home/lei/tamp/docs/image-20210719170702781.png) |
+| **Methods**    | two-folds contribution of this article: 1. transform the incomplete domain description into a series of generic planning problems, which can be solved by any top-k planners; 2. solve resultant decision-making problem with tree-structured search algorithm<br />making decision on extended decision spaces over plan skeletons and action parameters<br />top-k planner constructs a skeleton space, where skeleton planner generates a variety of skeleton candidates<br />combining skeleton space with **motion parameter spaces?** into the extended decision space<br />MCTS ensure the balance of exploration-exploitation: selection, expansion, simulation and backup<br />![image-20210719170702781](docs/image-20210719170702781.png) |
 | **Conclusion** |                                                              |
 | **Comments**   |                                                              |
 
@@ -127,7 +127,7 @@ sampling as uniform as possible, e.g. the extension of nodes in RRT
 
 - partition the plane into several regions based on specific seeds points. each region contains a seed,  and all points inside the region is closer to its seed than any other seed
 
-  <img src="/home/lei/tamp/docs/image-20210816180848408.png" alt="image-20210816180848408" style="zoom:50%;" />
+  <img src="docs/image-20210816180848408.png" alt="image-20210816180848408" style="zoom:50%;" />
 
 - 
 
@@ -228,7 +228,7 @@ an algorithm design paradigm
 
 #### Linear temporal logic (LTL)
 
-![image-20210805100951670](/home/lei/tamp/docs/image-20210805100951670.png)
+![image-20210805100951670](docs/image-20210805100951670.png)
 
 
 
@@ -384,7 +384,7 @@ criteria on the difficulty of tamp problems
 
 - motion planning use two kinds of roadmap, e.g. transit roadmap(ungrasp) and transfer roadmap(grasp)
 
-<img src="/home/lei/tamp/docs/image-20210809121351068.png" alt="image-20210809121351068" style="zoom:67%;" />
+<img src="docs/image-20210809121351068.png" alt="image-20210809121351068" style="zoom:67%;" />
 
 #### eTAMP<a href=#e4>[e4]</a>
 
@@ -400,9 +400,9 @@ criteria on the difficulty of tamp problems
 - iteratively deepened task and motion planning or incremental task and motion planning
 - incremental SMT solver Z3 + RRT_Connected
 
-<img src="/home/lei/tamp/docs/image-20210809121103005.png" alt="image-20210809121103005" style="zoom:50%;" />
+<img src="docs/image-20210809121103005.png" alt="image-20210809121103005" style="zoom:50%;" />
 
-<img src="/home/lei/tamp/docs/image-20210809110305312.png" alt="image-20210809110305312" style="zoom:50%;" />
+<img src="docs/image-20210809110305312.png" alt="image-20210809110305312" style="zoom:50%;" />
 
 ### F. TAMP and Learning
 
