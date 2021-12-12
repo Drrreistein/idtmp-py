@@ -19,7 +19,7 @@ import pybullet_tools.kuka_primitives3 as pk
 from build_scenario import PlanningScenario
 from task_planner import TaskPlanner
 from plan_cache import PlanCache
-from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN, FeasibilityChecker_MLP
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN
 
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
@@ -310,7 +310,6 @@ def check_feasibility(feasibility_checker, scn, t_plan):
             continue
         if region=='region_drawer':
             region = 'region_table'
-        print(f"checking feasibility: {step}: {operator}")
         is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir=4)
 
         if not is_feasible:
@@ -357,6 +356,192 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
         feasibility_checker.fc_statistic(res)
     return res, m_plan, failed_step
 
+def simulation(visualization=1):
+
+    # visualization = True
+    pu.connect(use_gui=visualization)
+    scn = PlanningScenario()
+    
+    parser = PDDL_Parser()
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
+    
+    parser.parse_domain(domain_filename)
+    domain_name = parser.domain_name
+    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+    problem = PDDLProblem(scn, parser.domain_name)
+    parser.dump_problem(problem, problem_filename)
+
+    domain_semantics = UnpackDomainSemantics(scn)
+    domain_semantics.activate()
+    path_cache = PlanCache()
+
+    # IDTMP
+    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+
+    task_planning_timer.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
+    tp.incremental()
+    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+    tp.formula['goal'] = goal_constraints
+    tp.modeling()
+
+    task_planning_timer.stop()
+
+    tm_plan = None
+    t00 = time.time()
+    while tm_plan is None:
+        # ------------------- task plan ---------------------
+        t_plan = None
+        task_planning_timer.start()
+        while t_plan is None:
+            t_plan = tp.search_plan()
+            if t_plan is None:
+                logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                print(f'')
+                tp.incremental()
+                goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+                tp.formula['goal'] = goal_constraints
+                tp.modeling()
+                logger.info(f"search task plan in horizon: {tp.horizon}")
+                global MOTION_ITERATION
+                MOTION_ITERATION += 10
+        task_planning_timer.stop()
+
+        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        for h,p in t_plan.items():
+            logger.info(f"{h}: {p}")
+
+        # ------------------- motion plan ---------------------
+        motion_refiner_timer.start()
+        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
+        if depth>=0:
+            t_plan_to_validate = deepcopy(t_plan)
+            for _ in range(depth+1):
+                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
+            print('found plan prefixed')
+            logger.info(f'found plan prefixed')
+            SetState(scn, t_plan, prefix_m_plans)
+            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
+            m_plan = prefix_m_plans + post_m_plan
+        else:
+            res, m_plan, failed_step = tm.motion_refiner(t_plan)
+        motion_refiner_timer.stop()
+        scn.reset()
+        if res:
+            logger.info(f"task and motion plan found")
+            break
+        else:
+            path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
+            logger.warning(f"motion refine failed")
+            logger.info(f'')
+            task_planning_timer.start()
+            tp.add_constraint(failed_step, typ='general', cumulative=False)
+            task_planning_timer.stop()
+            t_plan = None
+
+    all_timers = task_planning_timer.timers
+    print(all_timers)
+    total_time = time.time()-t00
+    print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+    print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+    print(f"total_planning_time {total_time}")
+    print(f"final_visits {tp.counter}")
+    os.system('spd-say -t female2 "hi lei simulation done"')
+
+    while True:
+        ExecutePlanNaive(scn, t_plan, m_plan)
+        scn.reset()
+        time.sleep(1)
+
+    pu.disconnect()
+
+def multi_sims(visualization=1):
+
+    # visualization = True
+    pu.connect(use_gui=visualization)
+    scn = PlanningScenario()
+    
+    parser = PDDL_Parser()
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
+    
+    parser.parse_domain(domain_filename)
+    domain_name = parser.domain_name
+    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
+    problem = PDDLProblem(scn, parser.domain_name)
+    parser.dump_problem(problem, problem_filename)
+
+    domain_semantics = UnpackDomainSemantics(scn)
+    domain_semantics.activate()
+
+    # IDTMP
+    i=0
+    while i<10:
+        i+=1
+        task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
+        motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
+
+        task_planning_timer.start()
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
+        tp.incremental()
+        goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+        tp.formula['goal'] = goal_constraints
+        tp.modeling()
+
+        task_planning_timer.stop()
+
+        tm_plan = None
+        t00 = time.time()
+        while tm_plan is None:
+            # ------------------- task plan ---------------------
+            t_plan = None
+            task_planning_timer.start()
+            while t_plan is None:
+                t_plan = tp.search_plan()
+                if t_plan is None:
+                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                    print(f'')
+                    tp.incremental()
+                    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+                    tp.formula['goal'] = goal_constraints
+                    tp.modeling()
+                    logger.info(f"search task plan in horizon: {tp.horizon}")
+                    global MOTION_ITERATION
+                    MOTION_ITERATION += 10
+            task_planning_timer.stop()
+
+            logger.info(f"task plan found, in horizon: {tp.horizon}")
+            for h,t in t_plan.items():
+                logger.info(f"{h}: {t}")
+
+            # ------------------- motion plan ---------------------
+            motion_refiner_timer.start()
+            res, m_plan = tm.motion_refiner(t_plan)
+            motion_refiner_timer.stop()
+            scn.reset()
+            if res:
+                logger.info(f"task and motion plan found")
+                break
+            else: 
+                logger.warning(f"motion refine failed")
+                logger.info(f'')
+                task_planning_timer.start()
+                tp.add_constraint(m_plan, typ='general', cumulative=False)
+                task_planning_timer.stop()
+                t_plan = None
+
+        all_timers = task_planning_timer.timers
+        print(all_timers)
+        total_time = time.time()-t00
+        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+        print(f"total_planning_time {total_time}")
+        print(f"final_visits {tp.counter}")
+
+    pu.disconnect()
+
 def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 490]):
     def execute_output(filename):
         pu.connect(use_gui=1, options=f'--width={win_size[0]} --height={win_size[1]}')
@@ -398,15 +583,11 @@ def multi_sims_path_cache(visualization=0):
     if feasible_check==1:
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_fv_100_100_29797_dir4_no_height_3.model', obj_centered_img=True)
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_200_150_21945_dirall_28.model')
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
-    elif feasible_check==3:
-        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
-                    model_file='../training_cnn_simple/mlp_fv_dir4_40.model',
-                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box40.model')
     else:
         feasible_checker = None
-
+    
     # print(' ############################# ')
     # print(f"{pu.get_pose(8)} {pu.get_pose(9)} {pu.get_pose(10)}")
     # embed()

@@ -765,3 +765,17 @@ data flow
 - [ ] compare eMLP, eCNN, eeCNN: how many data do they need, generality, end-to-end
 - [ ] test learned model on **random problem instances**, show generality
 
+### Planning
+
+
+
+12.07
+
+- [ ] why CNN_dirall failed?
+  - [ ] how many data, overfitting and underfitting
+- [ ] eMLP: 高度
+- [x] CNN object-centered(OC) with **random height**, **random box direction**
+  - [ ] perform very bad in TASK_unpack
+- [ ] CNN OC without height with direction
+- [ ] CNN OC without height without direction
+- [ ] CNN OC with height without direction

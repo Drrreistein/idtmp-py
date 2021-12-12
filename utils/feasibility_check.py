@@ -1,4 +1,5 @@
 import pickle
+from numpy.core.defchararray import array
 
 from numpy.lib.type_check import real
 import pybullet_tools.utils as pu
@@ -9,8 +10,12 @@ from IPython import embed
 import tensorflow as tf
 from tensorflow.keras import models
 import matplotlib.pyplot as plt
+import itertools
+import time, os
+from tmsmt import bind_scene_object
 
-import time
+from utils.pybullet_tools.utils import dimensions_from_camera_matrix, is_fixed_base
+
 class FeasibilityChecker(object):
 
     def __init__(self, scn, objects, resolution, model_file):
@@ -57,8 +62,11 @@ class FeasibilityChecker(object):
         print(f'Feasibility\tinfeas\t{perc_ff}\t{perc_ti}')
 
     def load_ml_model(self, model_file):
-        with open(model_file, 'rb') as file:
-            model = pickle.load(file)
+        if os.path.isdir(model_file):
+            model = models.load_model(model_file)
+        else:
+            with open(model_file, 'rb') as file:
+                model = pickle.load(file)
         return model
 
     def _get_dist_theta(self, pose1, pose2):
@@ -133,7 +141,7 @@ class FeasibilityChecker(object):
     def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
         self.call_times += 1
         feature_vectors = self._get_feature_vector(target_body, target_pose)
-        is_feasible = self.model.predict(feature_vectors)
+        is_feasible = self.model.predict_prob(feature_vectors)
         if not np.all(is_feasible):
             res = False
         else:
@@ -146,6 +154,7 @@ class FeasibilityChecker(object):
             self.infeasible_call += 1
             print("current task plan is infeasible")
         return res
+
 
 class FeasibilityChecker_bookshelf(FeasibilityChecker):
     def __init__(self, scn, objects):
@@ -220,18 +229,95 @@ class FeasibilityChecker_bookshelf(FeasibilityChecker):
             self.infeasible_call += 1
         return res
 
-class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
-    def __init__(self, scn, objects, model_file, threshold=0.5):
+class FeasibilityChecker_MLP(FeasibilityChecker):
+    def __init__(self, scn, objects, model_file, model_file_1box):
         self.scn = scn
         self.objects = set(objects)
         self.model_file = model_file
+        self.model_file_1box = model_file_1box
+        self.object_properties = dict()
+        for bd in self.objects:
+            lower, upper = pu.get_aabb(bd)
+            self.object_properties[bd] = list(np.array(upper)-np.array(lower))
+
+        self.load_ml_model()
+
+        # do some statistics
+        self.call_times = 0
+        self.feasible_call = 0
+        self.infeasible_call = 0
+        self.current_feasibility = 0
+        self.false_infeasible = 0
+        self.false_feasible = 0
+        self.true_feasible = 0
+        self.true_infeasible = 0
+
+    def load_ml_model(self):
+        self.model = models.load_model(self.model_file)
+        self.model_1box = models.load_model(self.model_file_1box)
+    
+    def _get_feature_vector(self, target_body, target_pose):
+        def inside_capture_region(xy_center, xy_neig, region_bounds=[0.2,0.2]):
+            return np.all(np.abs(np.array(xy_neig[:2])-np.array(xy_center[:2]))<np.array(region_bounds))
+        feature_vectors = []
+        lwh1 = self.object_properties[target_body]
+        xyz1 = list(target_pose[0])
+        feat1 = lwh1 + xyz1 + [pu.euler_from_quat(target_pose[1])[2]]
+
+        for bd in self.objects-{target_body}:
+            xyz2, rot = pu.get_pose(bd)
+            if inside_capture_region(xyz1, xyz2):
+                lwh2 = self.object_properties[bd]
+                feat2 = lwh2 + list(xyz2[:2]) + [pu.euler_from_quat(rot)[2]]
+            else:
+                feat2 = []
+            # tmp += [4]
+            feature_vectors.append(feat1 + feat2)
+        return feature_vectors
+
+    def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
+        self.call_times += 1
+        feature_vectors = self._get_feature_vector(target_body, target_pose)
+        probs=[]
+        for i in range(len(feature_vectors)):
+            if len(feature_vectors[i]) == self.model.input_shape[1]:
+                prob = self.model.predict(feature_vectors[i:i+1])[0,0]
+            elif len(feature_vectors[i]) == self.model_1box.input_shape[1]:
+                prob = self.model_1box.predict(feature_vectors[i:i+1])[0,0]
+            else:
+                assert False, 'wrong model or feature vector'
+            probs.append(prob)
+        probs = np.array(probs)
+        labels = probs>=0.5
+        print(f'prob: {probs}, labels: {labels}')
+
+        is_feasible = np.all(labels)
+        print(f"body: {self.scn.bd_body[target_body]}, dir: {grsp_dir}, feas: {is_feasible}")
+        embed()
+
+        if is_feasible:
+            self.feasible_call += 1
+            print("current task plan is feasible")
+        else:
+            self.infeasible_call += 1
+            print("current task plan is infeasible")
+        return is_feasible
+
+class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
+    def __init__(self, scn, objects, model_file, model_file_1box=None,
+    threshold=0.5, obj_centered_img=False):
+        self.scn = scn
+        self.objects = set(objects)
+        self.model_file = model_file
+        self.model_file_1box = model_file_1box
+        self.obj_centered_img = obj_centered_img
         self._load_cnn_model()
         self.region_bounds = (np.array([-0.2 ,  0.5 ,  0.001]), np.array([0.6 , 1.1  , 0.002]))
         self.max_height = 0.512
         self.pixel_size = 0.002
         self.downsampling_ratio = 10
         self.threshold = threshold
-        
+
         # do some statistics
         self.call_times = 0
         self.feasible_call = 0
@@ -247,7 +333,27 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
     def _load_cnn_model(self):
         self.model = models.load_model(self.model_file)
         self.model.summary()
-        self.input_shape = self.model.input_shape[1:]
+        if self.obj_centered_img:
+            self.input_shape = self.model.input_shape[0][1:]
+        else:
+            self.input_shape = self.model.input_shape[1:]
+    
+    def display_images(self, images, labels):
+        for i, image in enumerate(images):
+            plt.subplot(1,2,1)
+            plt.imshow(image[:,:,0], cmap='gray')
+            plt.title(f"box1: {np.max(image[:,:,0])}")
+
+            plt.subplot(1,2,2)
+            plt.imshow(image[:,:,1]+image[:,:,0], cmap='gray')
+            plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
+
+            plt.savefig(f'images2/image{self.image_num}')
+            print(f'images2/image{self.image_num}')
+            self.image_num += 1
+            # print(f"box1: {np.max(image[:,:,0])}, box2: {np.max(image[:,:,1]-image[:,:,0])}")
+            # print(f"feasible: {labels[i]}")
+            # time.sleep(1)
 
     def _png_mat(self, body, mat, lower, upper):
         mat_targ = mat.copy()
@@ -257,23 +363,6 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         x1,y1 = np.array(((u-lower)/self.pixel_size)[:2], dtype=int)
         mat_targ[max(0,x0):x1,max(0,y0):y1] = h
         return mat_targ
-
-    def display_images(self, images, labels):
-        for i, image in enumerate(images):
-            plt.subplot(1,2,1)
-            plt.imshow(image[:,:,0], cmap='gray')
-            plt.title(f"box1: {np.max(image[:,:,0])}")
-
-            plt.subplot(1,2,2)
-            plt.imshow(image[:,:,1], cmap='gray')
-            plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
-
-            plt.savefig(f'images2/image{self.image_num}')
-            print(f'images2/image{self.image_num}')
-            self.image_num += 1
-            # print(f"box1: {np.max(image[:,:,0])}, box2: {np.max(image[:,:,1]-image[:,:,0])}")
-            # print(f"feasible: {labels[i]}")
-            # time.sleep(1)
 
     def _get_images(self, target_body, target_pose):
         init_pose = pu.get_pose(target_body)
@@ -287,7 +376,7 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             # bd_pose = pu.get_pose(bd)
             # if not self._pose_in_same_region(bd_pose, target_pose):
             #     continue
-            mat_full = self._png_mat(bd, mat_targ, self.region_bounds[0], self.region_bounds[1])
+            mat_full = self._png_mat(bd, mat_init, self.region_bounds[0], self.region_bounds[1])
             tmp = np.concatenate((mat_targ, mat_full), axis=2)
             self.downsampling_ratio = int(tmp.shape[0]/self.input_shape[0])
             tmp = tmp[::self.downsampling_ratio, ::self.downsampling_ratio, :]
@@ -295,11 +384,121 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             self.images.append(tmp)
         self.images = np.array(self.images)
         pu.set_pose(target_body, init_pose)
+        return self.images
+
+    def _png_mat_obj_centered(self, body, lwh, dir, body_ref = None):
+        def get_args_inside_bounds(args_rot:list):
+            args = []
+            for args1 in args_rot[:2]:
+                for args2 in args_rot[2:]:
+                    for a1 in args1:
+                        for a2 in args2:
+                            if a1[1]==a2[1]:
+                                args.extend(list(np.array(tuple(itertools.product(range(a1[0],a2[0]+1),range(a1[1],a1[1]+1))))))
+            return np.array(args)
+
+        def get_non_zero_pixel_args_new(xmin,xmax,ymin,ymax,dir):
+            mid_arg = np.array([(xmin+xmax)/2, (ymin+ymax)/2])
+            args_left = np.array(tuple(itertools.product(range(xmin,xmin+1), range(ymin+1,ymax+1)))) 
+            args_right = np.array(tuple(itertools.product(range(xmax,xmax+1), range(ymin,ymax)))) 
+            args_top = np.array(tuple(itertools.product(range(xmin+1,xmax+1), range(ymax,ymax+1)))) 
+            args_bottom = np.array(tuple(itertools.product(range(xmin,xmax), range(ymin,ymin+1)))) 
+            args = [args_left, args_top, args_right, args_bottom]
+            # rotate matrix
+            rot_matrix = np.array([[np.cos(dir),-np.sin(dir)],
+                                    [np.sin(dir),np.cos(dir)]])
+            args_rot = []
+            for i in range(4):
+                args[i] = args[i]-mid_arg
+                args_rot.append(np.array((rot_matrix @ args[i].T).T, dtype=int))
+            args_rot = get_args_inside_bounds(args_rot)
+
+            # delete point out of bound [0,199]
+            args_rot = np.clip(np.array(args_rot + mid_arg, dtype=int), 0, img_shape[0]-1)
+            return args_rot
+
+        lwh = np.array(lwh)
+        img_shape = (400,400)
+        self.pixel_size = 0.4/img_shape[0]
+        mat_targ = np.zeros(img_shape, dtype=np.uint8)
+        h = np.abs(int(lwh[2]*256/self.max_height))
+        x_len, y_len = np.array((lwh[:2]/self.pixel_size/2)[:2])
+        mid_arg = (img_shape[0]-1)/2
+
+        if body_ref is None:
+            xmin,xmax,ymin,ymax = np.array([mid_arg-x_len,mid_arg+x_len,
+                                            mid_arg-y_len,mid_arg+y_len], dtype=int)
+        else:
+            body_center = np.array(pu.get_point(body))
+            center = np.array(pu.get_point(body_ref))
+            x0, y0 = np.array(((body_center-center)/self.pixel_size)[:2])
+            xmin,xmax,ymin,ymax = np.array(np.round([mid_arg+x0-x_len, mid_arg+x0+x_len, 
+                                        mid_arg+y0-y_len, mid_arg+y0+y_len]), dtype=int)
+            xmin,xmax,ymin,ymax = tuple(np.clip([xmin,xmax,ymin,ymax], 0, img_shape[0]-1))
+
+        # args = np.array(tuple(itertools.product(range(xmin, xmax), range(ymin,ymax))))
+        # mid_arg = np.array([(xmin+xmax)/2, (ymin+ymax)/2])
+        # args = args - mid_arg
+        # # rotate matrix
+        # args_rot = np.array([[np.cos(dir),-np.sin(dir)],
+        #                      [np.sin(dir),np.cos(dir)]]) @ args.T
+        # # delete point out of bound [0,199]
+        # args_rot = np.clip(np.array(np.round(args_rot.T + mid_arg), dtype=int), 0, img_shape[0]-1)
+        args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax,dir)
+
+        mat_targ[args_rot[:,0],args_rot[:,1]] = h
+        # downsampling=int(mat_targ.shape[0]/img_shape[0])
+        downsampling = int(img_shape[0]/100)
+        mat_targ = mat_targ[::downsampling,::downsampling]/256
+        # assert mat_targ.shape==(200,200)
+        return mat_targ.reshape((100,100,1))
+
+    def _get_vertical_placed_box_size(self, box):
+        point, rot = pu.get_pose(box)
+        pu.set_pose(box, (point, (0,0,0,1)))
+        lwh = pu.get_aabb_extent(pu.get_aabb(box))
+        pu.set_pose(box, (point, rot))
+        return lwh
+
+    def _get_input_obj_centered(self, target_body, target_pose):
+        init_pose = pu.get_pose(target_body)
+        pu.set_pose(target_body, target_pose)
+        dir_target = pu.euler_from_quat(target_pose[1])[2]
+        lwh_targ = self._get_vertical_placed_box_size(target_body)
+        l,_ = pu.get_aabb(target_body)
+        self.images = []
+        
+        mat_targ = self._png_mat_obj_centered(target_body,lwh_targ,dir_target)
+
+        for bd in self.objects-{target_body}:
+            bd_pose = pu.get_pose(bd)
+            if (pu.get_aabb(bd)[0][2] - l[2])>0.1:
+                print(f"two body not in the same height, give up checking feasibility")
+                continue
+            dir_bd = pu.euler_from_quat(bd_pose[1])[2]
+            lwh_bd = self._get_vertical_placed_box_size(bd)
+            mat_neigh = self._png_mat_obj_centered(bd,lwh_bd,dir_bd,target_body)
+            tmp = np.concatenate((mat_targ, mat_neigh), axis=-1)
+            assert tmp.shape == self.input_shape, 'shape of the generated image not equals the model input shape'
+            self.images.append(tmp)
+
+        self.images = np.array(self.images)
+        features = np.repeat([[target_pose[0][0], target_pose[0][1], l[2], 4]], 
+                                len(self.images),axis=0)
+        pu.set_pose(target_body, init_pose)
+        return self.images, features
 
     def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
-        self._get_images(target_body, target_pose)
-        labels = self.model.predict(self.images)>=self.threshold
-        self.display_images(self.images, labels)
+        if self.obj_centered_img:
+            # learned model with object centered image
+            image, feat = self._get_input_obj_centered(target_body, target_pose)
+            prob = np.round(self.model.predict([image, feat]), 5)
+        else:
+            # learned model using image with fixed size
+            image = self._get_images(target_body, target_pose)
+            prob = np.round(self.model.predict(image),3)
+        labels = prob>=0.5
+        self.display_images(image, prob)
         is_feasible = labels[:,-1]
         print(f"body: {target_body}, dir: {grsp_dir}, feas: {is_feasible}")
 

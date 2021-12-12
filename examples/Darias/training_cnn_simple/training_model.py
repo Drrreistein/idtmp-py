@@ -1,19 +1,20 @@
 # from PIL.Image import merge
+import itertools
 from PIL import Image
 from matplotlib import image
 import matplotlib.pyplot as plt
 import pickle
-from numpy.core.fromnumeric import size
+from itertools import repeat
 
-from numpy.lib.histograms import histogram_bin_edges
-from numpy.lib.type_check import imag
-
+from numpy.core.fromnumeric import shape
 from IPython import embed
 import csv
 import uuid
 import os
 import sys
 import numpy as np
+from multiprocessing import Process, Manager, pool, process
+import multiprocessing as mps
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -29,6 +30,7 @@ import random
 import random
 import time
 import sparse
+from utils.pybullet_tools.utils import read
 downsampling = 4
 
 class CNN_FilterVisualizer(object):
@@ -106,22 +108,61 @@ class CustomGen(tf.keras.utils.Sequence):
         
         self.df = df
         self.labels = labels
-
-
-        self.n = len(df)
+        if dtype=='FV_CNN':
+            self.n = len(df[0])
+        else:
+            self.n = len(df)
         self.batch_size = batch_size
         self.dtype = dtype
-        # self.input_size = df.shape[1:]
+        self.dir_ind = None
+        self.batch_num = self.n // self.batch_size
 
     def __getitem__(self, index):
         m, n = index*self.batch_size, (index+1)*self.batch_size
         if self.dtype=='COO':
+            # scipy sparse matrix
             return self.df[m:n].todense(), self.labels[m:n]
         elif self.dtype=='tensorflow':
+            # tensorflow sparse matrix
             return tf.sparse.to_dense(tf.sparse.concat(0,self.df[m:n])), self.labels[m:n]
+        
+        elif self.dtype=='FV_CNN':
+            # for cases using objected center images
+            # if self.dir_ind is None:
+            #     self.dir_ind = 0
+            # else:
+            #     self.dir_ind = (self.dir_ind+1)%5
+            self.dir_ind = np.random.randint(0,5)
+            self.dir_ind = 4
+            empty_channel_2  = np.random.randint(2)
+            # choose one pick-up/put-down direction
+            # print(f'direction index: {self.dir_ind}')
+            # feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*self.dir_ind), axis=-1)
+            # mat1 = tf.sparse.to_dense(tf.sparse.concat(0,self.df[0][m:n])).numpy()/256
+            # if empty_channel_2:
+            #     input_shape = mat1[:,:,:,:1].shape
+            #     mat2 = np.concatenate((mat1[:,:,:,:1],np.zeros(input_shape)),axis=-1)
+            #     return [mat2, feat], self.labels[m:n, self.dir_ind]
+            # else:
+            #     return [mat1, feat], self.labels[m:n, self.dir_ind+5]
+
+            feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*self.dir_ind), axis=-1)
+            # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+            
+            mat1 = tf.sparse.to_dense(tf.sparse.concat(0,self.df[0][m:n])).numpy()
+            if np.max(mat1)>1:
+                mat1 = mat1/256
+            input_shape = mat1[:,:,:,:1].shape
+            mat2 = np.concatenate((mat1[:,:,:,:1],np.zeros(input_shape)),axis=-1)
+
+            images = np.concatenate((mat1, mat2), axis=0)
+            features = np.concatenate((feat, feat), axis=0)
+            labels = np.concatenate((self.labels[m:n, self.dir_ind+5], self.labels[m:n, self.dir_ind]),axis=0)
+
+            return [images, features], labels
 
     def __len__(self):
-        return self.n // self.batch_size
+        return self.batch_num
 
 def get_data(dirname, num=100000, height=120):
 
@@ -148,8 +189,25 @@ def get_data(dirname, num=100000, height=120):
     downsampling = int(m/height)
     m, n = int(m/downsampling), int(n/downsampling)
     assert m==height, 'image resolution not consistent'
-    images = []
     shape = tuple([1] + [m,n,2])
+
+    filenames = np.array([dict()])
+    i=0
+    for _ in range(15):
+        filenames = np.concatenate((filenames,np.array([dict()])))
+    for f in txt_files:
+        with open(os.path.join(dirname, f), 'r') as file:
+            for s in file:
+                tmp = s[:-1].split(' ')
+                ind = np.random.randint(16)
+                filenames[ind][tmp[0]] = np.array(tmp[1:], dtype=np.uint8)
+                i += 1
+                if i>num:
+                    break
+        if i>num:
+            break
+
+    images = []
     labels = np.zeros((num, 5))
     for k, v in dataset.items():
         img_mat = np.asarray(Image.open(os.path.join(dirname, k+'.png')))
@@ -172,6 +230,133 @@ def get_data(dirname, num=100000, height=120):
             images[test_data_len:], labels[test_data_len:]
     return train_images, train_labels, validate_images, validate_labels, test_images, test_labels
 
+def read_image(dataset:dict, dirname, shape, downsampling, labels_ind=-5, scale=256):
+    images_labels=dict()
+    for k, v in dataset.items():
+        # if not np.any(v[-10:]):
+        #     continue
+        img_mat = np.asarray(Image.open(os.path.join(dirname, k+'.png')))
+        if np.min(img_mat)>0:
+            img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
+        if scale != 1:
+            img_tf = tf.sparse.from_dense(np.reshape(img_mat[::downsampling, ::downsampling, :]/scale, shape))
+        else:
+            img_tf = tf.sparse.from_dense(np.reshape(img_mat[::downsampling, ::downsampling, :], shape))
+        images_labels[img_tf] = v[labels_ind:]
+    return images_labels
+
+def repair_images(dirname, image_names:list):
+    for image_name in image_names:
+        filename = os.path.join(dirname, image_name+'.png')
+        img = Image.open(filename)
+        pixels = img.load()
+        img_mat = np.asarray(img)
+        ch = img_mat.shape[2]
+
+        for i in range(ch):
+            pixel_val = np.max(img_mat[:,:,i])
+            mat = img_mat[:,:,i]
+            args = np.argwhere(mat>0)
+            for jj in set(args[:,1]):
+                old_args_x_in_line = args[:,0][np.argwhere(args[:,1]==jj)]
+                x_min = np.min(old_args_x_in_line)
+                x_max = np.max(old_args_x_in_line)
+                new_args_in_line = itertools.product(range(x_min, x_max+1), 
+                                                    range(jj,jj+1))
+                for arg in new_args_in_line:
+                    if i==0:
+                        pixels[int(arg[1]),int(arg[0])] = (pixel_val,pixels[int(arg[1]),int(arg[0])][1])
+                    else:
+                        pixels[int(arg[1]),int(arg[0])] = (pixels[int(arg[1]),int(arg[0])][0],pixel_val)
+            for jj in set(args[:,0]):
+                old_args_y_in_line = args[:,1][np.argwhere(args[:,0]==jj)]
+                y_min = np.min(old_args_y_in_line)
+                y_max = np.max(old_args_y_in_line)
+                new_args_in_line = itertools.product(range(jj,jj+1),
+                                                    range(y_min, y_max+1))
+                for arg in new_args_in_line:
+                    if i==0:
+                        pixels[int(arg[1]),int(arg[0])] = (pixel_val,pixels[int(arg[1]),int(arg[0])][1])
+                    else:
+                        pixels[int(arg[1]),int(arg[0])] = (pixels[int(arg[1]),int(arg[0])][0],pixel_val)
+        img.save(filename)
+
+def repair_images_multi_proc(dirname, proc_num=16):
+    all_files = os.listdir(dirname)
+    txt_files = []
+    for f in all_files:
+        if 'txt' in f and 'feat' not in f:
+            txt_files.append(f)
+
+    filenames = []
+    for f in txt_files:
+        with open(os.path.join(dirname, f), 'r') as file:
+            for s in file:
+                tmp = s[:-1].split(' ')
+                filenames.append(tmp[0])
+
+    processes = []
+    num_per_proc = int(np.ceil(len(filenames)/16))
+    for i in range(proc_num):
+        proc = Process(target = repair_images, 
+                args=(dirname, filenames[num_per_proc*i:num_per_proc*(i+1)]))
+        proc.start()
+        processes.append(proc)
+
+    for proc in processes:
+        proc.join()
+
+def get_data_mp(dirname, num=100000, height=120, batch_size=50):
+    all_files = os.listdir(dirname)
+    txt_files = []
+    for f in all_files:
+        if 'txt' in f:
+            txt_files.append(f)
+
+    filenames = np.array([dict()])
+    i=0
+    num_batch = int(np.ceil(num/batch_size))
+    for _ in range(num_batch-1):
+        filenames = np.concatenate((filenames,np.array([dict()])))
+    for f in txt_files:
+        with open(os.path.join(dirname, f), 'r') as file:
+            for s in file:
+                tmp = s[:-1].split(' ')
+                ind = np.random.randint(num_batch)
+                filenames[ind][tmp[0]] = np.array(tmp[1:], dtype=np.uint8)
+                i += 1
+                if i>=num:
+                    break
+        if i>=num:
+            break
+    for k, v in filenames[0].items():
+        img_mat = np.asarray(Image.open(os.path.join(dirname, k+'.png')))
+        m,n,_ = img_mat.shape
+        print(f'input shape: {img_mat.shape}')
+        break
+
+    i = 1
+    downsampling = int(m/height)
+    m, n = int(m/downsampling), int(n/downsampling)
+    assert m==height, 'image resolution not consistent'
+    shape = tuple([1] + [m,n,2])
+    
+    pool = mps.Pool(processes=16)
+    images_labels = dict()
+    for i in range(int(np.ceil(num_batch/16))):
+        tmp = pool.starmap(read_image, zip(filenames[i*16:i*16+16],repeat(dirname),repeat(shape),repeat(downsampling)))
+        for t in tmp:
+            images_labels.update(t)
+
+    images = list(images_labels.keys())
+    labels = np.array(list(images_labels.values()))
+
+    train_data_len = int(len(images)*0.8)
+    test_data_len = int(len(images)*0.9)
+    train_images, train_labels, validate_images, validate_labels, test_images, test_labels = images[:train_data_len], labels[
+        :train_data_len], images[train_data_len:test_data_len], labels[train_data_len:test_data_len], \
+            images[test_data_len:], labels[test_data_len:]
+    return train_images, train_labels, validate_images, validate_labels, test_images, test_labels
 
 def get_render_images(dirname, num=100000, height=270):
 
@@ -213,7 +398,6 @@ def get_render_images(dirname, num=100000, height=270):
         if i >= num:
             break
         i += 1
-
     # images = np.array(images)
     train_data_len = int(len(images)*0.8)
     test_data_len = int(len(images)*0.9)
@@ -236,7 +420,6 @@ def plot_image_by_channels(images):
             plt.imshow(images[:,:,ind], cmap='gray')
             ind += 1
 
-
 def get_balance_data(X,y):
     unique_y = np.unique(y)
     min_num_y = len(np.argwhere(y==unique_y[0]))
@@ -255,11 +438,7 @@ def get_balance_data(X,y):
     tmp_X = X[args]
     tmp_y = y[args]
 
-    return tmp_X, tmp_y
-
-def filter_mat_zeros(mat):
-
-    return mat
+    return tmp_X, tmp_y, args
 
 def get_data0(dirname, num=100000, height=120):
 
@@ -354,19 +533,19 @@ def create_model(input_shape):
     # model.add(layers.BatchNormalization(axis=-1))
     # model.add(layers.Dropout(0.2))
     model.add(layers.ReLU())
-    model.add(layers.MaxPooling2D(pool_size=(5, 5)))
+    model.add(layers.MaxPooling2D(pool_size=(4, 4)))
 
     model.add(layers.Conv2D(8, (3,3),padding='same'))
     # model.add(layers.BatchNormalization(axis=-1))
     # model.add(layers.Dropout(0.2))
     model.add(layers.ReLU())
-    model.add(layers.MaxPooling2D(pool_size=(5, 5)))
+    model.add(layers.MaxPooling2D(pool_size=(4, 4)))
 
-    # model.add(layers.Conv2D(8, (3, 3),padding='same'))
-    # # model.add(layers.Dropout(0.2))
-    # # model.add(layers.BatchNormalization(axis=-1))
-    # model.add(layers.ReLU())
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+    model.add(layers.Conv2D(16, (3, 3),padding='same'))
+    # model.add(layers.Dropout(0.2))
+    # model.add(layers.BatchNormalization(axis=-1))
+    model.add(layers.ReLU())
+    model.add(layers.MaxPooling2D(pool_size=(4, 4)))
 
     # model.add(layers.Conv2D(8, (3, 3),padding='same'))
     # # model.add(layers.Dropout(0.2))
@@ -375,21 +554,98 @@ def create_model(input_shape):
     # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
 
     model.add(layers.Flatten())
-    model.add(layers.Dropout(0.2))
-    model.add(layers.Dense(100, activation='relu'))
+    # model.add(layers.Dropout(0.2))
+    model.add(layers.Dense(200, activation='relu'))
     model.add(layers.Dense(5, activation='sigmoid'))
     model.summary()
     return model
 
+def get_data_mp_obj_centered(dirname, num=100000, height=200, batch_size=50, proc_num=16):
+    all_files = os.listdir(dirname)
+    txt_files = []
+    for f in all_files:
+        if 'txt' in f and 'feat' not in f:
+            txt_files.append(f)
+
+    filenames = np.array([dict()])
+    i=0
+    num_batch = int(np.ceil(num/batch_size))
+    for _ in range(num_batch-1):
+        filenames = np.concatenate((filenames,np.array([dict()])))
+    for f in txt_files:
+        with open(os.path.join(dirname, f), 'r') as file:
+            for s in file:
+                tmp = s[:-1].split(' ')
+                ind = np.random.randint(num_batch)
+                filenames[ind][tmp[0]] = np.array(tmp[1:], dtype=float)
+                i += 1
+                if i>=num:
+                    break
+        if i>=num:
+            break
+
+    for k, v in filenames[0].items():
+        img_mat = np.asarray(Image.open(os.path.join(dirname, k+'.png')))
+        m, n, _ = img_mat.shape
+        print(f'input shape: {img_mat.shape}')
+        break
+
+    i = 1
+    downsampling = int(m/height)
+    m, n = int(m/downsampling), int(n/downsampling)
+    assert m == height, 'image resolution not consistent'
+    shape = tuple([1] + [m,n,2])
+    
+    pool = mps.Pool(processes=proc_num)
+    images_labels = dict()
+    for i in range(int(np.ceil(num_batch/proc_num))):
+        tmp = pool.starmap(read_image, zip(filenames[i*proc_num:i*proc_num+proc_num],
+                    repeat(dirname),repeat(shape),repeat(downsampling), repeat(0), repeat(1)))
+        for t in tmp:
+            images_labels.update(t)
+
+    images = list(images_labels.keys())
+    labels = np.array(list(images_labels.values()))
+
+    train_data_len = int(len(images)*0.8)
+    test_data_len = int(len(images)*0.9)
+    
+    feat_num = 3
+    features = labels[:,:feat_num]
+    labels = np.array(labels[:,feat_num:], dtype=int)
+    train_input = [images[:train_data_len],features[:train_data_len]]
+    validate_input = [images[train_data_len:test_data_len], features[train_data_len:test_data_len]]
+    test_input = [images[test_data_len:], features[test_data_len:]]
+    train_labels = labels[:train_data_len]
+    validate_labels = labels[train_data_len:test_data_len]
+    test_labels = labels[test_data_len:]
+    return train_input, train_labels, validate_input, validate_labels, test_input, test_labels
+
+def create_model_obj_centered(input_shape, filters=[4,8,16], pool_size=(2,2), feature=200):
+
+    inputs = layers.Input(shape=input_shape)
+    inputs2 = layers.Input(shape=4)
+    for i,f in enumerate(filters):
+        if i==0:
+            x = inputs
+        x = layers.Conv2D(f,(3,3),padding='same')(x)
+        x = layers.Activation('relu')(x)
+        x = layers.BatchNormalization(axis=-1)(x)
+        x = layers.MaxPooling2D(pool_size=pool_size)(x)
+
+    x = layers.concatenate([layers.Flatten()(x), inputs2])
+    x = layers.Dense(feature, activation='relu')(x)
+    x = layers.Dropout(0.2)(x)
+    x = layers.Dense(1, activation='sigmoid')(x)
+
+    model = models.Model([inputs, inputs2], x)
+    model.summary()
+    return model
+
 def train_cnn_model(train_images, train_labels, validate_images, validate_labels, test_images, test_labels):
-
     threshold = 0.5
-
     def overall_accuracy(y_true, y_pred):
-        # print(y_true.shape, type(y_true))
-        # print(y_pred.shape, type(y_pred))
         m, n = y_pred.shape
-        # int(tf.reduce_sum(tf.cast(tf.equal(tf.cast(y_pred>=threshold, dtype=tf.uint8), y_true), dtype=tf.uint8)))
         try:
             ans = int(tf.reduce_sum(tf.cast(tf.equal(tf.cast(y_pred >= threshold, dtype=tf.uint8), tf.cast(
                 y_true, dtype=tf.uint8)), dtype=tf.uint8))) / m / n
@@ -402,17 +658,62 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
     # input_shape = train_images[0].shape
     model = create_model(input_shape)
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
-        loss=tf.keras.losses.MeanSquaredError())
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss = tf.keras.losses.MeanSquaredError())
+
+    train_images, train_labels, validate_images, validate_labels, test_images,\
+    test_labels = get_data_mp('table_dirall_newrep/', 160000, 200)
 
     train_gen = CustomGen(train_images, train_labels, batch_size=100)
     valid_gen = CustomGen(validate_images, validate_labels, batch_size=100)
     test_gen = CustomGen(test_images, test_labels, batch_size=100)
     for i in range(10):
-        history = model.fit(train_gen, epochs=2, batch_size = train_gen.batch_size, validation_data=valid_gen)
+        history = model.fit(train_gen, epochs=1, batch_size = train_gen.batch_size, validation_data=valid_gen)
     # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
+        model.save(f"cnn_200_150_21945_dir4_new_rep{i*2+2}.model")
         evaluate_cnn_model(model, test_gen=test_gen, norm=True)
-        model.save(f"cnn_200_150_21945_dirall_{i*2+2}.model")
+        evaluate_cnn_model(model, test_gen=train_gen, norm=True)
+
+    train_input, train_labels, validate_input, validate_labels, test_input,\
+    test_labels = get_data_mp_obj_centered('table_3d2/', 100000, 100, 50, 16)
+
+    train_gen = CustomGen(train_input, train_labels, batch_size=100, dtype='FV_CNN')
+    valid_gen = CustomGen(validate_input, validate_labels, batch_size=100, dtype='FV_CNN')
+    test_gen = CustomGen(test_input, test_labels, batch_size=100, dtype='FV_CNN')
+
+    input_shape = tuple(np.array(train_input[0][0].shape[1:]))
+    model = create_model_obj_centered(input_shape, filters=[4,8], pool_size=(4,4), feature=100)
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+        # loss=tf.keras.losses.MeanSquaredError(),
+        metrics=[
+                #  'mean_squared_error', 
+                 'accuracy', 
+                #  tf.keras.metrics.Accuracy(name='acc'),
+                #  tf.keras.metrics.FalseNegatives(name='FN', dtype=tf.int32),
+                #  tf.keras.metrics.FalsePositives(name='FP', dtype=tf.int32),
+                 tf.keras.metrics.Precision(name='P'),
+                 tf.keras.metrics.Recall(name='R'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                #  'recall', 
+                #  'precision',
+                #  'auc'
+                #  tf.keras.metrics.AUC(num_threshold=100, curve='PR'),
+                #  tf.keras.metrics.AUC(num_threshold=100, curve='ROC')
+                 ])
+    # objected centered model
+    for i in range(10):
+        # for jj in range(train_gen.batch_num):
+        #     tmp_input, tmp_labels = train_gen.__getitem__(jj)
+        #     model.fit(tmp_input, tmp_labels,epochs=1, batch_size = train_gen.batch_size)
+        history = model.fit(train_gen, epochs=1, batch_size = train_gen.batch_size, validation_data=valid_gen)
+    # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
+        model.save(f"cnn_fv_100_100_31597_dir4_{i+1}.model")
+        # TODO
+        evaluate_cnn_model(model, test_gen=test_gen, norm=True)
+        evaluate_cnn_model(model, test_gen=train_gen, norm=True)
 
     # # The history.history["loss"] entry is a dictionary with as many values as epochs that the
     # # model was trained on.
@@ -426,21 +727,13 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
     #     xlabel='Epoch', ylabel='Loss')
     # # df_acc.plot(title='Model Accuracy',figsize=(12,8)).set(xlabel='Epoch',ylabel='Accuracy')
 
-    # test_loss, test_acc = model.evaluate(test_images,  test_labels[:,4:], verbose=2)
     return model
 
 def evaluate_cnn_model(model, test_images=None, test_labels=None, test_gen=None, threshold=0.5, norm=False):
     if test_gen is not None:
-        # test_labels_pred = test_gen.labels.copy()
-        # for i in range(test_gen.__len__()):
-        #     test_images, test_labels = test_gen.__getitem__(i)
-        #     m, n = i*test_gen.batch_size, (i+1)*test_gen.batch_size
         test_labels_pred = np.array(model.predict(test_gen) > threshold, dtype=int)
         m,n = test_labels_pred.shape
         test_labels = np.array(test_gen.labels[:m], dtype=np.uint)
-    # if norm and (not np.mean(test_images[:30])<1):
-    #     test_images = test_images / 256
-    # binary accuracy
     else:
         test_labels_pred = np.array(model.predict(test_images) > threshold, dtype=int)
         test_labels = np.array(test_labels, dtype=int)
@@ -506,7 +799,6 @@ def test_accuracy(test_y, real_y):
         res[key] = val/num_test
     return res
 
-
 def train_svm_model(train, test):
     # clf = make_pipeline(StandardScaler(), SVC(C=30000, gamma=0.1))
     clf = SVC(C=30000, gamma=0.1)
@@ -524,12 +816,10 @@ def train_svm_model(train, test):
         pickle.dump(clf, file)
     return clf
 
-
 def predict_proba(model, data_x, threshold=0.5):
     """ bigger threshold, smaller false negative
     """
     return model.predict_proba(data_x)[:, 0] < threshold
-
 
 def plot_statistic(model, data):
     """
@@ -569,6 +859,67 @@ def plot_statistic(model, data):
     plt.legend(['recall', 'precision', 'f_score'])
     plt.show()
 
+def train_tf_mlp_model():
+    def create_tf_mlp_model(input_shape, neurons=[20,20,20]):
+        """
+        create TF MLP model
+        """
+        input = layers.Input(shape=input_shape)
+
+        for i in range(len(neurons)):
+            if i==0:
+                x = tf.keras.layers.Dense(neurons[i], activation='relu')(input)
+            else:
+                x = tf.keras.layers.Dense(neurons[i], activation='relu')(x)
+        x = layers.Dense(1, activation='sigmoid')(x)
+        model = models.Model(input, x)
+        model.summary()
+        return model
+
+    def get_data_for_mlp(dirname):
+        for f in os.listdir(dirname):
+            if 'feat_vec' in f:
+                if 'dataset' not in locals():
+                    dataset = np.loadtxt(os.path.join(dirname,f))
+                else:
+                    dataset = np.concatenate((dataset,np.loadtxt(os.path.join(dirname,f))), axis=0)
+        features = dataset[:,:13]
+        labels = dataset[:,13:]
+        train_len = int(len(dataset)*0.8)
+        return features[:train_len], labels[:train_len], features[train_len:], labels[train_len:]
+
+    train_x, train_y, test_x, test_y = get_data_for_mlp('table_2d_no_height')
+    train_x_1box, test_x_1box = train_x[:,:7], test_x[:,:7]
+
+    model = create_tf_mlp_model(train_x.shape[1], neurons=[20,20,20])
+    model_1box = create_tf_mlp_model(train_x_1box.shape[1], neurons=[20,20,20])
+    model.compile(
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
+        metrics = ['accuracy', 
+                 tf.keras.metrics.Precision(name='P'),
+                 tf.keras.metrics.Recall(name='R'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                 ])
+    model_1box.compile(
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
+        metrics = ['accuracy', 
+                 tf.keras.metrics.Precision(name='P'),
+                 tf.keras.metrics.Recall(name='R'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                 ])
+
+    # objected centered model
+    epochs=4
+    for i in range(10):
+        model.fit(train_x, train_y[:,-1], epochs=epochs, batch_size = 100, validation_data=(test_x,test_y[:,-1]))
+        model_1box.fit(train_x_1box, train_y[:,4], epochs=epochs, batch_size = 100, validation_data=(test_x_1box,test_y[:,4]))
+    # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
+        model.save(f"mlp_fv_dir4_{(i+1)*epochs}.model")
+        model_1box.save(f"mlp_fv_dir4_1box{(i+1)*epochs}.model")
 
 def train_mlp_model(train, test):
     # training
@@ -597,11 +948,9 @@ def train_mlp_model(train, test):
         pickle.dump(clf_mlp, file)
     return clf_mlp
 
-
 def save_model(model):
     with open("./svm_model.pk", 'wb') as file:
         pickle.dump(model, file)
-
 
 if __name__ == "__main__":
     dataset = merge_csv()

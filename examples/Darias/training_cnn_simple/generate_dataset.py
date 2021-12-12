@@ -2,6 +2,7 @@ from random import random
 
 from PIL.Image import init
 from progress.bar import IncrementalBar
+import itertools
 
 from numpy.core.getlimits import _register_known_types
 from numpy.lib.npyio import save
@@ -18,9 +19,9 @@ import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 import numpy as np
 import matplotlib.pyplot as plt
-
+from datetime import datetime
 from PIL import Image
-EPSILON = 0.001
+EPSILON = 0.005
 max_height = 0.512
 pixel_size=0.002
 
@@ -129,16 +130,6 @@ def attach_to_robot(scn, body):
     attachment = pk.Attachment(scn.robot, scn.end_effector_link, grasp_pose, body)
     return attachment
 
-# def attach_to_robot(scn, body, lwh):
-#     # TODO body pose may not right
-#     body_pose = pu.multiply(scn.tcp_pose, ((0,0,lwh[2]/2+EPSILON),pu.quat_from_axis_angle((1,0,0),np.pi)))
-#     # body_pose = pu.multiply(body_pose, ((0,0,0),))
-#     scn.body_gripped = body
-#     pu.set_pose(body, body_pose)
-#     grasp_pose = pu.multiply(pu.invert(body_pose), scn.tcp_pose)
-#     attachment = pk.Attachment(scn.robot, scn.end_effector_link, grasp_pose, body)
-#     return attachment
-
 def attach_to_table(scn, body, lwh, lower, upper, ref=None):
     # scn.body_on_table = body
     if ref is None:
@@ -215,11 +206,8 @@ def scene_to_mat(scn, region_aabb, max_height=0.512):
     return Image.fromarray( np.concatenate((mat_targ,mat_full), axis=2))
     # return mat_full, mat_targ
 
-
 def save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, pic_name, label_name, render_image=False):
     label_name += '.txt'
-    # if np.any(isfeasible_2b):
-    #     embed()
     for i in range(len(mat_full_list)):
         pic_name_final = f"{pic_name}_{i}"
         if render_image:
@@ -229,7 +217,6 @@ def save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, pic_name, l
             pic_name_depth = f"{pic_name}_{i}_depth.png"
             im_gray.save(pic_name_gray)
             im_depth.save(pic_name_depth)
-
         else:
             im = Image.fromarray( np.concatenate((mat_targ,mat_full_list[i]), axis=2))
             im.save(pic_name_final + ".png")
@@ -285,6 +272,10 @@ def get_render_image():
     return image
 
 def sample_training_data():
+    """
+    sampling training data
+    generate image of fixed area
+    """
     connect(use_gui=visualization)
     scn = TrainingScenario()
     aabb_table = pu.get_aabb(scn.table)
@@ -301,7 +292,7 @@ def sample_training_data():
     # pu.draw_pose(robot_pose)
 
     if region_ind==0:
-        region_str = 'table_render'
+        region_str = 'table_dirall_newrep'
     else:
         region_str = 'shelf'
     filename = f'{region_str}/' + str(uuid.uuid1())
@@ -323,8 +314,8 @@ def sample_training_data():
         lwh1, scn.body_gripped = random_box(scn)
         xy1, pose1 = attach_to_table(scn, scn.body_gripped, lwh1, lower, upper)
         # pu.set_pose(scn.body_gripped, ((0.375, 0.9, 0.056012659751127014), (0.0, 0.0, 0.0, 1.0)))
-        # mat_targ = png_mat(scn.body_gripped, mat_init, lower, upper)
-        mat_targ =  get_render_image()
+        mat_targ = png_mat(scn.body_gripped, mat_init, lower, upper)
+        # mat_targ =  get_render_image()
 
         saved_world = WorldSaver()
         isfeasible_1b = np.zeros(len(grasp_directions), dtype=np.uint8)
@@ -352,8 +343,8 @@ def sample_training_data():
                 saved_world.restore()
                 pu.set_pose(scn.body_on_table, pose_list[jj])
                 if len(mat_full_list)<num_2b:
-                    # mat_full = png_mat(scn.body_on_table, mat_targ, lower, upper)
-                    mat_full = get_render_image()
+                    mat_full = png_mat(scn.body_on_table, mat_init, lower, upper)
+                    # mat_full = get_render_image()
                     mat_full_list.append(mat_full)
                 isfeasible_2b[jj, dir_ind] = isfeasible_1b[dir_ind] and int(check_feasibility(scn, target_pose))
                 # if dir_ind==4 and not isfeasible_2b[jj,dir_ind]:
@@ -362,10 +353,222 @@ def sample_training_data():
         # print(f'\n1b feasible:{isfeasible_1b}')
         # print(f'2b feasible:{isfeasible_2b}')
         if not debug:
-            save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, filename+'_'+str(i).zfill(4), filename, render_image=True)
+            save_data(mat_targ, mat_full_list, isfeasible_1b, isfeasible_2b, filename+'_'+str(i).zfill(4), filename, render_image=False)
         # save_dataset(filename_2b, dataset_2b)
         # save_dataset(filename_1b, dataset_1b)
     bar.finish()
+
+def get_body_size_pos_aabb(body):
+    aabb = pu.get_aabb(body)
+    return pu.get_aabb_extent(aabb), pu.get_point(body), aabb
+
+def sample_training_data_obj_centered():
+    """
+    sampling training data
+    generate image of fixed area
+    """
+    img_shape = (400,400)
+    pixel_size = 0.4/img_shape[0]
+    subregions = [((-0.6,0.4),(0.7,1.1)),
+                    ((0.2,-0.4),(0.7,0.4)),
+                    ((-0.2,-1.0),(0.7,-0.4))]
+    regions = np.array(subregions)
+    tmp = regions[:,1]-regions[:,0]
+    area = tmp[:,0]*tmp[:,1]
+    prob_area = area/np.sum(area)
+    def random_xy():
+        while True:
+            i = np.random.randint(len(subregions))
+            if prob_area[i]>=np.random.rand(1)[0]:
+                break
+        lower,upper = subregions[i]
+        xy = np.random.uniform(lower, upper)
+        # pu.draw_point((xy[0],xy[1],0.1))
+        return xy
+
+    def random_targ_box_loc(body):
+        l,u = pu.get_aabb(body)
+        tl,tu=aabb_table
+
+        xy = random_xy()
+        # table_z = np.random.uniform(-0.15,0.95)
+        table_z = 0.0055
+        box_z = table_z + (u[2]-l[2]+tu[2]-tl[2])/2 + EPSILON
+        # box_z = np.random.uniform(-0.1,1)
+        xyz = (xy[0],xy[1],box_z)
+        dir = np.random.uniform(0,0)
+
+        body_pose = (xyz, pu.quat_from_euler((0,0,dir)))
+        pu.set_pose(body, body_pose)
+        table_pose = (tuple(np.array(xyz)-np.array([0,0,u[2]-l[2]+tu[2]-tl[2]])/2-EPSILON), (0,0,0,1))
+        pu.set_pose(scn.table, table_pose)
+        return xyz, dir, body_pose
+
+    def random_neigbor_box(body, region):
+        region_size, region_pos, region_aabb = get_body_size_pos_aabb(region)
+        xy = list(np.random.uniform(region_aabb[0][:2], region_aabb[1][:2]))
+        dir = np.random.uniform(0, 0)
+        body_size, body_pos, body_aabb = get_body_size_pos_aabb(body)
+        z=region_pos[2]+region_size[2]/2+body_size[2]/2+EPSILON
+        xyz = (xy[0],xy[1],z)
+        body_pose = (xyz,pu.quat_from_euler((0,0,dir)))
+        return xyz, dir, body_pose
+
+    def get_non_zero_pixel_args_old(xmin,xmax,ymin,ymax, dir):
+        args = np.array(tuple(itertools.product(range(xmin, xmax), range(ymin,ymax))))
+        mid_arg = np.array([(xmin+xmax)/2, (ymin+ymax)/2])
+        args = args - mid_arg
+        # rotate matrix
+        args_rot = np.array([[np.cos(dir),-np.sin(dir)],
+                             [np.sin(dir),np.cos(dir)]]) @ args.T
+        # delete point out of bound [0,199]
+        args_rot = np.clip(np.array(np.round(args_rot.T + mid_arg), dtype=int), 0, img_shape[0]-1)
+        return args_rot
+
+    def get_args_inside_bounds(args_rot:list):
+
+        args = []
+        for args1 in args_rot[:2]:
+            for args2 in args_rot[2:]:
+                for a1 in args1:
+                    for a2 in args2:
+                        if a1[1]==a2[1]:
+                            args.extend(list(np.array(tuple(itertools.product(range(a1[0],a2[0]+1),range(a1[1],a1[1]+1))))))
+        return np.array(args)
+
+    def get_non_zero_pixel_args_new(xmin,xmax,ymin,ymax,dir):
+        mid_arg = np.array([(xmin+xmax)/2, (ymin+ymax)/2])
+        args_left = np.array(tuple(itertools.product(range(xmin,xmin+1), range(ymin+1,ymax+1)))) 
+        args_right = np.array(tuple(itertools.product(range(xmax,xmax+1), range(ymin,ymax)))) 
+        args_top = np.array(tuple(itertools.product(range(xmin+1,xmax+1), range(ymax,ymax+1)))) 
+        args_bottom = np.array(tuple(itertools.product(range(xmin,xmax), range(ymin,ymin+1)))) 
+        args = [args_left, args_top, args_right, args_bottom]
+        # rotate matrix
+        rot_matrix = np.array([[np.cos(dir),-np.sin(dir)],
+                             [np.sin(dir),np.cos(dir)]])
+        args_rot = []
+        for i in range(4):
+            args[i] = args[i]-mid_arg
+            args_rot.append(np.array((rot_matrix @ args[i].T).T, dtype=int))
+        args_rot = get_args_inside_bounds(args_rot)
+
+        # delete point out of bound [0,199]
+        args_rot = np.clip(np.array(args_rot + mid_arg, dtype=int), 0, img_shape[0]-1)
+        return args_rot
+
+    def png_mat_object_centered(body, xyz, dir, body_ref = None):
+        xyz = np.array(xyz)
+        
+        mat_targ = np.zeros(img_shape, dtype=np.uint8)
+        
+        h = np.abs(int(xyz[2]*256/max_height))
+        x_len, y_len = np.array((xyz[:2]/pixel_size/2)[:2])
+        mid_arg = (img_shape[0]-1)/2
+
+        if body_ref is None:
+            xmin,xmax,ymin,ymax = np.array([mid_arg-x_len,mid_arg+x_len,
+                                            mid_arg-y_len,mid_arg+y_len], dtype=int)
+        else:
+            body_center = np.array(pu.get_point(body))
+            center = np.array(pu.get_point(body_ref))
+            x0, y0 = np.array(((body_center-center)/pixel_size)[:2])
+            xmin,xmax,ymin,ymax = np.array(np.round([mid_arg+x0-x_len, mid_arg+x0+x_len, 
+                                        mid_arg+y0-y_len, mid_arg+y0+y_len]), dtype=int)
+            xmin,xmax,ymin,ymax = tuple(np.clip([xmin,xmax,ymin,ymax], 0, img_shape[0]-1))
+        
+        args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax,dir)
+        mat_targ[args_rot[:,0],args_rot[:,1]] = h
+
+        downsampling=int(mat_targ.shape[0]/200)
+        mat_targ = mat_targ[::downsampling,::downsampling]
+
+        assert mat_targ.shape==(200,200)
+        return mat_targ.reshape((200,200,1))
+
+    connect(use_gui=visualization)
+    scn = TrainingScenario_obj_centered()
+    aabb_table = pu.get_aabb(scn.table)
+    global grasp_directions
+    grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1)}
+
+    (robot_position, _) = pu.get_link_pose(scn.robot, 0)
+    robot_pose = (robot_position, (0,0,0,1))
+
+    if region_ind==0:
+        region_str = 'table_2d_no_height_no_dir'
+    else:
+        region_str = 'shelf'
+    if not os.path.exists(region_str):
+        os.mkdir(region_str)
+    else:
+        print(f'{region_str} already exists')
+    print(f"will save data into: {region_str}")   
+    filename = f'{region_str}/' + str(uuid.uuid1())
+    # filename_1b = f'./{region_str}_1b/' + str(uuid.uuid1()) + '.csv'
+    t0 = time.time()
+    bar = IncrementalBar('Countdown', max = max_sim)
+    for hhhhhhhhhh in range(max_sim):
+        bar.next()
+        pu.remove_body(scn.body_on_table)
+        lwh2, scn.body_on_table = random_box(scn)
+
+        pu.remove_body(scn.body_gripped)
+        lwh1, scn.body_gripped = random_box(scn)
+        
+        xyz1, dir1, pose1 = random_targ_box_loc(scn.body_gripped)
+        mat_targ = png_mat_object_centered(scn.body_gripped, lwh1,dir1)
+        saved_world = WorldSaver()
+        isfeasible_1b = np.zeros(len(grasp_directions), dtype=np.uint8)
+
+        pose_list = []
+        dir_list = []
+        mat_full_list = []
+        num_2b = 2
+        isfeasible_2b = np.zeros((num_2b, len(grasp_directions)),dtype=np.uint8)
+        for dir_ind, grsp_dir in grasp_directions.items():
+            # if not dir_ind == 4:
+            #     continue
+            saved_world.restore()
+            pu.set_pose(scn.body_on_table, ((2,2,2),(0,0,0,1)))
+            extend = pu.get_aabb_extent(pu.get_aabb(scn.body_gripped))
+            target_pose = target_pose_vs_grsp_dir(pose1, grsp_dir, np.array(extend))
+            # pu.draw_pose(target_pose)
+
+            # print(target_pose)
+            isfeasible_1b[dir_ind] = int(check_feasibility(scn, target_pose))
+
+            for jj in range(num_2b):
+                xyz2, dir2, pose2 = random_neigbor_box(scn.body_on_table, scn.table)
+                pose_list.append(pose2)
+                dir_list.append(dir2)
+
+            for jj in range(num_2b):
+                saved_world.restore()
+                pu.set_pose(scn.body_on_table, pose_list[jj])
+                if len(mat_full_list)<num_2b:
+                    mat_full = png_mat_object_centered(scn.body_on_table, lwh2, dir_list[jj], scn.body_gripped)
+                    mat_full_list.append(mat_full)
+                isfeasible_2b[jj, dir_ind] = isfeasible_1b[dir_ind] and int(check_feasibility(scn, target_pose))
+        lower, upper = pu.get_aabb(scn.body_gripped)
+        d1_vector = list(np.round(xyz1[:2],4)) + [np.round(lower[2],4)] +list(isfeasible_1b)
+
+        if not debug:
+            for i in range(num_2b):
+                tmp = list(np.round(list(lwh1) + list(xyz1) + [dir1] + \
+                        list(lwh2) + list(xyz2[:2]) + [dir_list[i]],3)) +\
+                        list(isfeasible_1b) + list(isfeasible_2b[i])
+                tmp = list(np.array(tmp, dtype=str))
+                string = ' '.join(tmp)
+                with open(f'{filename}_feat_vec.txt','a') as f:
+                    f.write(string)
+                    f.write('\n')
+
+            save_data(mat_targ, mat_full_list, d1_vector, isfeasible_2b, 
+                        filename+'_'+str(hhhhhhhhhh).zfill(5), filename, render_image=False)
+
+
+    bar.finish()
+    print(f"duration: {time.time()-t0}")
 
 if __name__=='__main__':
     """ usage
@@ -377,11 +580,11 @@ if __name__=='__main__':
     max_sim = int(sys.argv[4])
     debug = int(sys.argv[5])
     # print(f"number of processes: {num_process}")
-    assert num_process<=9, "CPU overworked"
+    assert num_process<=16, "CPU overworked"
     if debug:
-        sample_training_data()
+        sample_training_data_obj_centered()
     processes = []
+    print(f"start time: {datetime.now()}")
     for _ in range(num_process):
-        processes.append(Process(target=sample_training_data, args=()))
+        processes.append(Process(target=sample_training_data_obj_centered, args=()))
         processes[-1].start()
-        # processes[-1].join()
