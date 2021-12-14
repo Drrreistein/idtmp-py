@@ -278,7 +278,8 @@ class FeasibilityChecker_MLP(FeasibilityChecker):
     def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
         self.call_times += 1
         feature_vectors = self._get_feature_vector(target_body, target_pose)
-        probs=[]
+        embed()
+        probs = []
         for i in range(len(feature_vectors)):
             if len(feature_vectors[i]) == self.model.input_shape[1]:
                 prob = self.model.predict(feature_vectors[i:i+1])[0,0]
@@ -293,7 +294,6 @@ class FeasibilityChecker_MLP(FeasibilityChecker):
 
         is_feasible = np.all(labels)
         print(f"body: {self.scn.bd_body[target_body]}, dir: {grsp_dir}, feas: {is_feasible}")
-        embed()
 
         if is_feasible:
             self.feasible_call += 1
@@ -426,8 +426,8 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         mid_arg = (img_shape[0]-1)/2
 
         if body_ref is None:
-            xmin,xmax,ymin,ymax = np.array([mid_arg-x_len,mid_arg+x_len,
-                                            mid_arg-y_len,mid_arg+y_len], dtype=int)
+            xmin,xmax,ymin,ymax = np.array([mid_arg - x_len, mid_arg + x_len,
+                                            mid_arg - y_len, mid_arg + y_len], dtype=int)
         else:
             body_center = np.array(pu.get_point(body))
             center = np.array(pu.get_point(body_ref))
@@ -444,9 +444,11 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         #                      [np.sin(dir),np.cos(dir)]]) @ args.T
         # # delete point out of bound [0,199]
         # args_rot = np.clip(np.array(np.round(args_rot.T + mid_arg), dtype=int), 0, img_shape[0]-1)
-        args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax,dir)
-
-        mat_targ[args_rot[:,0],args_rot[:,1]] = h
+        if (xmin<=0 and xmax<=0) or (ymin<=0 and ymax<=0) or (xmin>=399 and xmax>=399) or (ymin>=399 and ymax>=399):
+            pass
+        else:
+            args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax, dir)
+            mat_targ[args_rot[:,0],args_rot[:,1]] = h
         # downsampling=int(mat_targ.shape[0]/img_shape[0])
         downsampling = int(img_shape[0]/100)
         mat_targ = mat_targ[::downsampling,::downsampling]/256
@@ -497,7 +499,7 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             # learned model using image with fixed size
             image = self._get_images(target_body, target_pose)
             prob = np.round(self.model.predict(image),3)
-        labels = prob>=0.5
+        labels = prob>=0.2
         self.display_images(image, prob)
         is_feasible = labels[:,-1]
         print(f"body: {target_body}, dir: {grsp_dir}, feas: {is_feasible}")

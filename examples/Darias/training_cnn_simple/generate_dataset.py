@@ -69,21 +69,16 @@ def save_dataset(filename, dataset):
 def check_feasibility(scn, goal_pose):
     obstacles = list(set(scn.all_bodies))
 
-    # pu.draw_pose(goal_pose)
     start_joints = pu.get_joint_positions(scn.robot, scn.movable_joints)
     init_body_pose = pu.get_pose(scn.body_gripped)
     for _ in range(10):
         goal_joints = pu.inverse_kinematics_random(scn.robot, scn.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=True, 
         disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=[], max_distance=pk.MAX_DISTANCE)
         if goal_joints is None:
-            # print(f"found no ik")
             continue
-            # pu.set_joint_positions(scn.robot, scn.movable_joints, start_joints)
-            # return False
 
         pu.set_joint_positions(scn.robot, scn.movable_joints, start_joints)
         pu.set_pose(scn.body_gripped,init_body_pose)
-        # return True
 
         pu.set_joint_positions(scn.robot, scn.movable_joints, goal_joints)
 
@@ -148,12 +143,17 @@ def attach_to_table(scn, body, lwh, lower, upper, ref=None):
 def target_pose_vs_grsp_dir(center_pose, grsp_dir, extend):
     center_point, rotation = center_pose
 
-    offset = np.array(grsp_dir, dtype=int) * (extend/2+np.array([EPSILON,EPSILON,EPSILON]))
+    offset = np.array(grsp_dir, dtype=int) * (extend/2 + np.array([EPSILON,EPSILON,EPSILON]))
     goal_point = tuple(np.array(center_point) + offset)
+    # angle_by_axis = np.array(grsp_dir, dtype=int) * np.pi/2
 
-    angle_by_axis = np.array(grsp_dir, dtype=int) * np.pi/2
+    if grsp_dir[2]==0:
+        goal_rot = pu.multiply_quats(rotation, 
+                # pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0))
+                pu.quat_from_axis_angle((-grsp_dir[1], grsp_dir[0], 0), np.pi/2))
+    else:
+        goal_rot = rotation
 
-    goal_rot = pu.multiply_quats(rotation, pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0)))
     goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
     target_pose = pu.Pose(goal_point, pu.euler_from_quat(goal_rot))
     # pu.draw_pose(target_pose)
@@ -391,8 +391,8 @@ def sample_training_data_obj_centered():
         tl,tu=aabb_table
 
         xy = random_xy()
-        # table_z = np.random.uniform(-0.15,0.95)
-        table_z = 0.0055
+        table_z = np.random.uniform(-0.15,0.95)
+        # table_z = 0.0055
         box_z = table_z + (u[2]-l[2]+tu[2]-tl[2])/2 + EPSILON
         # box_z = np.random.uniform(-0.1,1)
         xyz = (xy[0],xy[1],box_z)
@@ -495,7 +495,7 @@ def sample_training_data_obj_centered():
     robot_pose = (robot_position, (0,0,0,1))
 
     if region_ind==0:
-        region_str = 'table_2d_no_height_no_dir'
+        region_str = 'table_3d_all_dir_no_rotZ'
     else:
         region_str = 'shelf'
     if not os.path.exists(region_str):
@@ -532,8 +532,8 @@ def sample_training_data_obj_centered():
             pu.set_pose(scn.body_on_table, ((2,2,2),(0,0,0,1)))
             extend = pu.get_aabb_extent(pu.get_aabb(scn.body_gripped))
             target_pose = target_pose_vs_grsp_dir(pose1, grsp_dir, np.array(extend))
-            # pu.draw_pose(target_pose)
-
+            # pu.draw_pose(target_pose)   
+            # embed()
             # print(target_pose)
             isfeasible_1b[dir_ind] = int(check_feasibility(scn, target_pose))
 
@@ -549,23 +549,25 @@ def sample_training_data_obj_centered():
                     mat_full = png_mat_object_centered(scn.body_on_table, lwh2, dir_list[jj], scn.body_gripped)
                     mat_full_list.append(mat_full)
                 isfeasible_2b[jj, dir_ind] = isfeasible_1b[dir_ind] and int(check_feasibility(scn, target_pose))
+                # print(f"feas: {isfeasible_1b[dir_ind]} {isfeasible_2b[jj, dir_ind]}")
+                # embed()
+
         lower, upper = pu.get_aabb(scn.body_gripped)
         d1_vector = list(np.round(xyz1[:2],4)) + [np.round(lower[2],4)] +list(isfeasible_1b)
 
-        if not debug:
-            for i in range(num_2b):
-                tmp = list(np.round(list(lwh1) + list(xyz1) + [dir1] + \
-                        list(lwh2) + list(xyz2[:2]) + [dir_list[i]],3)) +\
-                        list(isfeasible_1b) + list(isfeasible_2b[i])
-                tmp = list(np.array(tmp, dtype=str))
-                string = ' '.join(tmp)
-                with open(f'{filename}_feat_vec.txt','a') as f:
-                    f.write(string)
-                    f.write('\n')
+        # if not debug:
+        for i in range(num_2b):
+            tmp = list(np.round(list(lwh1) + list(xyz1) + [dir1] + \
+                    list(lwh2) + list(xyz2[:2]) + [dir_list[i]],3)) +\
+                    list(isfeasible_1b) + list(isfeasible_2b[i])
+            tmp = list(np.array(tmp, dtype=str))
+            string = ' '.join(tmp)
+            with open(f'{filename}_feat_vec.txt','a') as f:
+                f.write(string)
+                f.write('\n')
 
-            save_data(mat_targ, mat_full_list, d1_vector, isfeasible_2b, 
-                        filename+'_'+str(hhhhhhhhhh).zfill(5), filename, render_image=False)
-
+        save_data(mat_targ, mat_full_list, d1_vector, isfeasible_2b, 
+                    filename+'_'+str(hhhhhhhhhh).zfill(5), filename, render_image=False)
 
     bar.finish()
     print(f"duration: {time.time()-t0}")
@@ -579,7 +581,6 @@ if __name__=='__main__':
     region_ind = int(sys.argv[3])
     max_sim = int(sys.argv[4])
     debug = int(sys.argv[5])
-    # print(f"number of processes: {num_process}")
     assert num_process<=16, "CPU overworked"
     if debug:
         sample_training_data_obj_centered()

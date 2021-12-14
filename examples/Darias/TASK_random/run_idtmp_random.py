@@ -1,3 +1,5 @@
+
+from random import choice
 from IPython import embed
 import os, sys, time, re
 from multiprocessing import Process
@@ -16,11 +18,10 @@ import pybullet as p
 from pddl_parse.PDDL import PDDL_Parser
 import pybullet_tools.utils as pu
 import pybullet_tools.kuka_primitives3 as pk
-from build_scenario import PlanningScenario
+from build_scenario import *
 from task_planner import TaskPlanner
 from plan_cache import PlanCache
-from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN
-
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN, FeasibilityChecker_MLP
 from logging_utils import *
 logging.setLoggerClass(ColoredLogger)
 logger = logging.getLogger('MAIN')
@@ -54,12 +55,12 @@ class DomainSemantics(object):
             tcp_pose = pu.get_link_pose(self.robot, self.end_effector_link)
             grasp_pose = pu.multiply(pu.invert(tcp_pose), body_pose)
             grasp = pk.BodyGrasp(body, grasp_pose, self.approach_pose, self.robot, attach_link=self.end_effector_link)
-            obstacles = list(set(self.scn.all_bodies) - {body})
+            obstacles = list(set(self.scn.all_bodies) - {body} - {self.robot})
             attachment = [grasp.attachment()]
         else:
-            obstacles = self.scn.all_bodies
+            obstacles = list(set(self.scn.all_bodies) - {self.robot})
             attachment = []
-
+        
         # pu.draw_pose(goal_pose)
         # goal_joints = pk.inverse_kinematics(self.robot, self.end_effector_link, goal_pose)
         goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=self.self_collision, 
@@ -138,7 +139,7 @@ class PDDLProblem(object):
         self.objects = self._gen_scene_objects()
         self._goal_state()
         self._init_state()
-        self._plot_locations(self.objects['location'])
+        # self._plot_locations(self.objects['location'])
         self._real_goal_state()
 
     def _plot_locations(self, locations):
@@ -181,21 +182,23 @@ class PDDLProblem(object):
     def _goal_state(self):
         self.goal = []
         self.goal.append(['handempty'])
-        ontable = ['ontable','c1','region2__0__0']
-
-        self.goal.append(ontable)
+        for region, bodies in self.scn.goal.items():
+            for body in bodies:
+                self.goal.append(['ontable',body,f'{region}__0__0'])
 
     def _real_goal_state(self):
         self.real_goal = []
         self.real_goal.append(['handempty'])
 
-        ontable = ['or']
-        for loc in self.objects['location']:
-            if 'region2' in loc:
-                ontable.append(['ontable','c1',loc])
+        for region, bodies in self.scn.goal.items():
+            for body in bodies:
+                ontable = ['or']
+                # self.goal.append(['ontable',body,f'{region}__0__0'])
+                for loc in self.objects['location']:
+                    if region in loc:
+                        ontable.append(['ontable',body,loc])
+                self.real_goal.append(ontable)
 
-        self.real_goal.append(ontable)
-        
     def _gen_scene_objects(self):
         scene_objects = dict()
 
@@ -221,10 +224,13 @@ class PDDLProblem(object):
         return scene_objects
 
     def update_goal_in_formula(self, encoder, formula):
-        disconj = []
-        for k,v in encoder.boolean_variables[encoder.horizon].items():
-            if 'ontable_c1_region2' in k:
-                disconj.append(v)
+        
+        for region, bodies in self.scn.goal.items():
+            for body in bodies:
+                disconj = []
+                for k,v in encoder.boolean_variables[encoder.horizon].items():
+                    if f'ontable_{body}_{region}' in k:
+                        disconj.append(v)
 
         conj = []
         conj.append(z3.Or(disconj))
@@ -308,8 +314,9 @@ def check_feasibility(feasibility_checker, scn, t_plan):
         else:
             print("unknown operator: feasible by default")
             continue
-        if region=='region_drawer':
+        if region == 'region_drawer':
             region = 'region_table'
+        print(f"checking feasibility: {step}: {operator}")
         is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir=4)
 
         if not is_feasible:
@@ -356,192 +363,6 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None):
         feasibility_checker.fc_statistic(res)
     return res, m_plan, failed_step
 
-def simulation(visualization=1):
-
-    # visualization = True
-    pu.connect(use_gui=visualization)
-    scn = PlanningScenario()
-    
-    parser = PDDL_Parser()
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
-    
-    parser.parse_domain(domain_filename)
-    domain_name = parser.domain_name
-    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
-    problem = PDDLProblem(scn, parser.domain_name)
-    parser.dump_problem(problem, problem_filename)
-
-    domain_semantics = UnpackDomainSemantics(scn)
-    domain_semantics.activate()
-    path_cache = PlanCache()
-
-    # IDTMP
-    task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
-    motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
-
-    task_planning_timer.start()
-    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
-    tp.incremental()
-    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-    tp.formula['goal'] = goal_constraints
-    tp.modeling()
-
-    task_planning_timer.stop()
-
-    tm_plan = None
-    t00 = time.time()
-    while tm_plan is None:
-        # ------------------- task plan ---------------------
-        t_plan = None
-        task_planning_timer.start()
-        while t_plan is None:
-            t_plan = tp.search_plan()
-            if t_plan is None:
-                logger.warning(f"task plan not found in horizon: {tp.horizon}")
-                print(f'')
-                tp.incremental()
-                goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-                tp.formula['goal'] = goal_constraints
-                tp.modeling()
-                logger.info(f"search task plan in horizon: {tp.horizon}")
-                global MOTION_ITERATION
-                MOTION_ITERATION += 10
-        task_planning_timer.stop()
-
-        logger.info(f"task plan found, in horizon: {tp.horizon}")
-        for h,p in t_plan.items():
-            logger.info(f"{h}: {p}")
-
-        # ------------------- motion plan ---------------------
-        motion_refiner_timer.start()
-        depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
-        if depth>=0:
-            t_plan_to_validate = deepcopy(t_plan)
-            for _ in range(depth+1):
-                t_plan_to_validate.pop(min(t_plan_to_validate.keys()))
-            print('found plan prefixed')
-            logger.info(f'found plan prefixed')
-            SetState(scn, t_plan, prefix_m_plans)
-            res, post_m_plan, failed_step = tm.motion_refiner(t_plan_to_validate)
-            m_plan = prefix_m_plans + post_m_plan
-        else:
-            res, m_plan, failed_step = tm.motion_refiner(t_plan)
-        motion_refiner_timer.stop()
-        scn.reset()
-        if res:
-            logger.info(f"task and motion plan found")
-            break
-        else:
-            path_cache.add_feasible_motion(list(t_plan.values()), m_plan)   
-            logger.warning(f"motion refine failed")
-            logger.info(f'')
-            task_planning_timer.start()
-            tp.add_constraint(failed_step, typ='general', cumulative=False)
-            task_planning_timer.stop()
-            t_plan = None
-
-    all_timers = task_planning_timer.timers
-    print(all_timers)
-    total_time = time.time()-t00
-    print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-    print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-    print(f"total_planning_time {total_time}")
-    print(f"final_visits {tp.counter}")
-    os.system('spd-say -t female2 "hi lei simulation done"')
-
-    while True:
-        ExecutePlanNaive(scn, t_plan, m_plan)
-        scn.reset()
-        time.sleep(1)
-
-    pu.disconnect()
-
-def multi_sims(visualization=1):
-
-    # visualization = True
-    pu.connect(use_gui=visualization)
-    scn = PlanningScenario()
-    
-    parser = PDDL_Parser()
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    domain_filename = os.path.join(dirname, 'domain_idtmp_unpack.pddl')
-    
-    parser.parse_domain(domain_filename)
-    domain_name = parser.domain_name
-    problem_filename = os.path.join(dirname, 'problem_idtmp_'+domain_name+'.pddl')
-    problem = PDDLProblem(scn, parser.domain_name)
-    parser.dump_problem(problem, problem_filename)
-
-    domain_semantics = UnpackDomainSemantics(scn)
-    domain_semantics.activate()
-
-    # IDTMP
-    i=0
-    while i<10:
-        i+=1
-        task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
-        motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
-
-        task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=1, max_horizon=10)
-        tp.incremental()
-        goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-        tp.formula['goal'] = goal_constraints
-        tp.modeling()
-
-        task_planning_timer.stop()
-
-        tm_plan = None
-        t00 = time.time()
-        while tm_plan is None:
-            # ------------------- task plan ---------------------
-            t_plan = None
-            task_planning_timer.start()
-            while t_plan is None:
-                t_plan = tp.search_plan()
-                if t_plan is None:
-                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
-                    print(f'')
-                    tp.incremental()
-                    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-                    tp.formula['goal'] = goal_constraints
-                    tp.modeling()
-                    logger.info(f"search task plan in horizon: {tp.horizon}")
-                    global MOTION_ITERATION
-                    MOTION_ITERATION += 10
-            task_planning_timer.stop()
-
-            logger.info(f"task plan found, in horizon: {tp.horizon}")
-            for h,t in t_plan.items():
-                logger.info(f"{h}: {t}")
-
-            # ------------------- motion plan ---------------------
-            motion_refiner_timer.start()
-            res, m_plan = tm.motion_refiner(t_plan)
-            motion_refiner_timer.stop()
-            scn.reset()
-            if res:
-                logger.info(f"task and motion plan found")
-                break
-            else: 
-                logger.warning(f"motion refine failed")
-                logger.info(f'')
-                task_planning_timer.start()
-                tp.add_constraint(m_plan, typ='general', cumulative=False)
-                task_planning_timer.stop()
-                t_plan = None
-
-        all_timers = task_planning_timer.timers
-        print(all_timers)
-        total_time = time.time()-t00
-        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-        print(f"total_planning_time {total_time}")
-        print(f"final_visits {tp.counter}")
-
-    pu.disconnect()
-
 def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 490]):
     def execute_output(filename):
         pu.connect(use_gui=1, options=f'--width={win_size[0]} --height={win_size[1]}')
@@ -567,8 +388,24 @@ def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 490]):
 
 def multi_sims_path_cache(visualization=0):
     # visualization = True
+
     pu.connect(use_gui=visualization)
-    scn = PlanningScenario()
+    if not args_global.load_scene:
+        scn = Scene_random()
+    else:
+        scn = Scene_random(json_file=args_global.load_scene)
+        saved_world = WorldSaver()
+        t_plan = scn.scene['tm_plan']['t_plan']
+        m_plan = scn.scene['tm_plan']['m_plan']
+        if  t_plan=='None':
+            print(f"no task and motion plan available")
+            embed()
+        else:
+            while True:
+                ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)
+                time.sleep(1)
+                saved_world.restore()
+
     saved_world = WorldSaver()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
@@ -580,96 +417,103 @@ def multi_sims_path_cache(visualization=0):
     parser.dump_problem(problem, problem_filename)
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
+
     if feasible_check==1:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file=model_file)
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_200_150_21945_dirall_28.model')
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file=model_file, obj_centered_img=True)
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
+    elif feasible_check==3:
+        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
+                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
+                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
     else:
         feasible_checker = None
-    
-    # print(' ############################# ')
-    # print(f"{pu.get_pose(8)} {pu.get_pose(9)} {pu.get_pose(10)}")
-    # embed()
-    # IDTMP
+
     i=0
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
 
-    while i<max_sim:
-        path_cache = PlanCache()
-        task_planning_timer.reset()
-        motion_refiner_timer.reset()
-        total_planning_timer.reset()
-        i+=1
-        
-        total_planning_timer.start()
+
+
+    ########################################### tm planning ##############################
+    path_cache = PlanCache()
+    task_planning_timer.reset()
+    motion_refiner_timer.reset()
+    total_planning_timer.reset()
+    i+=1
+
+    total_planning_timer.start()
+    task_planning_timer.start()
+    tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
+    tp.incremental()
+    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+    tp.formula['goal'] = goal_constraints
+    tp.modeling()
+    task_planning_timer.stop()
+
+    t0 = time.time()
+    while time.time()-t0<1000:
+        # ------------------- task plan ---------------------
+        t_plan = None
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
-        tp.incremental()
-        goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-        tp.formula['goal'] = goal_constraints
-        tp.modeling()
+        while t_plan is None:
+            t_plan = tp.search_plan()
+            if t_plan is None:
+                logger.warning(f"task plan not found in horizon: {tp.horizon}")
+                print(f'')
+                if not tp.incremental():
+                    print(f"exceed maximal task plan horizon: {tp.max_horizon}")
+                    break
+                goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
+                tp.formula['goal'] = goal_constraints
+                tp.modeling()
+                logger.info(f"search task plan in horizon: {tp.horizon}")
+                global MOTION_ITERATION
+                MOTION_ITERATION += 10
         task_planning_timer.stop()
+        if tp.horizon>tp.max_horizon:
+            break
+        logger.info(f"task plan found, in horizon: {tp.horizon}")
+        for h,t in t_plan.items():
+            print(f"{h}: {t}")
 
-        t0 = time.time()
-        while time.time()-t0<1000:
-            # ------------------- task plan ---------------------
-            t_plan = None
-            task_planning_timer.start()
-            while t_plan is None:
-                t_plan = tp.search_plan()
-                if t_plan is None:
-                    logger.warning(f"task plan not found in horizon: {tp.horizon}")
-                    print(f'')
-                    if not tp.incremental():
-                        print(f"exceed maximal task plan horizon: {tp.max_horizon}")
-                        break
-                    goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
-                    tp.formula['goal'] = goal_constraints
-                    tp.modeling()
-                    logger.info(f"search task plan in horizon: {tp.horizon}")
-                    global MOTION_ITERATION
-                    MOTION_ITERATION += 10
-            task_planning_timer.stop()
-            if tp.horizon>tp.max_horizon:
-                break
-            logger.info(f"task plan found, in horizon: {tp.horizon}")
-            for h,t in t_plan.items():
-                print(f"{h}: {t}")
-
-            # ------------------- motion plan ---------------------
-            motion_refiner_timer.start()
-            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
-            motion_refiner_timer.stop()
-            scn.reset()
-            if res:
-                logger.info(f"task and motion plan found")
-                break
-            else:
-                logger.warning(f"motion refine failed")
-                logger.info(f'')
-                task_planning_timer.start()
-                tp.add_constraint(failed_step, typ='general', cumulative=False)
-                task_planning_timer.stop()
-                t_plan = None
-
-        total_planning_timer.stop()
-        if tp.horizon <= tp.max_horizon:
-            if res:
-                save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(i).zfill(4)}.json')
-            else:
-                print(f"ERROR: no task motion plan found...")
-
-            all_timers = task_planning_timer.timers
-            print(f"all timers: {all_timers}")
-            print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
-            print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
-            print("total_planning_time {:0.4f}".format(all_timers[total_planning_timer.name]))
-            print(f"final_visits {tp.counter}")
+        # ------------------- motion plan ---------------------
+        motion_refiner_timer.start()
+        res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker)
+        motion_refiner_timer.stop()
+        # scn.reset()
+        saved_world.restore()
+        if res:
+            logger.info(f"task and motion plan found")
+            break
         else:
-            print(f"task and motion plan failed")
+            logger.warning(f"motion refine failed")
+            logger.info(f'')
+            task_planning_timer.start()
+            tp.add_constraint(failed_step, typ='general', cumulative=False)
+            task_planning_timer.stop()
+            t_plan = None
+
+    total_planning_timer.stop()
+    if tp.horizon <= tp.max_horizon:
+        if res:
+            # if tp.horizon>3:
+            scn.save_scene_in_json()
+            scn.update_scene_tm_plan(t_plan, m_plan)
+            # save_plans(t_plan, m_plan, os.path.join(output_dir,f'/tm_plan_{str(i).zfill(4)}.json'))
+        else:
+            print(f"ERROR: no task motion plan found...")
+
+        all_timers = task_planning_timer.timers
+        print(f"all timers: {all_timers}")
+        print("task_planning_time {:0.4f}".format(all_timers[task_planning_timer.name]))
+        print("motion_refiner_time {:0.4f}".format(all_timers[motion_refiner_timer.name]))
+        print("total_planning_time {:0.4f}".format(all_timers[total_planning_timer.name]))
+        print(f"final_visits {tp.counter}")
+    else:
+        print(f"task and motion plan failed")
 
     # os.system('spd-say -t female2 "hi lei, simulation done"')
     # while True:
@@ -682,11 +526,25 @@ if __name__=="__main__":
     """ usage
     python3 run_idtmp_unpack.py 0 0.1 10 20 0 
     """
-    visualization = bool(int(sys.argv[1]))
-    RESOLUTION = float(sys.argv[2])
-    max_sim = int(sys.argv[3])
-    MOTION_ITERATION = int(sys.argv[4])
-    feasible_check = int(sys.argv[5])
-    output_dir = str(sys.argv[6])
+    import argparse
+    parser = argparse.ArgumentParser(prog='idtmp-py')
+    parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
+    parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
+    parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
+    parser.add_argument('-i','--iteration', type=int, default=20, help='discretize the continuous region in this sampling step')
+    parser.add_argument('-c','--feasibility', type=int,default=2,help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
+    parser.add_argument('-f','--model_file', type=list, default=[], help='discretize the continuous region in this sampling step')
+    parser.add_argument('-o','--output_file', type=str, default='output/test', help='discretize the continuous region in this sampling step')
+    parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+    args_global = parser.parse_args()
 
-    multi_sims_path_cache(visualization=visualization)
+    visualization = args_global.visualization
+    RESOLUTION = args_global.resolution
+    max_sim = args_global.num_simulation
+    MOTION_ITERATION = args_global.iteration
+    feasible_check = args_global.feasibility
+    model_file = args_global.model_file
+    output_dir = args_global.output_file
+
+    for i in range(max_sim):
+        multi_sims_path_cache(visualization=visualization)

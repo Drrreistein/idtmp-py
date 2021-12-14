@@ -756,16 +756,28 @@ data flow
 - [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
 - [ ] find a interesting task to show the function of TAMP
 - [ ] write a python module which can convert all generated action sequence into a tree
-- [ ] add extra features to ML model: rotation of boxes, height of table, head obstacle
-- [ ] MLP model with extra feature box Z, eMLP
-- [ ] CNN model with object-centered image
-- [ ] CNN model with extra feature box Z, eCNN
+- [x] add extra features to ML model: rotation of boxes, height of table, head obstacle
+- [x] MLP model with extra feature box Z, eMLP
+- [x] CNN model with object-centered image
+- [x] CNN model with extra feature box Z, eCNN
 - [ ] CNN model with all directions
 - [ ] CNN model with extra feature box Z and head obstacle 0/1/dist, eeCNN
-- [ ] compare eMLP, eCNN, eeCNN: how many data do they need, generality, end-to-end
+- [x] compare eMLP, eCNN, eeCNN: how many data do they need, generality, end-to-end
 - [ ] test learned model on **random problem instances**, show generality
+- [ ] more result on idtmp 002
+- [ ] implement learning to eTAMP
+- [ ] grasping success probability help TAMP?
 
 ### Planning
+
+12.13
+
+- [ ] collecting dataset of all pick dir, no rotZ
+- [ ] train MLP/SVM and CNN and compare the training process
+- [ ] test the model in TASK_random
+- [ ] more on idtmp 002
+- [ ] eTAMP + learning, coding and testing
+- [ ] how grasping success probability help TAMP?
 
 
 
@@ -776,6 +788,8 @@ data flow
 - [ ] eMLP: 高度
 - [x] CNN object-centered(OC) with **random height**, **random box direction**
   - [ ] perform very bad in TASK_unpack
-- [ ] CNN OC without height with direction
-- [ ] CNN OC without height without direction
-- [ ] CNN OC with height without direction
+- [x] CNN OC without height with direction, work bad, most cases with two boxes close to each other failed. the model is distance sensitive
+- [x] CNN OC without height without direction, works pretty well with very high prediction accuracy on training dataset, very clean classification with 0.5 threshold
+- [x] CNN OC with height without direction, works well 
+- [x] MLP with height and direction also failed
+- [ ] 

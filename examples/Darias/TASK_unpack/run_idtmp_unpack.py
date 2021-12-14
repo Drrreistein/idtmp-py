@@ -59,7 +59,7 @@ class DomainSemantics(object):
         else:
             obstacles = self.scn.all_bodies
             attachment = []
-
+        embed()
         # pu.draw_pose(goal_pose)
         # goal_joints = pk.inverse_kinematics(self.robot, self.end_effector_link, goal_pose)
         goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=self.self_collision, 
@@ -308,7 +308,7 @@ def check_feasibility(feasibility_checker, scn, t_plan):
         else:
             print("unknown operator: feasible by default")
             continue
-        if region=='region_drawer':
+        if region == 'region_drawer':
             region = 'region_table'
         print(f"checking feasibility: {step}: {operator}")
         is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir=4)
@@ -398,19 +398,15 @@ def multi_sims_path_cache(visualization=0):
     if feasible_check==1:
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_fv_100_100_29797_dir4_no_height_3.model', obj_centered_img=True)
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_fv_100_100_16653_dir4_mixed_no_dir_dir_20.model', obj_centered_img=True)
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     elif feasible_check==3:
         feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
-                    model_file='../training_cnn_simple/mlp_fv_dir4_40.model',
-                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box40.model')
+                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
+                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
     else:
         feasible_checker = None
 
-    # print(' ############################# ')
-    # print(f"{pu.get_pose(8)} {pu.get_pose(9)} {pu.get_pose(10)}")
-    # embed()
-    # IDTMP
     i=0
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
@@ -431,6 +427,7 @@ def multi_sims_path_cache(visualization=0):
         tp.formula['goal'] = goal_constraints
         tp.modeling()
         task_planning_timer.stop()
+        embed()
 
         t0 = time.time()
         while time.time()-t0<1000:
@@ -501,11 +498,31 @@ if __name__=="__main__":
     """ usage
     python3 run_idtmp_unpack.py 0 0.1 10 20 0 
     """
-    visualization = bool(int(sys.argv[1]))
-    RESOLUTION = float(sys.argv[2])
-    max_sim = int(sys.argv[3])
-    MOTION_ITERATION = int(sys.argv[4])
-    feasible_check = int(sys.argv[5])
-    output_dir = str(sys.argv[6])
+    import argparse
+    parser = argparse.ArgumentParser(prog='idtmp-py')
+    parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
+    parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
+    parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
+    parser.add_argument('-i','--iteration', type=int, default=20, help='discretize the continuous region in this sampling step')
+    parser.add_argument('-c','--feasibility', type=int,default=2, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
+    parser.add_argument('-f','--model_file', type=list, default=[], help='discretize the continuous region in this sampling step')
+    parser.add_argument('-o','--output_file', type=str, default='output/test', help='discretize the continuous region in this sampling step')
+    parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+    args_global = parser.parse_args()
+
+    visualization = args_global.visualization
+    RESOLUTION = args_global.resolution
+    max_sim = args_global.num_simulation
+    MOTION_ITERATION = args_global.iteration
+    feasible_check = args_global.feasibility
+    model_file = args_global.model_file
+    output_dir = args_global.output_file
+
+    # visualization = bool(int(sys.argv[1]))
+    # RESOLUTION = float(sys.argv[2])
+    # max_sim = int(sys.argv[3])
+    # MOTION_ITERATION = int(sys.argv[4])
+    # feasible_check = int(sys.argv[5])
+    # output_dir = str(sys.argv[6])
 
     multi_sims_path_cache(visualization=visualization)
