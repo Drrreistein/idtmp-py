@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import pickle
 from itertools import repeat
 
-from numpy.core.fromnumeric import shape
+from numpy.ma.core import choose
+
 from IPython import embed
 import csv
 import uuid
@@ -31,6 +32,7 @@ import random
 import time
 import sparse
 from utils.pybullet_tools.utils import read
+
 downsampling = 4
 
 class CNN_FilterVisualizer(object):
@@ -104,7 +106,7 @@ def merge_csv(dirname):
     return np.array(dataset, dtype=float)
 
 class CustomGen(tf.keras.utils.Sequence):
-    def __init__(self, df:list, labels, batch_size = 32, dtype='tensorflow'):
+    def __init__(self, df:list, labels, pick_dir=[4], batch_size = 32, choose_ch2=2,dtype='tensorflow'):
         
         self.df = df
         self.labels = labels
@@ -114,8 +116,12 @@ class CustomGen(tf.keras.utils.Sequence):
             self.n = len(df)
         self.batch_size = batch_size
         self.dtype = dtype
-        self.dir_ind = None
         self.batch_num = self.n // self.batch_size
+        self.choose_ch2 = choose_ch2
+        if pick_dir == 'all':
+            self.pick_dir = [0,1,2,3,4]
+        else:
+            self.pick_dir = pick_dir
 
     def __getitem__(self, index):
         m, n = index*self.batch_size, (index+1)*self.batch_size
@@ -125,16 +131,16 @@ class CustomGen(tf.keras.utils.Sequence):
         elif self.dtype=='tensorflow':
             # tensorflow sparse matrix
             return tf.sparse.to_dense(tf.sparse.concat(0,self.df[m:n])), self.labels[m:n]
-        
+
         elif self.dtype=='FV_CNN':
             # for cases using objected center images
             # if self.dir_ind is None:
             #     self.dir_ind = 0
             # else:
             #     self.dir_ind = (self.dir_ind+1)%5
-            self.dir_ind = np.random.randint(0,5)
-            self.dir_ind = 4
-            empty_channel_2  = np.random.randint(2)
+            # self.dir_ind = np.random.randint(0,5)
+            # self.dir_ind = 4
+            # empty_channel_2  = np.random.randint(2)
             # choose one pick-up/put-down direction
             # print(f'direction index: {self.dir_ind}')
             # feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*self.dir_ind), axis=-1)
@@ -145,20 +151,37 @@ class CustomGen(tf.keras.utils.Sequence):
             #     return [mat2, feat], self.labels[m:n, self.dir_ind]
             # else:
             #     return [mat1, feat], self.labels[m:n, self.dir_ind+5]
-
-            feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*self.dir_ind), axis=-1)
-            # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
-            
             mat1 = tf.sparse.to_dense(tf.sparse.concat(0,self.df[0][m:n])).numpy()
             if np.max(mat1)>1:
                 mat1 = mat1/256
             input_shape = mat1[:,:,:,:1].shape
             mat2 = np.concatenate((mat1[:,:,:,:1],np.zeros(input_shape)),axis=-1)
-
-            images = np.concatenate((mat1, mat2), axis=0)
-            features = np.concatenate((feat, feat), axis=0)
-            labels = np.concatenate((self.labels[m:n, self.dir_ind+5], self.labels[m:n, self.dir_ind]),axis=0)
-
+            
+            for dir_ind in self.pick_dir:
+                tmp_feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*dir_ind), axis=-1)
+                
+                if 'features' not in locals():
+                    if self.choose_ch2==2:
+                        features = np.concatenate((tmp_feat, tmp_feat), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((mat1, mat2), axis=0)
+                        labels = np.concatenate((self.labels[m:n, dir_ind+5], self.labels[m:n, dir_ind]),axis=0)
+                    elif self.choose_ch2==1:
+                        features = tmp_feat
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = mat1
+                        labels = self.labels[m:n, dir_ind+5]
+                else:
+                    if self.choose_ch2==2:
+                        features = np.concatenate((features, np.concatenate((tmp_feat, tmp_feat), axis=0)), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((images, np.concatenate((mat1, mat2), axis=0)), axis=0)
+                        labels = np.concatenate((labels, np.concatenate((self.labels[m:n, dir_ind+5], self.labels[m:n, dir_ind]),axis=0)), axis=0)
+                    elif self.choose_ch2==1:
+                        features = np.concatenate((features, tmp_feat), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((images, mat1), axis=0)
+                        labels = np.concatenate((labels, self.labels[m:n, dir_ind+5]), axis=0)
             return [images, features], labels
 
     def __len__(self):
@@ -233,8 +256,8 @@ def get_data(dirname, num=100000, height=120):
 def read_image(dataset:dict, shape, downsampling, labels_ind=-5, scale=256):
     images_labels=dict()
     for k, v in dataset.items():
-        # if not np.any(v[-10:]):
-        #     continue
+        if not np.any(v[-10:]):
+            continue
         img_mat = np.asarray(Image.open(k+'.png'))
         if np.min(img_mat)>0:
             img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
@@ -413,6 +436,7 @@ def get_render_images(dirname, num=100000, height=270):
     return train_images, train_labels, validate_images, validate_labels, test_images, test_labels
 
 def plot_image_by_channels(images):
+    
     _,_,ch = images.shape
     row=2
     col = int(np.ceil(ch/row))
@@ -552,12 +576,6 @@ def create_model(input_shape):
     model.add(layers.ReLU())
     model.add(layers.MaxPooling2D(pool_size=(4, 4)))
 
-    # model.add(layers.Conv2D(8, (3, 3),padding='same'))
-    # # model.add(layers.Dropout(0.2))
-    # # model.add(layers.BatchNormalization(axis=-1))
-    # model.add(layers.ReLU())
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-
     model.add(layers.Flatten())
     # model.add(layers.Dropout(0.2))
     model.add(layers.Dense(200, activation='relu'))
@@ -633,25 +651,33 @@ def get_data_mp_obj_centered(dirnames, nums=[100000, 10000], height=200, batch_s
     test_labels = labels[test_data_len:]
     return train_input, train_labels, validate_input, validate_labels, test_input, test_labels
 
-def create_model_obj_centered(input_shape, filters=[4,8,16], pool_size=(2,2), feature=200, dropout=0.2):
+def create_model_obj_centered(input_shape, filters=[4,8,16], filter_size=(4,4),pool_size=(2,2), stride=1, dense_layers=[200], dropout=0.2):
 
     inputs = layers.Input(shape=input_shape)
     inputs2 = layers.Input(shape=4)
     for i,f in enumerate(filters):
         if i==0:
             x = inputs
-        x = layers.Conv2D(f,(3,3),padding='same')(x)
+        x = layers.Conv2D(f,filter_size,padding='same', strides=stride)(x)
         x = layers.Activation('relu')(x)
-        x = layers.BatchNormalization(axis=-1)(x)
+        # x = layers.BatchNormalization(axis=-1)(x)
         x = layers.MaxPooling2D(pool_size=pool_size)(x)
 
     x = layers.concatenate([layers.Flatten()(x), inputs2])
     x = layers.Dropout(dropout)(x)
-    x = layers.Dense(feature, activation='relu')(x)
-    x = layers.Dropout(dropout)(x)
+    for i,num in enumerate(dense_layers):
+        x = layers.Dense(num, activation='relu')(x)
+        x = layers.Dropout(dropout)(x)
     x = layers.Dense(1, activation='sigmoid')(x)
 
     model = models.Model([inputs, inputs2], x)
+    model.summary()
+    return model
+
+def freeze_conv2d(model):
+    for layer in model.layers:
+        if 'conv2d' in layer.name:
+            layer.trainable = False
     model.summary()
     return model
 
@@ -690,12 +716,12 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
     train_input, train_labels, validate_input, validate_labels, test_input,\
     test_labels = get_data_mp_obj_centered(['table_3d2/'], [100000], 100, 50, 16)
 
-    train_gen = CustomGen(train_input, train_labels, batch_size=50, dtype='FV_CNN')
-    valid_gen = CustomGen(validate_input, validate_labels, batch_size=50, dtype='FV_CNN')
-    test_gen = CustomGen(test_input, test_labels, batch_size=50, dtype='FV_CNN')
+    train_gen = CustomGen(train_input, train_labels, pick_dir=[4], choose_ch2=2,batch_size=10, dtype='FV_CNN')
+    valid_gen = CustomGen(validate_input, validate_labels, pick_dir=[4], choose_ch2=2,batch_size=10, dtype='FV_CNN')
+    test_gen = CustomGen(test_input, test_labels, pick_dir=[4], choose_ch2=2,batch_size=10, dtype='FV_CNN')
 
     input_shape = tuple(np.array(train_input[0][0].shape[1:]))
-    model = create_model_obj_centered(input_shape, filters=[4,8,16], pool_size=(3,3), feature=100, dropout=0.3)
+    model = create_model_obj_centered(input_shape, filters=[8,16], filter_size=(3,3),pool_size=(2,2), stride=2, dense_layers=[100], dropout=0.)
     model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
         loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
@@ -707,8 +733,8 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
                 #  tf.keras.metrics.FalsePositives(name='FP', dtype=tf.int32),
                  tf.keras.metrics.Precision(name='P'),
                  tf.keras.metrics.Recall(name='R'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                #  tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                #  tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
                 #  'recall', 
                 #  'precision',
                  ])
@@ -719,7 +745,8 @@ def train_cnn_model(train_images, train_labels, validate_images, validate_labels
         # for jj in range(train_gen.batch_num):
         #     tmp_input, tmp_labels = train_gen.__getitem__(jj)
         #     model.fit(tmp_input, tmp_labels,epochs=1, batch_size = train_gen.batch_size)
-        history = model.fit(train_gen, epochs=epochs, batch_size = train_gen.batch_size*2, validation_data=valid_gen)
+        train_batch_size = train_gen.batch_size * len(train_gen.pick_dir) * train_gen.choose_ch2
+        history = model.fit(train_gen, epochs=epochs, batch_size = train_batch_size, validation_data=valid_gen)
     # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
         model.save(f"cnn_fv_100_100_31597_dir4_{(i+1)*epochs}.model")
 

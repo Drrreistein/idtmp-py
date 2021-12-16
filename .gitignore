@@ -27,3 +27,7 @@ B_fp_domain.pddl
 B_fp_problem.pddl
 C_op_domain.pddl
 C_op_problem.pddl
+
+
+examples/Darias/training_cnn_simple/cnn_fv_*
+examples/Darias/TASK_random/random_scenes/

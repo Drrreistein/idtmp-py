@@ -1,6 +1,8 @@
 from random import random
 
 from PIL.Image import init
+from numpy.ma.core import _pickle_warn
+from general_utils import rotate_args
 from progress.bar import IncrementalBar
 import itertools
 
@@ -14,7 +16,7 @@ from multiprocessing import Process, process
 
 import pybullet as p
 from utils.pybullet_tools.utils import WorldSaver, connect, get_pose, is_fixed_base, pixel_from_ray, set_joint_positions, set_pose, get_configuration, is_placement, \
-    disconnect, get_bodies, create_box, remove_body, get_aabb   
+    disconnect, get_bodies, create_box, remove_body, get_aabb, update_state   
 import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 import numpy as np
@@ -362,6 +364,82 @@ def get_body_size_pos_aabb(body):
     aabb = pu.get_aabb(body)
     return pu.get_aabb_extent(aabb), pu.get_point(body), aabb
 
+def plot_obj_centered_img(image, xyz, label):
+    import general_utils as gu
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    lower,upper = np.array(((-0.8,-1.2), (0.9,1.3)))
+    pixel_size = 0.001
+    resolution = np.array((upper - lower)/pixel_size, dtype=int)
+    robot_arm_plot = np.ones(resolution) * 10
+
+    # arm base
+    origin_point = np.array((np.zeros(2)-lower)/pixel_size, dtype=int)
+    arm_base_size = np.array([0.2,0.2])
+    arm_base_reso = np.array(arm_base_size/pixel_size/2, dtype=int)
+    boundery_arm_base = gu.get_boundery_args(origin_point[0]-arm_base_reso[0],origin_point[0]+arm_base_reso[0], origin_point[1]-arm_base_reso[1], origin_point[1]+arm_base_reso[1])
+    boundery_arm_base_rotated = [gu.rotate_args(arg, np.pi/4,center_arg=origin_point) for arg in boundery_arm_base]
+    args_arm_base_rotated = gu.get_args_inside_bounds(boundery_arm_base_rotated)
+    robot_arm_plot[args_arm_base_rotated[:,0], args_arm_base_rotated[:,1]]=50
+
+    # region 
+    image_size = np.array((0.4, 0.4))
+    region_center = np.array((np.array(xyz[:2])-lower)/pixel_size, dtype=int)
+
+    # boxes
+    shape = image.shape[:2]
+    image_center = np.array(region_center, dtype=int)
+    image_reso = np.array(image_size/pixel_size/2, dtype=int)
+    upsampling = np.array(image_size/pixel_size/np.array(shape), dtype=int)
+    reshape_image = image.repeat(upsampling[0], axis=0).repeat(upsampling[1], axis=1)
+
+    _,_,ch = image.shape
+    assert ch==2, 'image channels not equal 2'
+    # channel 1
+    target_box_args = np.argwhere(reshape_image[:,:,0]>0)
+    target_box_size = np.max(target_box_args,axis=0)-np.min(target_box_args, axis=0)
+
+    plt.subplot(2,1,1)
+    back_ground = robot_arm_plot.copy()
+    back_ground[image_center[0]-image_reso[0]:image_center[0]+image_reso[0],image_center[1]-image_reso[1]:image_center[1]+image_reso[1]] = reshape_image[:,:,0]
+    plt.imshow(back_ground, cmap='gray')
+    plt.title(f"box_height: {np.round(reshape_image[:,:,0].max()/256*0.512,3)}, region location: {np.round(xyz,2)}")
+    plt.text(region_center[1],region_center[0]+target_box_size[0]/2+20,label[0], fontsize='xx-small', color='w')
+    plt.text(region_center[1],region_center[0]-target_box_size[0]/2,label[1], fontsize='xx-small', color='w')
+    plt.text(region_center[1]+target_box_size[1]/2,region_center[0],label[2], fontsize='xx-small', color='w')
+    plt.text(region_center[1]-target_box_size[1]/2-15,region_center[0],label[3], fontsize='xx-small', color='w')
+    plt.text(region_center[1],region_center[0],label[4], fontsize='xx-small')
+
+    plt.subplot(2,1,2)
+    back_ground = robot_arm_plot.copy()
+    back_ground[image_center[0]-image_reso[0]:image_center[0]+image_reso[0],image_center[1]-image_reso[1]:image_center[1]+image_reso[1]] = reshape_image[:,:,0] + reshape_image[:,:,1]
+    plt.imshow(back_ground, cmap='gray')
+    plt.title(f"box_height: {np.round(reshape_image[:,:,1].max()/256*0.512,3)}, region location: {np.round(xyz,2)}")
+    plt.text(region_center[1],region_center[0]+target_box_size[0]/2+20,label[5], fontsize='xx-small', color='w')
+    plt.text(region_center[1],region_center[0]-target_box_size[0]/2,label[6], fontsize='xx-small', color='w')
+    plt.text(region_center[1]+target_box_size[1]/2,region_center[0],label[7], fontsize='xx-small', color='w')
+    plt.text(region_center[1]-target_box_size[1]/2-15,region_center[0],label[8], fontsize='xx-small', color='w')
+    plt.text(region_center[1],region_center[0],label[9], fontsize='xx-small')
+    manager = plt.get_current_fig_manager()
+    manager.full_screen_toggle()
+    plt.show()    
+
+    # row=2
+    # col = int(np.ceil(ch/row))
+    # plt.ion()
+    # ind = 0
+    # for i in range(col):
+    #     for j in range(row):
+    #         plt.subplot(col, row, i*row+j+1)
+    #         back_ground = robot_arm_plot.copy()
+    #         back_ground[image_center[0]-image_reso[0]:image_center[0]+image_reso[0],image_center[1]-image_reso[1]:image_center[1]+image_reso[1]] = reshape_image[:,:,ind]
+    #         # plt.imshow(robot_arm_plot)
+    #         plt.imshow(back_ground, cmap='gray')
+    #         plt.title(f"box_height: {reshape_image[:,:,ind].max()/256*0.512} \n feasibility: {label}")
+    #         ind += 1
+
 def sample_training_data_obj_centered():
     """
     sampling training data
@@ -458,9 +536,7 @@ def sample_training_data_obj_centered():
 
     def png_mat_object_centered(body, xyz, dir, body_ref = None):
         xyz = np.array(xyz)
-        
         mat_targ = np.zeros(img_shape, dtype=np.uint8)
-        
         h = np.abs(int(xyz[2]*256/max_height))
         x_len, y_len = np.array((xyz[:2]/pixel_size/2)[:2])
         mid_arg = (img_shape[0]-1)/2
@@ -476,7 +552,7 @@ def sample_training_data_obj_centered():
                                         mid_arg+y0-y_len, mid_arg+y0+y_len]), dtype=int)
             xmin,xmax,ymin,ymax = tuple(np.clip([xmin,xmax,ymin,ymax], 0, img_shape[0]-1))
         
-        args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax,dir)
+        args_rot = get_non_zero_pixel_args_new(xmin, xmax, ymin, ymax, dir)
         mat_targ[args_rot[:,0],args_rot[:,1]] = h
 
         downsampling=int(mat_targ.shape[0]/200)

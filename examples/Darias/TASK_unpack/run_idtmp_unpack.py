@@ -59,11 +59,10 @@ class DomainSemantics(object):
         else:
             obstacles = self.scn.all_bodies
             attachment = []
-        embed()
         # pu.draw_pose(goal_pose)
         # goal_joints = pk.inverse_kinematics(self.robot, self.end_effector_link, goal_pose)
         goal_joints = pu.inverse_kinematics_random(self.robot, self.end_effector_link, goal_pose, obstacles=obstacles,self_collisions=self.self_collision, 
-        disabled_collisions=pk.DISABLED_COLLISION_PAIR, attachments=attachment, max_distance=self.max_distance)
+        disabled_collisions = pk.DISABLED_COLLISION_PAIR, attachments=attachment, max_distance=self.max_distance)
 
         if goal_joints is None:
             return False, goal_joints
@@ -398,7 +397,7 @@ def multi_sims_path_cache(visualization=0):
     if feasible_check==1:
         feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file='../training_cnn_simple/cnn_fv_100_100_16653_dir4_mixed_no_dir_dir_20.model', obj_centered_img=True)
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file=args_global.model_file, obj_centered_img=True)
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     elif feasible_check==3:
         feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
@@ -427,7 +426,6 @@ def multi_sims_path_cache(visualization=0):
         tp.formula['goal'] = goal_constraints
         tp.modeling()
         task_planning_timer.stop()
-        embed()
 
         t0 = time.time()
         while time.time()-t0<1000:
@@ -503,11 +501,12 @@ if __name__=="__main__":
     parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
     parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
     parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
-    parser.add_argument('-i','--iteration', type=int, default=20, help='discretize the continuous region in this sampling step')
+    parser.add_argument('-i','--iteration', type=int, default=20, help='motion planning RRT iteration')
     parser.add_argument('-c','--feasibility', type=int,default=2, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
-    parser.add_argument('-f','--model_file', type=list, default=[], help='discretize the continuous region in this sampling step')
-    parser.add_argument('-o','--output_file', type=str, default='output/test', help='discretize the continuous region in this sampling step')
+    parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
+    parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
     parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+
     args_global = parser.parse_args()
 
     visualization = args_global.visualization

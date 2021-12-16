@@ -26,7 +26,7 @@ logging.basicConfig(filename='./log/logging.log',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
 logger = logging.getLogger('MAIN')
-from feasibility_check import FeasibilityChecker, FeasibilityChecker_bookshelf
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_bookshelf, FeasibilityChecker_CNN
 EPSILON = 0.01
 RESOLUTION = 0.1
 DIR_NUM = 1
@@ -367,7 +367,7 @@ def check_feasibility(feasibility_checker, scn, t_plan):
             continue
         if region=='region_drawer':
             region = 'region_table'
-        is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, region, grsp_dir)
+        is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir)
 
         if not is_feasible:
             print(f"check feasibility: {step}: {operator}: infeasible")
@@ -645,12 +645,23 @@ def multisim_plancache():
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_regrasp.pddl')
 
-    if feasible_check:
-        feasible_checker = FeasibilityChecker_bookshelf(scn, scn.fb_bodies)
-        feasible_checker.models[('region_table',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_1b/mlp_model.pk')
-        feasible_checker.models[('region_table',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_2b/mlp_model.pk')
-        feasible_checker.models[('region_shelf',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_1b/mlp_model.pk')
-        feasible_checker.models[('region_shelf',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_2b/mlp_model.pk')
+    # if feasible_check:
+    #     feasible_checker = FeasibilityChecker_bookshelf(scn, scn.fb_bodies)
+    #     feasible_checker.models[('region_table',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_1b/mlp_model.pk')
+    #     feasible_checker.models[('region_table',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/table_2b/mlp_model.pk')
+    #     feasible_checker.models[('region_shelf',1)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_1b/mlp_model.pk')
+    #     feasible_checker.models[('region_shelf',2)] = feasible_checker.load_ml_model('../training_data_bookshelf/shelf_2b/mlp_model.pk')
+    # else:
+    #     feasible_checker = None
+    if feasible_check==1:
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
+    elif feasible_check==2:
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file=args_global.model_file, obj_centered_img=True)
+        # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
+    elif feasible_check==3:
+        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
+                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
+                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
     else:
         feasible_checker = None
 
@@ -745,11 +756,25 @@ def multisim_plancache():
     pu.disconnect()
 
 if __name__=="__main__":
-    visualization = bool(int(sys.argv[1]))
-    RESOLUTION = float(sys.argv[2])
-    max_sim = int(sys.argv[3])
-    MOTION_ITERATION = int(sys.argv[4])
-    feasible_check = bool(int(sys.argv[5]))
-    output_dir = str(sys.argv[6])
+    import argparse
+    parser = argparse.ArgumentParser(prog='idtmp-py')
+    parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
+    parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
+    parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
+    parser.add_argument('-i','--iteration', type=int, default=20, help='motion planning RRT iteration')
+    parser.add_argument('-c','--feasibility', type=int,default=2, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
+    parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
+    parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
+    parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+
+    args_global = parser.parse_args()
+
+    visualization = args_global.visualization
+    RESOLUTION = args_global.resolution
+    max_sim = args_global.num_simulation
+    MOTION_ITERATION = args_global.iteration
+    feasible_check = args_global.feasibility
+    model_file = args_global.model_file
+    output_dir = args_global.output_file
 
     multisim_plancache()

@@ -397,14 +397,18 @@ def multi_sims_path_cache(visualization=0):
         saved_world = WorldSaver()
         t_plan = scn.scene['tm_plan']['t_plan']
         m_plan = scn.scene['tm_plan']['m_plan']
-        if  t_plan=='None':
-            print(f"no task and motion plan available")
-            embed()
-        else:
-            while True:
-                ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)
-                time.sleep(1)
-                saved_world.restore()
+        print(f"execute old tm_plan or find a new one")
+        print(f"executing the command \nExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)\nsaved_world.restore()")
+        embed()
+
+        # if  t_plan=='None':
+        #     print(f"no task and motion plan available")
+        #     embed()
+        # else:
+        #     while True:
+        #         ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)
+        #         time.sleep(1)
+        #         saved_world.restore()
 
     saved_world = WorldSaver()
     parser = PDDL_Parser()
@@ -418,13 +422,13 @@ def multi_sims_path_cache(visualization=0):
     domain_semantics = UnpackDomainSemantics(scn)
     domain_semantics.activate()
 
+    scn_objects = list(scn.movable_bodies) + list(scn.obstacle_bodies)
     if feasible_check==1:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file=model_file)
+        feasible_checker = FeasibilityChecker(scn, objects=scn_objects, resolution=RESOLUTION, model_file=model_file)
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file=model_file, obj_centered_img=True)
-        # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn_objects, model_file=model_file, obj_centered_img=True)
     elif feasible_check==3:
-        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
+        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn_objects,
                     model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
                     model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
     else:
@@ -434,8 +438,6 @@ def multi_sims_path_cache(visualization=0):
     task_planning_timer = Timer(name='task_planning_timer', text='', logger=logger.info)
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
-
-
 
     ########################################### tm planning ##############################
     path_cache = PlanCache()
@@ -499,9 +501,9 @@ def multi_sims_path_cache(visualization=0):
     total_planning_timer.stop()
     if tp.horizon <= tp.max_horizon:
         if res:
-            # if tp.horizon>3:
-            scn.save_scene_in_json()
-            scn.update_scene_tm_plan(t_plan, m_plan)
+            if len(list(t_plan.keys()))>3:
+                scn.save_scene_in_json()
+                scn.update_scene_tm_plan(t_plan, m_plan)
             # save_plans(t_plan, m_plan, os.path.join(output_dir,f'/tm_plan_{str(i).zfill(4)}.json'))
         else:
             print(f"ERROR: no task motion plan found...")
@@ -531,10 +533,10 @@ if __name__=="__main__":
     parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
     parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
     parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
-    parser.add_argument('-i','--iteration', type=int, default=20, help='discretize the continuous region in this sampling step')
-    parser.add_argument('-c','--feasibility', type=int,default=2,help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
-    parser.add_argument('-f','--model_file', type=list, default=[], help='discretize the continuous region in this sampling step')
-    parser.add_argument('-o','--output_file', type=str, default='output/test', help='discretize the continuous region in this sampling step')
+    parser.add_argument('-i','--iteration', type=int, default=20, help='motion planning RRT iteration')
+    parser.add_argument('-c','--feasibility', type=int,default=2, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
+    parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
+    parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
     parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
     args_global = parser.parse_args()
 

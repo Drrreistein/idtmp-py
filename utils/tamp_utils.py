@@ -18,3 +18,6 @@ class TextDisplayer(object):
 
     def remove_all_text():
         pass
+
+
+

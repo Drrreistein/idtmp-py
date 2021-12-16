@@ -754,7 +754,7 @@ data flow
 - [ ] update the motion failed constraints to collision objects constraints
   - [x] collision_check in task_cook
 - [ ] `etamp` and `idtmp` not feasible for extremely long horizon, limitation of its task planner, how to solve?
-- [ ] find a interesting task to show the function of TAMP
+- [x] find a interesting task to show the function of TAMP
 - [ ] write a python module which can convert all generated action sequence into a tree
 - [x] add extra features to ML model: rotation of boxes, height of table, head obstacle
 - [x] MLP model with extra feature box Z, eMLP
@@ -764,18 +764,19 @@ data flow
 - [ ] CNN model with extra feature box Z and head obstacle 0/1/dist, eeCNN
 - [x] compare eMLP, eCNN, eeCNN: how many data do they need, generality, end-to-end
 - [ ] test learned model on **random problem instances**, show generality
-- [ ] more result on idtmp 002
+- [x] more result on idtmp 002
 - [ ] implement learning to eTAMP
 - [ ] grasping success probability help TAMP?
 
 ### Planning
 
-12.13
+12.14-12.21
 
-- [ ] collecting dataset of all pick dir, no rotZ
+- [ ] writing
+- [x] collecting dataset of all pick dir, no rotZ
 - [ ] train MLP/SVM and CNN and compare the training process
 - [ ] test the model in TASK_random
-- [ ] more on idtmp 002
+- [x] more on idtmp 002
 - [ ] eTAMP + learning, coding and testing
 - [ ] how grasping success probability help TAMP?
 

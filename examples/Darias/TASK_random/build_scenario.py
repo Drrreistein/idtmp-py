@@ -4,6 +4,8 @@ from __future__ import print_function
 import numpy as np
 
 import time
+
+from numpy import random
 import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Register
@@ -539,22 +541,31 @@ class Scene_random(object):
                                     self.camera_setting[3:])
 
     def random_scene(self):
-        # random scene
-        self.fixed_or_random_boxZ()
-        self.random_or_fixed_region_height()
-        self.random_regions()
-        self.random_boxes()
-        self.random_boxes_location()
-        self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
 
-        self.random_goal()
-        self.hhhhhhhhhh()
+        while True:
+        # random scene
+            self.fixed_or_random_boxZ()
+            self.random_or_fixed_region_height()
+            self.random_regions()
+            res = self.random_regions_location()
+            self.random_boxes()
+            res = res and self.random_boxes_location()
+            if not res:
+                pu.remove_bodies(list(self.regions)+list(self.movable_bodies)+list(self.obstacle_bodies))
+                continue
+            else:
+                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
+                self.random_goal()
+                self.hhhhhhhhhh()
+                break
+
         # self.save_scene_in_json()
+        self.scene_save_name = f'{self.dirname}/' + str(uuid.uuid1()) + '.json'
 
     def random_or_fixed_region_height(self):
         # self.random_height = bool(np.random.randint(2))
         self.random_height = 0
-        self.subregions = [((-0.1,0.5),(0.5,0.8)),
+        self.subregions = [((-0.2,0.5),(0.7,0.9)),
                     # ((0.2,-0.4),(0.7,0.4)),
                     # ((-0.2,-1.0),(0.7,-0.4))
                     ]
@@ -571,6 +582,16 @@ class Scene_random(object):
         self.fixed_boxZ = True
 
     def random_regions(self):
+        self.region_num = np.random.randint(2,4)
+        region_size = (0.25,0.25,0.001)
+        self.regions = set()
+        for i in range(self.region_num):
+            tmp_reg = pu.create_box(region_size[0],region_size[1],region_size[2])
+            self.regions.add(tmp_reg)
+            self.bd_body[f"region{i}"] = tmp_reg
+            pu.set_color(tmp_reg, [0.1,0.5,0.5,1])
+
+    def random_regions_location(self):
         regions = np.array(self.subregions)
         tmp = regions[:,1]-regions[:,0]
         area = tmp[:,0]*tmp[:,1]
@@ -585,15 +606,8 @@ class Scene_random(object):
             # pu.draw_point((xy[0],xy[1],0.1))
             return xy
 
-        self.region_num = np.random.randint(2,3)
-        region_size = (0.3,0.3,0.001)
-        self.regions = set()
-        for i in range(self.region_num):
-            tmp_reg = pu.create_box(region_size[0],region_size[1],region_size[2])
-            self.regions.add(tmp_reg)
-            self.bd_body[f"region{i}"] = tmp_reg
-            pu.set_color(tmp_reg, [0.1,0.5,0.5,1])
-
+        random_region_location_times = 0
+        for tmp_reg in self.regions:
             while True:
                 # random region height
                 table_z = np.random.uniform(self.table_z_lower, self.table_z_upper)
@@ -601,11 +615,15 @@ class Scene_random(object):
                 pu.set_pose(tmp_reg, (xyz, (0,0,0,1)))
                 if not pu.body_list_collision([tmp_reg], list(set(self.bd_body.values())-{tmp_reg})):
                     break
+                random_region_location_times += 1
+                if random_region_location_times>50:
+                    return False
+        return True
 
     def random_boxes(self):
         # self.boxes_num = np.random.randint(2,5)
-        self.movable_box_num = np.random.randint(4,5)
-        self.obstacle_box_num = np.random.randint(0,1)
+        self.movable_box_num = np.random.randint(2,5)
+        self.obstacle_box_num = np.random.randint(1,3)
         self.movable_bodies = set()
         self.obstacle_bodies = set()
 
@@ -632,7 +650,7 @@ class Scene_random(object):
             region_w, region_h, _ = pu.get_aabb_extent((region_lower, region_upper))
             box_wlh = pu.get_aabb_extent(pu.get_aabb(body))
             box_z = [region_upper[2]+box_wlh[2]/2+EPSILON]
-
+            random_box_location_times = 0
             # sampling box location on specific region and ensure no collision detected
             while True:
                 xy_norm = np.random.uniform([0.1,0.1],[0.9,0.9])
@@ -650,6 +668,11 @@ class Scene_random(object):
                     break
                 else:
                     print(f'collision detected when sampling box{body}')
+                random_box_location_times += 1
+                if random_box_location_times>50:
+                    return False
+        return True
+                
 
     def random_goal(self):
         # ? body on ? region
@@ -657,11 +680,10 @@ class Scene_random(object):
         pu.set_color(target_body, [0,0,1,1])
         region_of_target_body = pu.get_region_of_body(target_body, self.regions)
         goal_region = np.random.choice(list(self.regions-{region_of_target_body}))
-        pu.set_color(goal_region, [0,0,1,1])
+        pu.set_color(goal_region, [0,0,0.5,1])
         self.goal = {self.bd_body[goal_region]: [self.bd_body[target_body]]}
 
     def save_scene_in_json(self):
-        self.scene_save_name = f'{self.dirname}/' + str(uuid.uuid1()) + '.json'
         print(f"saving current scene to {self.scene_save_name}")
         
         # robot: filename, base_pose, init_config
@@ -725,7 +747,7 @@ class Scene_random(object):
     def load_scene_from_json(self, filename):
         with open(filename, 'r') as file:
             self.scene = json.load(file)
-
+        self.scene_save_name = filename
         self.movable_bodies = set()
         self.obstacle_bodies = set()
         self.regions = set()
@@ -775,7 +797,7 @@ class Scene_random(object):
         return self.arm_left, self.movable_bodies, self.regions
 
     def clear_scene(self):
-        
+
         pass
 #######################################################
 

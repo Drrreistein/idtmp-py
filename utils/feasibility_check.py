@@ -471,7 +471,6 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         self.images = []
         
         mat_targ = self._png_mat_obj_centered(target_body,lwh_targ,dir_target)
-
         for bd in self.objects-{target_body}:
             bd_pose = pu.get_pose(bd)
             if (pu.get_aabb(bd)[0][2] - l[2])>0.1:
@@ -499,8 +498,8 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             # learned model using image with fixed size
             image = self._get_images(target_body, target_pose)
             prob = np.round(self.model.predict(image),3)
-        labels = prob>=0.2
-        self.display_images(image, prob)
+        labels = prob>=0.3
+        # self.display_images(image, prob)
         is_feasible = labels[:,-1]
         print(f"body: {target_body}, dir: {grsp_dir}, feas: {is_feasible}")
 

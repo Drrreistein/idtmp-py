@@ -21,9 +21,9 @@ class PlanningScenario1(object):
             with LockRenderer():
                 self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
                                               fixed_base=True)
-                set_pose(self.arm_left, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
                 self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-                set_pose(self.arm_base, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_left, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_base, Pose(Point(x=0.25, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
 
                 self.bd_body = {
                     'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
