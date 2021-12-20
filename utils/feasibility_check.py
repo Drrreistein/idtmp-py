@@ -338,15 +338,23 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         else:
             self.input_shape = self.model.input_shape[1:]
     
-    def display_images(self, images, labels):
+    def display_images(self, images, labels, feat=None):
+        
         for i, image in enumerate(images):
             plt.subplot(1,2,1)
             plt.imshow(image[:,:,0], cmap='gray')
-            plt.title(f"box1: {np.max(image[:,:,0])}")
+            if feat is None:
+                plt.title(f"box1: {np.max(image[:,:,0])}")
+            else:
+                plt.title(f"box1: {np.max(image[:,:,0])} \n feat: {feat[i]}")
+
 
             plt.subplot(1,2,2)
             plt.imshow(image[:,:,1]+image[:,:,0], cmap='gray')
-            plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
+            if feat is None:
+                plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
+            else:
+                plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])} \n feat: {feat[i]}")
 
             plt.savefig(f'images2/image{self.image_num}')
             print(f'images2/image{self.image_num}')
@@ -462,7 +470,7 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         pu.set_pose(box, (point, rot))
         return lwh
 
-    def _get_input_obj_centered(self, target_body, target_pose):
+    def _get_input_obj_centered(self, target_body, target_pose, grsp_dir):
         init_pose = pu.get_pose(target_body)
         pu.set_pose(target_body, target_pose)
         dir_target = pu.euler_from_quat(target_pose[1])[2]
@@ -484,7 +492,7 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             self.images.append(tmp)
 
         self.images = np.array(self.images)
-        features = np.repeat([[target_pose[0][0], target_pose[0][1], l[2], 4]], 
+        features = np.repeat([[target_pose[0][0], target_pose[0][1], l[2], grsp_dir]], 
                                 len(self.images),axis=0)
         pu.set_pose(target_body, init_pose)
         return self.images, features
@@ -492,14 +500,14 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
     def check_feasibility_simple(self, target_body, target_pose, grsp_dir):
         if self.obj_centered_img:
             # learned model with object centered image
-            image, feat = self._get_input_obj_centered(target_body, target_pose)
+            image, feat = self._get_input_obj_centered(target_body, target_pose, grsp_dir)
             prob = np.round(self.model.predict([image, feat]), 5)
         else:
             # learned model using image with fixed size
             image = self._get_images(target_body, target_pose)
             prob = np.round(self.model.predict(image),3)
         labels = prob>=0.3
-        # self.display_images(image, prob)
+        # self.display_images(image, prob, feat)
         is_feasible = labels[:,-1]
         print(f"body: {target_body}, dir: {grsp_dir}, feas: {is_feasible}")
 

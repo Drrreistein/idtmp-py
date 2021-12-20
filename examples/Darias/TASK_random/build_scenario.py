@@ -22,467 +22,6 @@ from IPython import embed
 import pandas as pd
 EPSILON = 0.005
 
-class PlanningScenario(object):
-    def __init__(self):
-        with HideOutput():
-            with LockRenderer():
-                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
-                                              fixed_base=True)
-                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-
-                self.bd_body = {
-                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
-                    'cabinet_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
-                        fixed_base=True),
-                    'drawer_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
-                        fixed_base=True),
-                    'pegboard': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
-                        fixed_base=True),
-                    'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
-                    'region2': load_pybullet("../scenario_description/region_big.urdf",fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
-                    'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
-                    'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
-                }
-                color=[1,0,0]
-                set_color(self.bd_body['region1'], color=color)
-                set_color(self.bd_body['region2'], color=color)
-
-                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
-                self.drawer_links = get_links(self.bd_body['drawer_shelf'])
-                cabinet_links = get_links(self.bd_body['cabinet_shelf'])
-
-                set_pose(self.bd_body['cabinet_shelf'],
-                         Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['drawer_shelf'],
-                         Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['pegboard'],
-                         Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region1'],
-                         Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region2'],
-                         Pose(Point(x=0.05, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
-
-                self.movable_bodies = [self.bd_body['c1'], self.bd_body['c2'], self.bd_body['c3']]
-                self.env_bodies = [self.arm_base, self.bd_body['floor'], self.bd_body['cabinet_shelf'],
-                                   self.bd_body['drawer_shelf'], self.bd_body['pegboard']]
-                self.regions = [self.bd_body['region1'], self.bd_body['region2']]
-
-                self.all_bodies = list(set(self.movable_bodies) | set(self.env_bodies) | set(self.regions))
-
-                self.sensors = []
-
-                self.robots = [self.arm_left]
-
-                self.dic_body_info = {}
-                for b in self.movable_bodies:
-                    obj_center, obj_extent = get_center_extent(b)
-                    body_pose = get_pose(b)
-                    body_frame = tform_from_pose(body_pose)
-                    bottom_center = copy(obj_center)
-                    bottom_center[2] = bottom_center[2] - obj_extent[2] / 2
-                    bottom_frame = tform_from_pose((bottom_center, body_pose[1]))
-                    relative_frame_bottom = np.dot(bottom_frame, np.linalg.inv(body_frame))  # from pose to bottom
-                    center_frame = tform_from_pose((obj_center, body_pose[1]))
-                    relative_frame_center = np.dot(center_frame, np.linalg.inv(body_frame))
-
-                    self.dic_body_info[b] = (obj_extent, relative_frame_bottom, relative_frame_center)
-                self.reset()
-
-    def reset(self):
-        with HideOutput():
-            with LockRenderer():
-                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
-                initial_jts = np.array([0.1, 1.4, 1, 1.7, 0, 0, 0])
-                config_left = BodyConf(self.arm_left, initial_jts)
-                config_left.assign()
-
-                movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
-                set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
-
-                set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=EPSILON+stable_z(self.bd_body['c1'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c2'],
-                         Pose(Point(x=0.32, y=0.9, z=EPSILON+stable_z(self.bd_body['c2'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c3'],
-                         Pose(Point(x=0.34, y=0.845, z=EPSILON+stable_z(self.bd_body['c3'], self.bd_body['region1']))))
-
-                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
-
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
-class ScenarioForTraining(object):
-    def __init__(self):
-        with HideOutput():
-            with LockRenderer():
-                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
-                                              fixed_base=True)
-                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-
-                self.bd_body = {
-                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
-                    # 'cabinet_shelf': load_pybullet(
-                    #     "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
-                    #     fixed_base=True),
-                    # 'drawer_shelf': load_pybullet(
-                    #     "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
-                    #     fixed_base=True),
-                    # 'pegboard': load_pybullet(
-                    #     "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
-                    #     fixed_base=True),
-                    'region1': load_pybullet("../scenario_description/training_region.urdf", fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
-                    'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
-                }
-                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
-                # self.drawer_links = get_links(self.bd_body['drawer_shelf'])
-                # cabinet_links = get_links(self.bd_body['cabinet_shelf'])
-
-                # set_pose(self.bd_body['cabinet_shelf'],
-                #          Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
-                # set_pose(self.bd_body['drawer_shelf'],
-                #          Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
-                # set_pose(self.bd_body['pegboard'],
-                #          Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region1'],
-                         Pose(Point(x=0.2, y=0., z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
-
-                self.movable_bodies = [self.bd_body['c1'], self.bd_body['c2']]
-                self.body_gripped = self.bd_body['c1']
-                self.body_on_table = self.bd_body['c2']
-                # self.movable_bodies = []
-                # self.env_bodies = [self.arm_base, self.bd_body['floor'], self.bd_body['cabinet_shelf'],
-                                #    self.bd_body['drawer_shelf'], self.bd_body['pegboard']]
-                self.env_bodies = [self.arm_base, self.bd_body['floor']]
-
-                self.regions = [self.bd_body['region1']]
-
-                self.all_bodies = list(set(self.movable_bodies) | set(self.env_bodies) | set(self.regions))
-
-                self.sensors = []
-
-                self.robots = [self.arm_left]
-                self.robot  =self.robots[0]
-                self.movable_joints = pu.get_movable_joints(self.robot)
-                self.dic_body_info = {}
-                for b in self.movable_bodies:
-                    obj_center, obj_extent = get_center_extent(b)
-                    body_pose = get_pose(b)
-                    body_frame = tform_from_pose(body_pose)
-                    bottom_center = copy(obj_center)
-                    bottom_center[2] = bottom_center[2] - obj_extent[2] / 2
-                    bottom_frame = tform_from_pose((bottom_center, body_pose[1]))
-                    relative_frame_bottom = np.dot(bottom_frame, np.linalg.inv(body_frame))  # from pose to bottom
-                    center_frame = tform_from_pose((obj_center, body_pose[1]))
-                    relative_frame_center = np.dot(center_frame, np.linalg.inv(body_frame))
-                    self.dic_body_info[b] = (obj_extent, relative_frame_bottom, relative_frame_center)
-
-                self.reset()
-                self.end_effector_link = pu.link_from_name(self.robot, pk.TOOL_FRAMES[pu.get_body_name(self.robot)])
-                self.tcp_pose = pu.get_link_pose(self.robot, self.end_effector_link)
-                self.robot_pose = pu.get_pose(self.robot)
-
-                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
-
-    def reset(self):
-        with HideOutput():
-            with LockRenderer():
-                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
-                initial_jts = np.array([0.1, 0, 0, 1.7, 0, 0, 0])
-                config_left = BodyConf(self.arm_left, initial_jts)
-                config_left.assign()
-
-                # movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
-                # set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
-
-                set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c2'],
-                         Pose(Point(x=0.32, y=0.9, z=stable_z(self.bd_body['c2'], self.bd_body['region1']))))
-
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
-class Scene_unpack1(object):
-    def __init__(self):
-        with HideOutput():
-            with LockRenderer():
-                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
-                                              fixed_base=True)
-                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-
-                self.bd_body = {
-                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
-                    'cabinet_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
-                        fixed_base=True),
-                    'drawer_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
-                        fixed_base=True),
-                    'pegboard': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
-                        fixed_base=True),
-                    'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
-                    'region2': load_pybullet("../scenario_description/region_big.urdf",
-                                             fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
-                }
-                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
-                self.drawer_links = get_links(self.bd_body['drawer_shelf'])
-                cabinet_links = get_links(self.bd_body['cabinet_shelf'])
-
-                set_pose(self.bd_body['cabinet_shelf'],
-                         Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['drawer_shelf'],
-                         Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['pegboard'],
-                         Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region1'],
-                         Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region2'],
-                         Pose(Point(x=0.05, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
-
-                self.movable_bodies = [self.bd_body['c1'], ]
-                self.env_bodies = [self.arm_base, self.bd_body['floor'], self.bd_body['cabinet_shelf'],
-                                   self.bd_body['drawer_shelf'], self.bd_body['pegboard']]
-                self.regions = [self.bd_body['region1'], self.bd_body['region2']]
-
-                self.all_bodies = list(set(self.movable_bodies) | set(self.env_bodies) | set(self.regions))
-
-                self.sensors = []
-
-                self.robots = [self.arm_left]
-
-                self.dic_body_info = {}
-                for b in self.movable_bodies:
-                    obj_center, obj_extent = get_center_extent(b)
-                    body_pose = get_pose(b)
-                    body_frame = tform_from_pose(body_pose)
-                    bottom_center = copy(obj_center)
-                    bottom_center[2] = bottom_center[2] - obj_extent[2] / 2
-                    bottom_frame = tform_from_pose((bottom_center, body_pose[1]))
-                    relative_frame_bottom = np.dot(bottom_frame, np.linalg.inv(body_frame))  # from pose to bottom
-                    center_frame = tform_from_pose((obj_center, body_pose[1]))
-                    relative_frame_center = np.dot(center_frame, np.linalg.inv(body_frame))
-
-                    self.dic_body_info[b] = (obj_extent, relative_frame_bottom, relative_frame_center)
-
-                self.reset()
-
-    def reset(self):
-        with HideOutput():
-            with LockRenderer():
-                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
-                initial_jts = np.array([0.1, 1.4, 1, 1.7, 0, 0, 0])
-                config_left = BodyConf(self.arm_left, initial_jts)
-                config_left.assign()
-
-                movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
-                set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
-
-                set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
-
-
-                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
-
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
-class Scene_unpack2(object):
-    def __init__(self):
-        with HideOutput():
-            with LockRenderer():
-                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
-                                              fixed_base=True)
-                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-
-                self.bd_body = {
-                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
-                    'cabinet_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
-                        fixed_base=True),
-                    'drawer_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
-                        fixed_base=True),
-                    'pegboard': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
-                        fixed_base=True),
-                    'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
-                    'region2': load_pybullet("../scenario_description/region_big.urdf",
-                                             fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
-                    'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
-                }
-                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
-                self.drawer_links = get_links(self.bd_body['drawer_shelf'])
-                cabinet_links = get_links(self.bd_body['cabinet_shelf'])
-
-                set_pose(self.bd_body['cabinet_shelf'],
-                         Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['drawer_shelf'],
-                         Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['pegboard'],
-                         Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region1'],
-                         Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region2'],
-                         Pose(Point(x=0.05, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
-
-                self.movable_bodies = [self.bd_body['c1'], self.bd_body['c2'], ]
-                self.env_bodies = [self.arm_base, self.bd_body['floor'], self.bd_body['cabinet_shelf'],
-                                   self.bd_body['drawer_shelf'], self.bd_body['pegboard']]
-                self.regions = [self.bd_body['region1'], self.bd_body['region2']]
-
-                self.all_bodies = list(set(self.movable_bodies) | set(self.env_bodies) | set(self.regions))
-
-                self.sensors = []
-
-                self.robots = [self.arm_left]
-
-                self.dic_body_info = {}
-                for b in self.movable_bodies:
-                    obj_center, obj_extent = get_center_extent(b)
-                    body_pose = get_pose(b)
-                    body_frame = tform_from_pose(body_pose)
-                    bottom_center = copy(obj_center)
-                    bottom_center[2] = bottom_center[2] - obj_extent[2] / 2
-                    bottom_frame = tform_from_pose((bottom_center, body_pose[1]))
-                    relative_frame_bottom = np.dot(bottom_frame, np.linalg.inv(body_frame))  # from pose to bottom
-                    center_frame = tform_from_pose((obj_center, body_pose[1]))
-                    relative_frame_center = np.dot(center_frame, np.linalg.inv(body_frame))
-
-                    self.dic_body_info[b] = (obj_extent, relative_frame_bottom, relative_frame_center)
-
-                self.reset()
-
-    def reset(self):
-        with HideOutput():
-            with LockRenderer():
-                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
-                initial_jts = np.array([0.1, 1.4, 1, 1.7, 0, 0, 0])
-                config_left = BodyConf(self.arm_left, initial_jts)
-                config_left.assign()
-
-                movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
-                set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
-
-                set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c2'],
-                         Pose(Point(x=0.32, y=0.9, z=stable_z(self.bd_body['c2'], self.bd_body['region1']))))
-
-
-                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
-
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
-class Scene_unpack3(object):
-    def __init__(self):
-        with HideOutput():
-            with LockRenderer():
-                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
-                                              fixed_base=True)
-                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-
-                self.bd_body = {
-                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
-                    'cabinet_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
-                        fixed_base=True),
-                    'drawer_shelf': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
-                        fixed_base=True),
-                    'pegboard': load_pybullet(
-                        "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
-                        fixed_base=True),
-                    'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
-                    'region2': load_pybullet("../scenario_description/region_big.urdf",
-                                             fixed_base=True),
-                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
-                    'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
-                    'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
-                }
-                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
-
-                self.drawer_links = get_links(self.bd_body['drawer_shelf'])
-                cabinet_links = get_links(self.bd_body['cabinet_shelf'])
-
-                set_pose(self.bd_body['cabinet_shelf'],
-                         Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['drawer_shelf'],
-                         Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
-                set_pose(self.bd_body['pegboard'],
-                         Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region1'],
-                         Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
-                set_pose(self.bd_body['region2'],
-                         Pose(Point(x=0.05, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
-
-                self.movable_bodies = [self.bd_body['c1'], self.bd_body['c2'], self.bd_body['c3']]
-                self.env_bodies = [self.arm_base, self.bd_body['floor'], self.bd_body['cabinet_shelf'],
-                                   self.bd_body['drawer_shelf'], self.bd_body['pegboard']]
-                self.regions = [self.bd_body['region1'], self.bd_body['region2']]
-
-                self.all_bodies = list(set(self.movable_bodies) | set(self.env_bodies) | set(self.regions))
-
-                self.sensors = []
-
-                self.robots = [self.arm_left]
-
-                self.dic_body_info = {}
-                for b in self.movable_bodies:
-                    obj_center, obj_extent = get_center_extent(b)
-                    body_pose = get_pose(b)
-                    body_frame = tform_from_pose(body_pose)
-                    bottom_center = copy(obj_center)
-                    bottom_center[2] = bottom_center[2] - obj_extent[2] / 2
-                    bottom_frame = tform_from_pose((bottom_center, body_pose[1]))
-                    relative_frame_bottom = np.dot(bottom_frame, np.linalg.inv(body_frame))  # from pose to bottom
-                    center_frame = tform_from_pose((obj_center, body_pose[1]))
-                    relative_frame_center = np.dot(center_frame, np.linalg.inv(body_frame))
-
-                    self.dic_body_info[b] = (obj_extent, relative_frame_bottom, relative_frame_center)
-
-                self.reset()
-
-    def reset(self):
-        with HideOutput():
-            with LockRenderer():
-                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
-                initial_jts = np.array([0.1, 1.4, 1, 1.7, 0, 0, 0])
-                config_left = BodyConf(self.arm_left, initial_jts)
-                config_left.assign()
-
-                movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
-                set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
-
-                set_pose(self.bd_body['c1'],
-                         Pose(Point(x=0.375, y=0.9, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c2'],
-                         Pose(Point(x=0.32, y=0.9, z=stable_z(self.bd_body['c2'], self.bd_body['region1']))))
-                set_pose(self.bd_body['c3'],
-                         Pose(Point(x=0.34, y=0.845, z=stable_z(self.bd_body['c3'], self.bd_body['region1']))))
-
-                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
-
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
 class Scene_random(object):
     def __init__(self, dirname='random_scenes', json_file=None):
         self.dirname = dirname
@@ -490,7 +29,6 @@ class Scene_random(object):
             print(f"exists no {dirname}")
             os.mkdir(self.dirname)
         print(f"going to save scene json file into {self.dirname}")
-        
         self.initial_scene()
         if json_file is None:
             self.random_scene()
@@ -541,7 +79,6 @@ class Scene_random(object):
                                     self.camera_setting[3:])
 
     def random_scene(self):
-
         while True:
         # random scene
             self.fixed_or_random_boxZ()
@@ -557,6 +94,7 @@ class Scene_random(object):
                 self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
                 self.random_goal()
                 self.hhhhhhhhhh()
+                self.all_or_top_pick_dir()
                 break
 
         # self.save_scene_in_json()
@@ -576,13 +114,15 @@ class Scene_random(object):
 
     def all_or_top_pick_dir(self):
         self.all_pick_dir = bool(np.random.randint(2))
+        # self.all_pick_dir = 1
+        print(f"pick direction from {self.all_pick_dir}")
 
     def fixed_or_random_boxZ(self):
         self.fixed_boxZ = bool(np.random.randint(2))
         self.fixed_boxZ = True
 
     def random_regions(self):
-        self.region_num = np.random.randint(2,4)
+        self.region_num = np.random.randint(2,3)
         region_size = (0.25,0.25,0.001)
         self.regions = set()
         for i in range(self.region_num):
@@ -623,7 +163,7 @@ class Scene_random(object):
     def random_boxes(self):
         # self.boxes_num = np.random.randint(2,5)
         self.movable_box_num = np.random.randint(2,5)
-        self.obstacle_box_num = np.random.randint(1,3)
+        self.obstacle_box_num = np.random.randint(2,4)
         self.movable_bodies = set()
         self.obstacle_bodies = set()
 
@@ -676,16 +216,16 @@ class Scene_random(object):
 
     def random_goal(self):
         # ? body on ? region
-        target_body = list(self.movable_bodies)[0]
-        pu.set_color(target_body, [0,0,1,1])
-        region_of_target_body = pu.get_region_of_body(target_body, self.regions)
+        target_bodies = list(self.movable_bodies)[:2]
+        [pu.set_color(bd, [0,0,1,1]) for bd in target_bodies]
+        region_of_target_body = pu.get_region_of_body(target_bodies[0], self.regions)
         goal_region = np.random.choice(list(self.regions-{region_of_target_body}))
         pu.set_color(goal_region, [0,0,0.5,1])
-        self.goal = {self.bd_body[goal_region]: [self.bd_body[target_body]]}
+        self.goal = {self.bd_body[goal_region]: [self.bd_body[bd] for bd in target_bodies]}
 
     def save_scene_in_json(self):
         print(f"saving current scene to {self.scene_save_name}")
-        
+
         # robot: filename, base_pose, init_config
         self.scene = {}
         self.scene['bodies'] = []   
@@ -727,6 +267,7 @@ class Scene_random(object):
             'target_point': list(self.camera_setting[3:])
         }
         self.scene['goal'] = self.goal
+        self.scene['all_pick_dir'] = self.all_pick_dir
 
         self.scene['tm_plan'] = {
             't_plan': "None",
@@ -770,7 +311,12 @@ class Scene_random(object):
         self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
 
         self.goal = self.scene['goal']
-        
+
+        try:
+            self.all_pick_dir = self.scene['all_pick_dir']
+        except:
+            self.all_pick_dir = 0
+
         self.hhhhhhhhhh()
 
     def hhhhhhhhhh(self):
@@ -792,27 +338,3 @@ class Scene_random(object):
                 # set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
                 set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
 
-    def get_elemetns(self):
-        self.reset()
-        return self.arm_left, self.movable_bodies, self.regions
-
-    def clear_scene(self):
-
-        pass
-#######################################################
-
-def display_scenario():
-    connect(use_gui=True)
-
-    scn = PlanningScenario()
-
-    for i in range(10000):
-        step_simulation()
-        time.sleep(0.1)
-
-    disconnect()
-    print('Finished.')
-
-
-if __name__ == '__main__':
-    display_scenario()

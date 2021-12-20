@@ -9,6 +9,8 @@
 *.model
 table*/
 A_actionPlans/
+tmp_feature_based_data/
+wandb/
 
 B_fullPlans/
 C_operatorPlans/

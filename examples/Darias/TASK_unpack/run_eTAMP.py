@@ -139,10 +139,12 @@ def multisim():
             print(f"total_node_numbers {e_root.total_node}")
         saved_world.restore()
 
+    embed()
     disconnect()
     return e_root.num_total_child_visits, e_root.total_node, thinking_time, len(e_root.children)
 
 if __name__ == '__main__':
+
     visualization = bool(int(sys.argv[1]))
     stream_discret = bool(int(sys.argv[2]))
     max_sim = int(sys.argv[3])

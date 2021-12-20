@@ -1,4 +1,4 @@
-;14:07:12 16/12
+;16:31:41 19/12
 
 (define (problem unpack-3blocks)
    (:domain blocks)
@@ -25,6 +25,7 @@
           c1 - block
           c2 - block
           c3 - block
+          0__0__1__0 - direction
    )
 
    (:init

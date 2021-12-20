@@ -774,8 +774,9 @@ data flow
 
 - [ ] writing
 - [x] collecting dataset of all pick dir, no rotZ
-- [ ] train MLP/SVM and CNN and compare the training process
-- [ ] test the model in TASK_random
+- [x] train MLP/SVM and CNN and 
+- [ ] compare the training process
+- [x] test the model in TASK_random
 - [x] more on idtmp 002
 - [ ] eTAMP + learning, coding and testing
 - [ ] how grasping success probability help TAMP?
@@ -784,11 +785,11 @@ data flow
 
 12.07
 
-- [ ] why CNN_dirall failed?
-  - [ ] how many data, overfitting and underfitting
-- [ ] eMLP: 高度
+- [x] why CNN_dirall failed?
+  - [x] how many data, overfitting and underfitting
+- [x] eMLP: 高度
 - [x] CNN object-centered(OC) with **random height**, **random box direction**
-  - [ ] perform very bad in TASK_unpack
+  - [x] perform very bad in TASK_unpack
 - [x] CNN OC without height with direction, work bad, most cases with two boxes close to each other failed. the model is distance sensitive
 - [x] CNN OC without height without direction, works pretty well with very high prediction accuracy on training dataset, very clean classification with 0.5 threshold
 - [x] CNN OC with height without direction, works well 

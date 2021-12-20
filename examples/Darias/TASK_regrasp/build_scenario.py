@@ -455,6 +455,8 @@ class PlanningScenario_4obs_1box(object):
             # set_pose(box1, Pose(Point(x=0.25, y=0.80, z=stable_z(box1, region2))))
 
         self.movable_bodies = [self.bd_body['box1']]
+        self.obstacle_bodies = [self.bd_body['box_S1'],self.bd_body['box_S2'],
+                                self.bd_body['box_S3'],self.bd_body['box_S4']]
 
         self.regions = [self.bd_body['region_shelf'], self.bd_body['region_drawer'], self.bd_body['region_table']]
 

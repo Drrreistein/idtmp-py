@@ -5,6 +5,7 @@ from matplotlib import image
 import matplotlib.pyplot as plt
 import pickle
 from itertools import repeat
+from numpy.core.fromnumeric import argsort
 
 from numpy.ma.core import choose
 
@@ -19,6 +20,7 @@ import multiprocessing as mps
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.neural_network import MLPClassifier
 
@@ -31,7 +33,8 @@ import random
 import random
 import time
 import sparse
-from utils.pybullet_tools.utils import read
+
+from utils.pybullet_tools.utils import read, spaced_colors
 
 downsampling = 4
 
@@ -107,21 +110,21 @@ def merge_csv(dirname):
 
 class CustomGen(tf.keras.utils.Sequence):
     def __init__(self, df:list, labels, pick_dir=[4], batch_size = 32, choose_ch2=2,dtype='tensorflow'):
-        
         self.df = df
         self.labels = labels
-        if dtype=='FV_CNN':
+        self.dtype = dtype
+        if self.dtype=='FV_CNN' or self.dtype=='image_edge':
             self.n = len(df[0])
         else:
             self.n = len(df)
         self.batch_size = batch_size
-        self.dtype = dtype
         self.batch_num = self.n // self.batch_size
         self.choose_ch2 = choose_ch2
         if pick_dir == 'all':
             self.pick_dir = [0,1,2,3,4]
         else:
             self.pick_dir = pick_dir
+        self.timer = 0
 
     def __getitem__(self, index):
         m, n = index*self.batch_size, (index+1)*self.batch_size
@@ -182,6 +185,48 @@ class CustomGen(tf.keras.utils.Sequence):
                         # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
                         images = np.concatenate((images, mat1), axis=0)
                         labels = np.concatenate((labels, self.labels[m:n, dir_ind+5]), axis=0)
+            return [images, features], labels
+
+        elif self.dtype=='image_edge':
+            t0=time.time()
+            mat1 = np.zeros((n-m,100,100,self.df[0].shape[1]))
+            for num in range(n-m):
+                for i in range(self.df[0].shape[1]):
+                    edges = self.df[0][m+num,i]
+                    for edge in edges:
+                        xmin,xmax,ymin,ymax,height = edge
+                        mat1[num,xmin:xmax+1:,ymin:ymax+1,i] = height/256
+
+            if np.max(mat1)>1:
+                mat1 = mat1/256
+            input_shape = mat1[:,:,:,:1].shape
+            mat2 = np.concatenate((mat1[:,:,:,:1],np.zeros(input_shape)),axis=-1)
+
+            for dir_ind in self.pick_dir:
+                tmp_feat = np.concatenate((self.df[1][m:n], np.ones((self.batch_size,1))*dir_ind), axis=-1)
+                if 'features' not in locals():
+                    if self.choose_ch2==2:
+                        features = np.concatenate((tmp_feat, tmp_feat), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((mat1, mat2), axis=0)
+                        labels = np.concatenate((self.labels[m:n, dir_ind+5], self.labels[m:n, dir_ind]),axis=0)
+                    elif self.choose_ch2==1:
+                        features = tmp_feat
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = mat1
+                        labels = self.labels[m:n, dir_ind+5]
+                else:
+                    if self.choose_ch2==2:
+                        features = np.concatenate((features, np.concatenate((tmp_feat, tmp_feat), axis=0)), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((images, np.concatenate((mat1, mat2), axis=0)), axis=0)
+                        labels = np.concatenate((labels, np.concatenate((self.labels[m:n, dir_ind+5], self.labels[m:n, dir_ind]),axis=0)), axis=0)
+                    elif self.choose_ch2==1:
+                        features = np.concatenate((features, tmp_feat), axis=0)
+                        # duplicate two-channel images with 2th channel empty, bin-pick target box without neighbor
+                        images = np.concatenate((images, mat1), axis=0)
+                        labels = np.concatenate((labels, self.labels[m:n, dir_ind+5]), axis=0)
+            self.timer += time.time()-t0
             return [images, features], labels
 
     def __len__(self):
@@ -267,6 +312,60 @@ def read_image(dataset:dict, shape, downsampling, labels_ind=-5, scale=256):
             img_tf = tf.sparse.from_dense(np.reshape(img_mat[::downsampling, ::downsampling, :], shape))
         images_labels[img_tf] = v[labels_ind:]
     return images_labels
+
+def read_image_edges(dataset:dict, downsampling=1, labels_ind=-5):
+    images = []
+    labels = []
+
+    for k, v in dataset.items():
+        # if not np.any(v[-10:]):
+        #     continue
+        img_mat = np.asarray(Image.open(k+'.png'))
+        if np.min(img_mat)>0:
+            img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
+        img_resized = img_mat[::downsampling, ::downsampling, :]
+        # for AABB, box edge can be expressed as [xmin, xmax, ymin, ymax]
+        image_edges = []
+        for ch in range(img_resized.shape[2]):
+            unq_values = np.unique(img_resized[:,:,ch])
+            channel_edge = []
+            for val in unq_values:
+                if val <5:
+                    continue
+                args = np.argwhere(img_resized[:,:,ch]==val)
+                xmin,ymin = np.min(args, axis=0)
+                xmax,ymax = np.max(args, axis=0)
+                channel_edge.append((xmin,xmax,ymin,ymax,val))
+            image_edges.append(channel_edge)
+
+        # for general expression, we should log all args of the edge pixels
+        # image_edges = []
+        # for ch in range(img_resized.shape[2]):
+        #     unq_values = np.unique(img_resized[:,:,ch])
+        #     channel_edge = []
+        #     for val in unq_values:
+        #         if val <5:
+        #             continue
+        #         args = np.argwhere(img_resized[:,:,ch]==val)
+        #         sort_args = args[np.argsort(args[:,1])]
+        #         y0 = sort_args[0,1]
+        #         xmin, xmax = sort_args[0,0], sort_args[0,0]
+        #         for i,y in enumerate(sort_args[:,1]):
+        #             if y0 == y:
+        #                 xmin = min(xmin, sort_args[i,0])
+        #                 xmax = max(xmax, sort_args[i,0])
+        #             else:
+        #                 channel_edge.append((xmin,y0))
+        #                 channel_edge.append((xmax,y0))
+        #                 y0 = y
+        #                 xmin, xmax = sort_args[i,0], sort_args[i,0]
+        #         channel_edge.append((xmin,y0))
+        #         channel_edge.append((xmax,y0))
+        #     image_edges.append(channel_edge)
+
+        images.append(image_edges)
+        labels.append(v[labels_ind:])
+    return images, labels
 
 def repair_images(dirname, image_names:list):
     for image_name in image_names:
@@ -583,7 +682,7 @@ def create_model(input_shape):
     model.summary()
     return model
 
-def get_data_mp_obj_centered(dirnames, nums=[100000, 10000], height=200, batch_size=50, proc_num=16):
+def get_data_mp_obj_centered(dirnames, nums=[100000, 10000], height=200, batch_size=50, proc_num=16, sparse_data=True):
     all_txt_files = []
     for dirname in dirnames:
         txt_files = []
@@ -627,19 +726,30 @@ def get_data_mp_obj_centered(dirnames, nums=[100000, 10000], height=200, batch_s
     assert m == height, 'image resolution not consistent'
     shape = tuple([1] + [m,n,2])
     
-    pool = mps.Pool(processes=proc_num)
-    images_labels = dict()
-    for i in range(int(np.ceil(num_batch/proc_num))):
-        tmp = pool.starmap(read_image, zip(filenames[i*proc_num:i*proc_num+proc_num],repeat(shape),repeat(downsampling), repeat(0), repeat(1)))
-        for t in tmp:
-            images_labels.update(t)
-
-    images = list(images_labels.keys())
-    labels = np.array(list(images_labels.values()))
+    if sparse_data:
+        pool = mps.Pool(processes=proc_num)
+        images_labels = dict()
+        for i in range(int(np.ceil(num_batch/proc_num))):
+            tmp = pool.starmap(read_image, zip(filenames[i*proc_num:i*proc_num+proc_num],repeat(shape),repeat(downsampling), repeat(0), repeat(1)))
+            for t in tmp:
+                images_labels.update(t)
+        images = list(images_labels.keys())
+        labels = np.array(list(images_labels.values()))
+    else:
+        pool = mps.Pool(processes=proc_num)
+        images = []
+        labels = []
+        for i in range(int(np.ceil(num_batch/proc_num))):
+            tmp = pool.starmap(read_image_edges, zip(filenames[i*proc_num:i*proc_num+proc_num],repeat(downsampling), repeat(0)))
+            for t in tmp:
+                images.extend(t[0])
+                labels.extend(t[1])
+        images = np.array(images)
+        labels = np.array(labels)
 
     train_data_len = int(len(images)*0.8)
     test_data_len = int(len(images)*0.9)
-    
+
     feat_num = 3
     features = labels[:,:feat_num]
     labels = np.array(labels[:,feat_num:], dtype=int)
@@ -839,21 +949,54 @@ def test_accuracy(test_y, real_y):
         res[key] = val/num_test
     return res
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################### feature based model #################################
+
+
 def train_svm_model(train, test):
+
     # clf = make_pipeline(StandardScaler(), SVC(C=30000, gamma=0.1))
     clf = SVC(C=30000, gamma=0.1)
     clf.fit(train[:, :-1], train[:, -1])
-    pred_train_y = clf.predict(train[:, :-1])
-    pred_test_y = clf.predict(test[:, :-1])
-    acc_train = clf.score(train[:, :-1], train[:, -1])
-    acc_test = clf.score(test[:, :-1], test[:, -1])
-    print(f"acc_train: {acc_train}, acc_test: {acc_test}")
+    clf.score(test[:, :-1], test[:, -1])
+
+    # bagging
+    clf = BaggingClassifier(SVC(C=3000,gamma=0.1, kernel='rbf'), n_jobs=15)
+    clf.fit(train[:, :-1], train[:, -1])
+    clf.score(test[:, :-1], test[:, -1])
+
+    prob_train = clf.predict_proba(train[:, :-1], train[:, -1])
+    prob_test = clf.predict_proba(train[:, :-1], train[:, -1])
+    pred_train_y = prob_train > 0.5
+    pred_test_y = prob_test > 0.5
+    # acc_test = clf.score(test[:, :-1], test[:, -1])
+    # acc_train = clf.score(train[:, :-1], train[:, -1])
+    
+    # pred_train_y = clf.predict(train[:, :-1])
+    # pred_test_y = clf.predict(test[:, :-1])
+    # print(f"acc_train: {acc_train}, acc_test: {acc_test}")
     print(f"real_pos_train: {sum(train[:,-1])/len(train)}")
     print(f"real_pos_test: {sum(test[:,-1])/len(test)}")
     print(test_accuracy(pred_train_y, train[:, -1]))
     print(test_accuracy(pred_test_y, test[:, -1]))
+
     with open("./svm_model.pk", 'wb') as file:
         pickle.dump(clf, file)
+
     return clf
 
 def predict_proba(model, data_x, threshold=0.5):
@@ -899,40 +1042,74 @@ def plot_statistic(model, data):
     plt.legend(['recall', 'precision', 'f_score'])
     plt.show()
 
-def train_tf_mlp_model():
-    def create_tf_mlp_model(input_shape, neurons=[20,20,20]):
-        """
-        create TF MLP model
-        """
-        input = layers.Input(shape=input_shape)
+def create_tf_mlp_model(input_shape, neurons=[20,20,20], dropout=0):
+    """
+    create TF MLP model
+    """
+    input = layers.Input(shape=input_shape)
 
-        for i in range(len(neurons)):
-            if i==0:
-                x = tf.keras.layers.Dense(neurons[i], activation='relu')(input)
+    for i in range(len(neurons)):
+        if i==0:
+            x = tf.keras.layers.Dense(neurons[i], activation='relu')(input)
+        else:
+            x = tf.keras.layers.Dense(neurons[i], activation='relu')(x)
+        x = tf.keras.layers.Dropout(dropout)(x)
+    x = layers.Dense(1, activation='sigmoid')(x)
+    model = models.Model(input, x)
+    model.summary()
+    return model
+
+def get_data_for_mlp(dirname, data_num='all',pick_dir=[4], duplicate=2, balance_dataset=False):
+    for f in os.listdir(dirname):
+        if 'feat_vec' in f:
+            if 'dataset' not in locals():
+                dataset = np.loadtxt(os.path.join(dirname,f))
             else:
-                x = tf.keras.layers.Dense(neurons[i], activation='relu')(x)
-        x = layers.Dense(1, activation='sigmoid')(x)
-        model = models.Model(input, x)
-        model.summary()
-        return model
+                dataset = np.concatenate((dataset,np.loadtxt(os.path.join(dirname,f))), axis=0)
+    if not data_num=='all':
+        dataset = dataset[:data_num]
 
-    def get_data_for_mlp(dirname):
-        for f in os.listdir(dirname):
-            if 'feat_vec' in f:
-                if 'dataset' not in locals():
-                    dataset = np.loadtxt(os.path.join(dirname,f))
-                else:
-                    dataset = np.concatenate((dataset,np.loadtxt(os.path.join(dirname,f))), axis=0)
-        features = dataset[:,:13]
-        labels = dataset[:,13:]
-        train_len = int(len(dataset)*0.8)
-        return features[:train_len], labels[:train_len], features[train_len:], labels[train_len:]
+    if balance_dataset:
+        args = np.argwhere(np.any(dataset[:,13:]==1, axis=1))
+        dataset = dataset[args[:,0]]
 
-    train_x, train_y, test_x, test_y = get_data_for_mlp('table_2d_no_height')
-    train_x_1box, test_x_1box = train_x[:,:7], test_x[:,:7]
+    features = dataset[:,:13]
+    labels = dataset[:,13:]
+    if pick_dir=='all':
+        pick_dir = [0,1,2,3,4]
 
-    model = create_tf_mlp_model(train_x.shape[1], neurons=[30,30,30])
-    model_1box = create_tf_mlp_model(train_x_1box.shape[1], neurons=[20,20,20])
+    if duplicate==2:
+        pick_dir_list = []
+        for direction in pick_dir:
+            pick_dir_list.extend([direction, direction+5])
+    elif duplicate == 1:
+        pick_dir_list = [direction+5 for direction in pick_dir]
+
+    repeat_num  = len(pick_dir) * duplicate
+    feature_dir = np.repeat([pick_dir], features.shape[0], \
+                        axis=0).reshape((len(pick_dir)*features.shape[0],1))
+    feature_dir = np.repeat(feature_dir, duplicate, axis=0)
+
+    features = np.repeat(features, repeat_num, axis=0)
+    labels = labels[:,pick_dir_list].reshape((features.shape[0],1))
+
+    assert features.shape[0] == feature_dir.shape[0], "feature size not consistent"
+    assert features.shape[0] == labels.shape[0], "feature size not consistent"
+
+    if duplicate==2:
+        features[::2,7:]=0
+    features = np.concatenate((features, feature_dir), axis=-1)
+    train_len = int(len(features)*0.8)
+    dataset_processed = np.concatenate((features, labels), axis=-1)
+    # return features[:train_len], labels[:train_len], features[train_len:], labels[train_len:]
+    return dataset_processed[:train_len], dataset_processed[train_len:]
+
+def train_tf_mlp_model():
+    # train_x, train_y, test_x, test_y = get_data_for_mlp('table_3d_')
+    # train_x_1box, test_x_1box = train_x[:,:7], test_x[:,:7]
+    train, test  = get_data_for_mlp( 'table_3d_all_dir_no_rotZ/',  pick_dir='all', balance_dataset=True)
+    model = create_tf_mlp_model(train.shape[1]-1, neurons=[20, 20, 20])
+    # model_1box = create_tf_mlp_model(train_x_1box.shape[1], neurons=[20,20,20])
     model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
         loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
@@ -942,24 +1119,88 @@ def train_tf_mlp_model():
                  tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
                  tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
                  ])
-    model_1box.compile(
-        optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
-        loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
-        metrics = ['accuracy', 
-                 tf.keras.metrics.Precision(name='P'),
-                 tf.keras.metrics.Recall(name='R'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
-                 tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
-                 ])
+
+    # model_1box.compile(
+    #     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3),
+    #     loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
+    #     metrics = ['accuracy', 
+    #              tf.keras.metrics.Precision(name='P'),
+    #              tf.keras.metrics.Recall(name='R'),
+    #              tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+    #              tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+    #              ])
 
     # objected centered model
-    epochs=4
+    epochs=2
     for i in range(10):
-        model.fit(train_x, train_y[:,-1], epochs=epochs, batch_size = 100, validation_data=(test_x,test_y[:,-1]))
-        model_1box.fit(train_x_1box, train_y[:,4], epochs=epochs, batch_size = 100, validation_data=(test_x_1box,test_y[:,4]))
+        model.fit(train[:,:-1], train[:,-1], epochs=epochs, batch_size = 100, validation_data=(test[:,:-1],test[:,-1]))
+        # model_1box.fit(train_x_1box, train_y[:,4], epochs=epochs, batch_size = 100, validation_data=(test_x_1box,test_y[:,4]))
     # evaluate_cnn_model(model, test_images[test_data_len:], test_labels[test_data_len:], norm=True)
-        model.save(f"mlp_fv_dir4_{(i+1)*epochs}.model")
-        model_1box.save(f"mlp_fv_dir4_1box{(i+1)*epochs}.model")
+        model.save(f"mlp_tf_dirall_{(i+1)*epochs}.model")
+        # model_1box.save(f"mlp_fv_dir4_1box{(i+1)*epochs}.model")
+
+def training_mlp_log_wandb():
+    """
+    sweep hyperparameter with wandb
+    """
+    import wandb
+    from wandb.keras import WandbCallback
+    wandb.login()
+
+    def make_model(config):
+        neurons = int(config["dense_layer"])
+        model = create_tf_mlp_model(train.shape[1]-1, neurons=[neurons, neurons, neurons], dropout=config["dropout"])
+        model.compile(
+            optimizer = tf.keras.optimizers.Adam(config["learning_rate"]),
+            loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            metrics = ['accuracy',
+                    tf.keras.metrics.Precision(name='P'),
+                    tf.keras.metrics.Recall(name='R'),
+                    # tf.keras.metrics.AUC(num_thresholds=100, curve='PR', name='AUC_PR'),
+                    # tf.keras.metrics.AUC(num_thresholds=100, curve='ROC',name='AUC_ROC')
+                    ])
+        return model
+
+    def train_mlp():
+        with wandb.init(project="tamp_fc_mlp") as run:
+            config = wandb.config
+            model = make_model(config)
+            for _ in range(10):
+                logging_callback = WandbCallback(log_evaluation=True)
+                embed()
+                history = model.fit(train[:1000,:-1], train[:1000,-1:], epochs=1, batch_size=100,\
+                validation_data=[test[:100000,:-1:], test[:100000,-1:]], callbacks=[logging_callback])  # your model training code here
+            wandb.log(history.history)
+
+    sweep_config = {
+    "name" : "my-sweep",
+    "entity": "lei_xu_43",
+
+    "method" : "grid",
+    "parameters" : {
+        "dropout": {
+            "values":[0, 0.1, 0.2, 0.3],
+            # "min": 0.,
+            # "max": 0.9,
+        },
+
+        "dense_layer":{
+            "values":[10, 40, 160],
+            # "min": 10,
+            # "max": 200,
+        },
+
+        "learning_rate" :{
+            "values":[0.0001, 0.001, 0.01],
+        # "min": 0.0001,
+        # "max": 0.1
+        }
+    }
+    }
+
+    sweep_id = wandb.sweep(sweep_config)
+    wandb.agent(sweep_id, function=train_mlp)
+    wandb.finish()
 
 def train_mlp_model(train, test):
     # training
@@ -987,6 +1228,8 @@ def train_mlp_model(train, test):
     with open("./mlp_model.pk", 'wb') as file:
         pickle.dump(clf_mlp, file)
     return clf_mlp
+
+
 
 def save_model(model):
     with open("./svm_model.pk", 'wb') as file:

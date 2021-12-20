@@ -25,6 +25,7 @@ from etamp.p_uct2 import PlannerUCT
 from etamp.tree_node2 import ExtendedNode
 from etamp.env_sk_branch import SkeletonEnv
 from build_scenario import PlanningScenario
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_CNN, FeasibilityChecker_MLP
 
 
 def get_fixed(robot, movable):
@@ -232,7 +233,7 @@ def get_pddlstream_problem(scn, discret=False):
 #######################################################
 
 def main(display=True, teleport=False):
-    visualization = True
+    visualization = False
 
     connect(use_gui=visualization)
 
@@ -241,7 +242,9 @@ def main(display=True, teleport=False):
     # dump_world()
     pddlstream_problem = get_pddlstream_problem(scn)
     _, _, _, _, stream_info, action_info = pddlstream_problem
-
+    
+    feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, 
+            model_file="../training_cnn_simple/cnn_fv_100_100_60529_dir4_30_freeze_conv.model/", obj_centered_img=True)
     st = time.time()
 
     new_problem = 1
@@ -257,7 +260,7 @@ def main(display=True, teleport=False):
     assert op_plan is not None
     skeleton_env = SkeletonEnv(e_root.num_children, op_plan,
                                get_update_env_reward_fn(scn, action_info),
-                               stream_info, scn)
+                               stream_info, scn, feasibility_checker=feasible_checker)
     selected_branch = PlannerUCT(skeleton_env)
 
     concrete_plan = selected_branch.think(900, 0)

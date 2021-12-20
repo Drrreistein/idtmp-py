@@ -20,4 +20,3 @@ class TextDisplayer(object):
         pass
 
 
-
