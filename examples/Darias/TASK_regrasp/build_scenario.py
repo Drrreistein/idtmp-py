@@ -12,7 +12,7 @@ from utils.pybullet_tools.utils import WorldSaver, connect, dump_world, get_pose
     set_camera, get_center_extent, tform_from_pose, attach_viewcone, LockRenderer
 
 from utils.pybullet_tools.body_utils import draw_frame
-
+from IPython import embed
 from copy import copy
 
 class PlanningScenario1(object):
@@ -394,9 +394,9 @@ class PlanningScenario_4obs_1box(object):
             with LockRenderer():
                 self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
                                               fixed_base=True)
-                set_pose(self.arm_left, Pose(Point(x=0.2, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_left, Pose(Point(x=0.2, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
                 self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
-                set_pose(self.arm_base, Pose(Point(x=0.2, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
+                # set_pose(self.arm_base, Pose(Point(x=0.2, y=0.10, z=0.0), Euler(0, 0, 30 * np.pi / 180)))
 
                 self.bd_body = {
                     'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
@@ -414,11 +414,14 @@ class PlanningScenario_4obs_1box(object):
                     'region_drawer': load_pybullet("../scenario_description/region_small.urdf", fixed_base=True),
                     'camera1': load_pybullet("../scenario_description/realsense.urdf", fixed_base=True),
                     'box1': load_pybullet("../scenario_description/boxA.urdf", fixed_base=False),
+                    # 'box1': create_box(0.08,0.08,0.12),
 
                     'box_S1': load_pybullet("../scenario_description/boxX.urdf", fixed_base=True),
                     'box_S2': load_pybullet("../scenario_description/boxX.urdf", fixed_base=True),
                     'box_S3': load_pybullet("../scenario_description/boxX.urdf", fixed_base=True),
                     'box_S4': load_pybullet("../scenario_description/boxX.urdf", fixed_base=True),
+                    'box_S5': create_box(0.14,0.14,0.14),
+                    'box_S6': create_box(0.3,0.02,0.2),
                 }
                 color=[1,0,0]
                 set_color(self.bd_body['region_shelf'], color=color)
@@ -456,7 +459,8 @@ class PlanningScenario_4obs_1box(object):
 
         self.movable_bodies = [self.bd_body['box1']]
         self.obstacle_bodies = [self.bd_body['box_S1'],self.bd_body['box_S2'],
-                                self.bd_body['box_S3'],self.bd_body['box_S4']]
+                                self.bd_body['box_S3'],self.bd_body['box_S4'],
+                                self.bd_body['box_S5'],self.bd_body['box_S6']]
 
         self.regions = [self.bd_body['region_shelf'], self.bd_body['region_drawer'], self.bd_body['region_table']]
 
@@ -500,12 +504,16 @@ class PlanningScenario_4obs_1box(object):
                 movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
                 set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
 
-                set_pose(self.bd_body['box1'],
-                         Pose(Point(x=-0.02, y=0.9, z=0.1), Euler(yaw=1 * np.pi / 2)))
-                set_pose(self.bd_body['box_S1'], Pose(Point(x=-0.02, y=0.72, z=0.1)))
-                set_pose(self.bd_body['box_S2'], Pose(Point(x=-0.02, y=1.08, z=0.1)))
-                set_pose(self.bd_body['box_S3'], Pose(Point(x=0.14, y=0.9, z=0.1)))
-                set_pose(self.bd_body['box_S4'], Pose(Point(x=0.49, y=0.95, z=0.1)))
+                set_pose(self.bd_body['box1'],Pose(Point(x=-0.02, y=0.9, z=0.1), Euler(yaw=1 * 0 / 2)))
+                # set_pose(self.bd_body['box1'],Pose(Point(x=-0.02, y=0.9, z=0.07), Euler(yaw=1 * 0 / 2)))
+                set_pose(self.bd_body['box_S1'], Pose(Point(x=-0.02, y=0.72, z=0.05)))
+                set_pose(self.bd_body['box_S2'], Pose(Point(x=-0.02, y=1.08, z=0.05)))
+                set_pose(self.bd_body['box_S3'], Pose(Point(x=0.14, y=0.9, z=0.05)))
+                set_pose(self.bd_body['box_S4'], Pose(Point(x=0.49, y=0.95, z=0.05)))
+
+                set_pose(self.bd_body['box_S6'], Pose(Point(x=-0.45, y=0.565, z=0.87)))
+                # set_pose(self.bd_body['box_S5'], Pose(Point(x=-0.33, y=0.9, z=0.87)))
+                set_pose(self.bd_body['box_S6'], Pose(Point(x=-0.45, y=0.565, z=0.87)))
 
                 set_camera(160, -35, 1.8, Point())
 

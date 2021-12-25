@@ -74,7 +74,7 @@ class Scene_random(object):
                     self.env_bodies.add(self.bd_body[name])
                 pu.set_joint_positions(0, list(range(1,8)), [0.1, 1.4, 1, 1.7, 0, 0, 0])
 
-                self.camera_setting = [1.6, 150, -35, -0.1, 0.1, -0.1]
+                self.camera_setting = [1.6, 170, -45, -0.1, 0.1, -0.1]
                 set_camera(self.camera_setting[1], self.camera_setting[2], self.camera_setting[0], 
                                     self.camera_setting[3:])
 
@@ -102,19 +102,19 @@ class Scene_random(object):
 
     def random_or_fixed_region_height(self):
         # self.random_height = bool(np.random.randint(2))
-        self.random_height = 0
+        self.random_height = 1
         self.subregions = [((-0.2,0.5),(0.7,0.9)),
                     # ((0.2,-0.4),(0.7,0.4)),
                     # ((-0.2,-1.0),(0.7,-0.4))
                     ]
         if self.random_height:
-            self.table_z_lower, self.table_z_upper = 0.1, 0.5
+            self.table_z_lower, self.table_z_upper = 0., 0.9
         else:
             self.table_z_lower, self.table_z_upper = 0.1, 0.1
 
     def all_or_top_pick_dir(self):
-        self.all_pick_dir = bool(np.random.randint(2))
-        # self.all_pick_dir = 1
+        # self.all_pick_dir = bool(np.random.randint(2))
+        self.all_pick_dir = 1
         print(f"pick direction from {self.all_pick_dir}")
 
     def fixed_or_random_boxZ(self):

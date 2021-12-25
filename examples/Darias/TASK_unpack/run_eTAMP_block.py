@@ -272,6 +272,8 @@ def multisim():
 
         print('think time: ' + str(thinking_time))
         # e_root.save_the_tree(idx)
+        total_planning_timer.stop()
+
         if concrete_plan is None:
             print('TAMP is failed.', concrete_plan)
         else:
@@ -282,7 +284,6 @@ def multisim():
             print(f'total_planning_time {all_timers[total_planning_timer.name]}')
             print(f"final_visits {e_root.num_total_child_visits}")
             print(f"total_node_numbers {e_root.total_node}")
-        total_planning_timer.stop()
 
     disconnect()
 

@@ -13,8 +13,10 @@ import json, os
 import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 from copy import deepcopy
-grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1),(1,0,0):0,(-1,0,0):1,(0,1,0):2,(0,-1,0):3,(0,0,1):4}
+import tamp_utils as tu
+import time
 
+grasp_directions = {0:(1,0,0),1:(-1,0,0),2:(0,1,0),3:(0,-1,0),4:(0,0,1),(1,0,0):0,(-1,0,0):1,(0,1,0):2,(0,-1,0):3,(0,0,1):4}
 class PickPlaceDomainSemantics(object):
     def __init__(self, scene, resolution, epsilon, motion_iteration):
 
@@ -86,17 +88,18 @@ class PickPlaceDomainSemantics(object):
         # angle_by_axis = np.array([m,n,o], dtype=int) * np.pi/2
         # goal_rot = pu.multiply_quats(rotation, pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0)))
         # goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
-
         m,n,o = int(m),int(n),int(o)
-        if o==0:
-            goal_rot = pu.multiply_quats(rotation, pu.quat_from_axis_angle((-n, m, 0), np.pi/2))
-        else:
-            goal_rot = rotation
-        # goal_rot = pu.multiply_quats(rotation, pu.quat_from_axis_angle((-n, m, 0), np.pi/2))
-        goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
+        goal_rot = tu.pickup_rotation_from_labels(rotation, (m,n,o))
+        # if o==0:
+        #     goal_rot = pu.multiply_quats(rotation, pu.quat_from_axis_angle((-n, m, 0), np.pi/2))
+        # else:
+        #     goal_rot = rotation
+        # # goal_rot = pu.multiply_quats(rotation, pu.quat_from_axis_angle((-n, m, 0), np.pi/2))
+        # goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
         goal_pose = pu.Pose(goal_point, pu.euler_from_quat(goal_rot))
 
-        embed()
+        # pu.draw_pose(goal_pose)
+        # embed()
         res, path = self.motion_plan(body, goal_pose, attaching=False)
 
         return res, path
@@ -211,7 +214,6 @@ def SetState(scn, task_plan, motion_plan):
             cmd = pk.Command([pk.BodyPath(robot, path)])
         cmd.execute()
 
-
 def load_plans(filename):
     assert os.path.exists(filename), f'no file named {filename} exists'
     with open(filename, 'r') as f:
@@ -246,9 +248,21 @@ def load_and_execute(Scenario, dir, file=None, process=1, win_size=[640, 490]):
         processes.append(Process(target=execute_output, args=(filename,)))
         processes[-1].start()
 
+
+mp_infeasible_time = 0
+mp_infeasible_num = 0
+mp_feasible_time = 0
+mp_feasible_num = 0
+model_querying_time = 0
+model_querying_num = 0
+
 def check_feasibility(feasibility_checker, scn, t_plan, resolution):
+    global model_querying_time,model_querying_num
     failed_step = None
     init_world = pu.WorldSaver()
+    if len(t_plan.keys())==0:
+        return True, None
+
     for step, operator in t_plan.items():
         operator = operator[1:-1]
         if 'pick-up' in operator:
@@ -266,17 +280,20 @@ def check_feasibility(feasibility_checker, scn, t_plan, resolution):
 
             aabb_body = pu.get_aabb(target_body)
             extend_body = pu.get_aabb_extent(aabb_body)
-
             x = center_region[0] + int(i)*resolution
             y = center_region[1] + int(j)*resolution
-            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 
+            z = center_region[2] + extend_region[2]/2 + extend_body[2]/2 + 0.005
             target_pose = ([x,y,z], (0,0,0,1))
         else:
             print("unknown operator: feasible by default")
             continue
         if region=='region_drawer':
             region = 'region_table'
+
+        t0 =time.time()
         is_feasible = feasibility_checker.check_feasibility_simple(target_body, target_pose, grsp_dir)
+        model_querying_num += feasibility_checker.len_feature_vector
+        model_querying_time += time.time() - t0
 
         if not is_feasible:
             print(f"check feasibility: {step}: {operator}: infeasible")
@@ -287,21 +304,22 @@ def check_feasibility(feasibility_checker, scn, t_plan, resolution):
             if op=='put-down':
                 pu.set_pose(target_body, target_pose)
     init_world.restore()
+    
     if is_feasible:
         print("current task plan is feasible")
     else:
         print("current task plan is infeasible")
     return is_feasible, failed_step
-    
+
 def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None, resolution=None):
+    global model_querying_time, model_querying_num, mp_feasible_num,\
+            mp_feasible_time, mp_infeasible_num, mp_infeasible_time
     # check feasibility of task plan from learned model
     if feasibility_checker:
         isfeasible, failed_step = check_feasibility(feasibility_checker, scn, t_plan, resolution)
-        if not isfeasible:
-            # if len(t_plan.keys())==4:
-            #     embed()
-            return isfeasible, None, failed_step
-
+        # if not isfeasible:
+        #     return isfeasible, None, failed_step
+    t0 =time.time()
     # using plan cache to avoid to resample an known operator
     if path_cache is not None:
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
@@ -320,6 +338,12 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None, reso
         path_cache.add_feasible_motion(list(t_plan.values()), m_plan)
     else:
         res, m_plan, failed_step = motion_refiner(t_plan)
+
+    feasibility_checker.fc_statistic(res)
+    print(f"model querying time, total: {model_querying_time}, num: {model_querying_num}, avg: {np.divide(model_querying_time , model_querying_num)}")
+    print(f"MP querying time, total:{mp_feasible_time+mp_infeasible_time}, num:{mp_feasible_num+mp_infeasible_num}, avg:{np.divide(mp_feasible_time+mp_infeasible_time , mp_feasible_num+mp_infeasible_num)}")
+    print(f"feasible MP querying time, total:{mp_feasible_time}, num:{mp_feasible_num}, avg:{np.divide(mp_feasible_time , mp_feasible_num)}")
+    print(f"infeasible MP querying time: total: {mp_infeasible_time}, num:{mp_infeasible_num}, avg: {np.divide(mp_infeasible_time , mp_infeasible_num)}")
 
     return res, m_plan, failed_step
 
@@ -409,13 +433,21 @@ def motion_refiner(task_plan:dict):
     """
     validate task planner in motion refiner
     """
-        
+    global mp_feasible_num,mp_feasible_time,mp_infeasible_num,mp_infeasible_time
     paths = []
     for id, op in task_plan.items():
         op = op[1:-1]
         args = re.split(' |__', op)
         motion_func = operator_bindings[args[0].lower()]
+        t0 = time.time()
         res, path = motion_func(args)
+        if res:
+            mp_feasible_num += 1
+            mp_feasible_time += time.time() - t0
+        else:
+            mp_infeasible_num += 1
+            mp_infeasible_time += time.time() - t0
+
         if not res:
             # logger.error("motion refining failed")
             logger.error(f"failed operator:{id}, {op}")

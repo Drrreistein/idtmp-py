@@ -1,0 +1,16 @@
+final_visits 57
+final_visits 55
+final_visits 52
+final_visits 60
+task_planning_time 1.3328
+task_planning_time 1.3372
+task_planning_time 1.1992
+task_planning_time 1.3702
+motion_refiner_time 28.5347
+motion_refiner_time 26.9330
+motion_refiner_time 18.0877
+motion_refiner_time 18.9057
+total_planning_time 29.8833
+total_planning_time 28.2857
+total_planning_time 19.3012
+total_planning_time 20.2920

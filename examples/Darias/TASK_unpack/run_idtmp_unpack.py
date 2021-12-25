@@ -162,14 +162,14 @@ def multi_sims_path_cache(visualization=0):
                                                 epsilon=EPSILON, motion_iteration=MOTION_ITERATION)
     domain_semantics.activate()
     if feasible_check==1:
-        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_tabletop/mlp_model.pk')
+        feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file=args_global.model_file)
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, model_file=args_global.model_file, obj_centered_img=True)
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies, \
+                model_file=args_global.model_file, obj_centered_img=True, threshold=args_global.threshold)
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     elif feasible_check==3:
         feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
-                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
-                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
+                            model_file=args_global.model_file, threshold=args_global.threshold)
     else:
         feasible_checker = None
 
@@ -178,7 +178,7 @@ def multi_sims_path_cache(visualization=0):
     motion_refiner_timer = Timer(name='motion_refiner_timer', text='', logger=logger.info)
     total_planning_timer = Timer(name='total_planning_timer', text='', logger=logger.info)
 
-    while i<max_sim:
+    while i < max_sim:
         path_cache = PlanCache()
         task_planning_timer.reset()
         motion_refiner_timer.reset()
@@ -187,7 +187,7 @@ def multi_sims_path_cache(visualization=0):
 
         total_planning_timer.start()
         task_planning_timer.start()
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=5, max_horizon=6)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder, tp.formula)
         tp.formula['goal'] = goal_constraints
@@ -224,6 +224,7 @@ def multi_sims_path_cache(visualization=0):
             motion_refiner_timer.start()
             res, m_plan, failed_step = tm.motion_planning(scn, t_plan, path_cache=path_cache, feasibility_checker=feasible_checker, resolution=RESOLUTION)
             motion_refiner_timer.stop()
+
             scn.reset()
             if res:
                 logger.info(f"task and motion plan found")
@@ -236,6 +237,7 @@ def multi_sims_path_cache(visualization=0):
                 task_planning_timer.stop()
                 t_plan = None
 
+        feasible_checker.hypothesis_test()
         total_planning_timer.stop()
         if tp.horizon <= tp.max_horizon:
             if res:
@@ -257,13 +259,13 @@ def multi_sims_path_cache(visualization=0):
     #     ExecutePlanNaive(scn, t_plan, m_plan)
     #     saved_world.restore()
     #     time.sleep(1)
-    embed()
     pu.disconnect()
 
 if __name__=="__main__":
     """ usage
     python3 run_idtmp_unpack.py 0 0.1 10 20 0 
     """
+
     import argparse
     parser = argparse.ArgumentParser(prog='idtmp-py')
     parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
@@ -272,6 +274,7 @@ if __name__=="__main__":
     parser.add_argument('-i','--iteration', type=int, default=20, help='motion planning RRT iteration')
     parser.add_argument('-c','--feasibility', type=int,default=4, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
     parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
+    parser.add_argument('-t','--threshold', default=0.5, type=float, help='probability threshold of feasible action for learned model')
     parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
     parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
 

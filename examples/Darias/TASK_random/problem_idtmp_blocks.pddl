@@ -1,4 +1,4 @@
-;14:45:33 19/12
+;05:43:23 25/12
 
 (define (problem unpack-3blocks)
    (:domain blocks)
@@ -26,26 +26,21 @@
           box1 - block
           box2 - block
           box3 - block
-          -1__0__0__0 - direction
-          0__-1__0__0 - direction
           0__0__1__0 - direction
-          0__1__0__0 - direction
-          1__0__0__0 - direction
    )
 
    (:init
           (handempty)
-          (ontable box3 region0__0__0)
-          (ontable box0 region0__0__0)
-          (ontable box1 region1__0__0)
-          (ontable box2 region1__0__0)
+          (ontable box3 region1__0__0)
+          (ontable box0 region1__0__1)
+          (ontable box1 region0__0__0)
+          (ontable box2 region0__0__0)
    )
 
    (:goal
    (and
         (handempty)
-        (ontable box3 region1__0__0)
-        (ontable box0 region1__0__0)
+        (ontable box3 region0__0__0)
    ))
 
 )

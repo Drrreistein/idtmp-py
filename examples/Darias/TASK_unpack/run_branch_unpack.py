@@ -233,7 +233,7 @@ def get_pddlstream_problem(scn, discret=False):
 #######################################################
 
 def main(display=True, teleport=False):
-    visualization = False
+    visualization = True
 
     connect(use_gui=visualization)
 
@@ -383,5 +383,5 @@ def test(visualization=0, num_rep=50):
     print('Finished.')
 
 if __name__ == '__main__':
-    # test()
-    main()
+    test()
+    # main()

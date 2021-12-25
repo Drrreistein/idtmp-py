@@ -1,4 +1,4 @@
-;16:31:41 19/12
+;13:03:50 25/12
 
 (define (problem unpack-3blocks)
    (:domain blocks)

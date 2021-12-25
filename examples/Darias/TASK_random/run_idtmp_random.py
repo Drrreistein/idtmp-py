@@ -158,18 +158,44 @@ class PDDLProblem(object):
         # formula['goal'] = z3.And(conj)
         return z3.And(conj)
 
+def run_scene_in_folder(folder):
+    for file in os.listdir(folder):
+        if '0_' in file:
+            pu.connect(use_gui=1)
+
+            scene_file = os.path.join('random_scenes',file)
+            scn = Scene_random(json_file=scene_file)
+            saved_world = WorldSaver()
+            t_plan = scn.scene['tm_plan']['t_plan']
+            m_plan = scn.scene['tm_plan']['m_plan']
+            print(f"execute old tm_plan or find a new one")
+            print(f"executing the command \n ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)\nsaved_world.restore()")
+
+            print(f"scene file: {file}")
+            tm.ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)
+            saved_world.restore()
+            embed()
+            pu.disconnect()
+
 def multi_sims_path_cache():
     pu.connect(use_gui=args_global.visualization)
     if not args_global.load_scene:
         scn = Scene_random()
     else:
-        scn = Scene_random(json_file=args_global.load_scene)
+        scene_file = os.path.join('random_scenes',args_global.load_scene)
+        scn = Scene_random(json_file=scene_file)
         saved_world = WorldSaver()
         t_plan = scn.scene['tm_plan']['t_plan']
         m_plan = scn.scene['tm_plan']['m_plan']
         print(f"execute old tm_plan or find a new one")
-        print(f"executing the command \nExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)\nsaved_world.restore()")
-        embed()
+        print(f"executing the command \n ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)\nsaved_world.restore()")
+
+        print(f"scene file: {scene_file}")
+        # tm.ExecutePlanNaive(scn, t_plan, m_plan, time_step=0.01)
+        # time.sleep(1)
+        # saved_world.restore()
+        # time.sleep(1)
+        # embed()
 
         # if  t_plan=='None':
         #     print(f"no task and motion plan available")
@@ -193,16 +219,16 @@ def multi_sims_path_cache():
     domain_semantics = PickPlaceDomainSemantics(scn, resolution=RESOLUTION, 
                                                 epsilon=EPSILON, motion_iteration=MOTION_ITERATION)
     domain_semantics.activate()
-    
+
     scn_objects = list(scn.movable_bodies) + list(scn.obstacle_bodies)
     if feasible_check==1:
-        feasible_checker = FeasibilityChecker(scn, objects=scn_objects, resolution=RESOLUTION, model_file = model_file)
+        feasible_checker = FeasibilityChecker(scn, objects=scn_objects, resolution=RESOLUTION, model_file = args_global.model_file)
     elif feasible_check==2:
-        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn_objects, model_file = model_file, obj_centered_img=True)
+        feasible_checker = FeasibilityChecker_CNN(scn, objects=scn_objects, \
+            model_file = args_global.model_file, obj_centered_img=True, threshold=args_global.threshold)
     elif feasible_check==3:
         feasible_checker = FeasibilityChecker_MLP(scn, objects=scn_objects,
-                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
-                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
+                    model_file=args_global.model_file, threshold=args_global.threshold)
     else:
         feasible_checker = None
 
@@ -272,11 +298,14 @@ def multi_sims_path_cache():
 
     total_planning_timer.stop()
 
+    feasible_checker.hypothesis_test()
     if tp.horizon <= tp.max_horizon:
         if res:
-            if len(list(t_plan.keys()))>5:
-                scn.save_scene_in_json()
-                scn.update_scene_tm_plan(t_plan, m_plan)
+            pass
+            # embed()
+            # if len(list(t_plan.keys()))>=4:
+            #     scn.save_scene_in_json()
+            #     scn.update_scene_tm_plan(t_plan, m_plan)
             # save_plans(t_plan, m_plan, os.path.join(output_dir,f'/tm_plan_{str(i).zfill(4)}.json'))
         else:
             print(f"ERROR: no task motion plan found...")
@@ -295,7 +324,6 @@ def multi_sims_path_cache():
     #     tm.ExecutePlanNaive(scn, t_plan, m_plan)
     #     saved_world.restore()
     #     time.sleep(1)
-    embed()
     pu.disconnect()
 
 if __name__=="__main__":
@@ -312,6 +340,7 @@ if __name__=="__main__":
     parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
     parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
     parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+    parser.add_argument('-t','--threshold', default=0.5, type=float, help='probability threshold of feasible action for learned model')
     args_global = parser.parse_args()
 
     visualization = args_global.visualization
@@ -322,5 +351,14 @@ if __name__=="__main__":
     model_file = args_global.model_file
     output_dir = args_global.output_file
 
+    file_list = os.listdir('random_scenes')
+    for i in range(max_sim):
+        args_global.load_scene = np.random.choice(file_list)
+        try:
+            multi_sims_path_cache()
+        except:
+            pass
+
+    embed()
     for i in range(max_sim):
         multi_sims_path_cache()

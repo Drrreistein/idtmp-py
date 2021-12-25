@@ -205,6 +205,24 @@ def box_plot_fc_vs_none(filelist_no, filelist_fc):
     plt.tight_layout()
     plt.show()
 
+def get_table_data_of_all():
+    
+    file_mlp = ['idtmp_010_mlp.txt', 'idtmp_008_mlp.txt', 'idtmp_006_mlp.txt', 'idtmp_004_mlp.txt', 'idtmp_002_mlp.txt']
+    file_no = ['idtmp_010.txt', 'idtmp_008.txt', 'idtmp_006.txt', 'idtmp_004.txt', 'idtmp_002.txt', 'etamp_con.txt']
+    file_cnn = ['idtmp_010_cnn_new.txt', 'idtmp_008_cnn_new.txt', 'idtmp_006_cnn_new.txt', 'idtmp_004_cnn_new.txt', 'idtmp_002_cnn_new.txt']
+
+    data_pd = txt_to_pandas(file_no)
+    for key in list(data_pd.keys()):
+        print(key)
+        for s in np.unique(data_pd['resolution']):
+            if key=='resolution':
+                continue
+            tmp=np.array(data_pd[key][data_pd["resolution"]==s])
+            print(s, np.mean(tmp))
+
+
+    pass
+
 if __name__=='__main__':
     embed()
     # duration_vs_resolution()

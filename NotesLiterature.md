@@ -578,6 +578,8 @@ properties:
 1. very quick to find a candidate solution when there is in current horizon, but very slow to prove there is no solution when in a long horizon. Therefore, for a very long horizon task it's better to locate the target horizon where candidate solution is rather than iteratively deepening the horizon.
 2. to locate the horizon quicker: using a discrete space as small as possible to represent the continuous space, when the target horizon is found, then resample the conitnuous space with a resonable discretization step
 
+
+
 ##### positives
 
 1. task planner automatically generate old action sequences when going to a deeper horizon for motion refiner to retry, ensure algorithm complexity

@@ -23,6 +23,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from PIL import Image
+import tamp_utils as tu
 EPSILON = 0.005
 max_height = 0.512
 pixel_size=0.002
@@ -149,14 +150,16 @@ def target_pose_vs_grsp_dir(center_pose, grsp_dir, extend):
     goal_point = tuple(np.array(center_point) + offset)
     # angle_by_axis = np.array(grsp_dir, dtype=int) * np.pi/2
 
-    if grsp_dir[2]==0:
-        goal_rot = pu.multiply_quats(rotation, 
-                # pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0))
-                pu.quat_from_axis_angle((-grsp_dir[1], grsp_dir[0], 0), np.pi/2))
-    else:
-        goal_rot = rotation
+    # if grsp_dir[2]==0:
+    #     goal_rot = pu.multiply_quats(rotation, 
+    #             # pu.quat_from_euler((angle_by_axis[0], angle_by_axis[1], 0))
+    #             pu.quat_from_axis_angle((-grsp_dir[1], grsp_dir[0], 0), np.pi/2))
+    # else:
+    #     goal_rot = rotation
 
-    goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
+    # goal_rot = pu.multiply_quats(goal_rot, pu.quat_from_euler((np.pi, 0, 0)))
+    goal_rot = tu.pickup_rotation_from_labels(rotation, grsp_dir)
+
     target_pose = pu.Pose(goal_point, pu.euler_from_quat(goal_rot))
     # pu.draw_pose(target_pose)
 
@@ -571,7 +574,7 @@ def sample_training_data_obj_centered():
     robot_pose = (robot_position, (0,0,0,1))
 
     if region_ind==0:
-        region_str = 'table_3d_all_dir_no_rotZ'
+        region_str = 'table_3d_all_feat'
     else:
         region_str = 'shelf'
     if not os.path.exists(region_str):
@@ -614,36 +617,38 @@ def sample_training_data_obj_centered():
             isfeasible_1b[dir_ind] = int(check_feasibility(scn, target_pose))
 
             for jj in range(num_2b):
-                xyz2, dir2, pose2 = random_neigbor_box(scn.body_on_table, scn.table)
-                pose_list.append(pose2)
-                dir_list.append(dir2)
+                if len(pose_list)<num_2b:
+                    xyz2, dir2, pose2 = random_neigbor_box(scn.body_on_table, scn.table)
+                    pose_list.append(pose2)
+                    dir_list.append(dir2)
 
             for jj in range(num_2b):
                 saved_world.restore()
                 pu.set_pose(scn.body_on_table, pose_list[jj])
                 if len(mat_full_list)<num_2b:
-                    mat_full = png_mat_object_centered(scn.body_on_table, lwh2, dir_list[jj], scn.body_gripped)
-                    mat_full_list.append(mat_full)
+                    pass
+                    # mat_full = png_mat_object_centered(scn.body_on_table, lwh2, dir_list[jj], scn.body_gripped)
+                    # mat_full_list.append(mat_full)
                 isfeasible_2b[jj, dir_ind] = isfeasible_1b[dir_ind] and int(check_feasibility(scn, target_pose))
                 # print(f"feas: {isfeasible_1b[dir_ind]} {isfeasible_2b[jj, dir_ind]}")
                 # embed()
 
         lower, upper = pu.get_aabb(scn.body_gripped)
         d1_vector = list(np.round(xyz1[:2],4)) + [np.round(lower[2],4)] +list(isfeasible_1b)
-
+        
         # if not debug:
         for i in range(num_2b):
+            pu.set_pose(scn.body_on_table, pose_list[i])
             tmp = list(np.round(list(lwh1) + list(xyz1) + [dir1] + \
-                    list(lwh2) + list(xyz2[:2]) + [dir_list[i]],3)) +\
+                    list(lwh2) + list(pose_list[i][0][:2]) + [dir_list[i]],3)) +\
                     list(isfeasible_1b) + list(isfeasible_2b[i])
             tmp = list(np.array(tmp, dtype=str))
             string = ' '.join(tmp)
             with open(f'{filename}_feat_vec.txt','a') as f:
                 f.write(string)
                 f.write('\n')
-
-        save_data(mat_targ, mat_full_list, d1_vector, isfeasible_2b, 
-                    filename+'_'+str(hhhhhhhhhh).zfill(5), filename, render_image=False)
+        # save_data(mat_targ, mat_full_list, d1_vector, isfeasible_2b, 
+        #             filename+'_'+str(hhhhhhhhhh).zfill(5), filename, render_image=False)
 
     bar.finish()
     print(f"duration: {time.time()-t0}")

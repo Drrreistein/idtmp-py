@@ -26,12 +26,11 @@ logging.basicConfig(filename='./log/logging.log',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
 logger = logging.getLogger('MAIN')
-from feasibility_check import FeasibilityChecker, FeasibilityChecker_bookshelf, FeasibilityChecker_CNN
+from feasibility_check import FeasibilityChecker, FeasibilityChecker_bookshelf, FeasibilityChecker_CNN, FeasibilityChecker_MLP
 EPSILON = 0.01
 RESOLUTION = 0.1
 DIR_NUM = 1
 MOTION_ITERATION = 500
-
 
 class PDDLProblem(object):
     def __init__(self, scene, domain_name):
@@ -142,7 +141,6 @@ class PDDLProblem(object):
 
         return scene_objects
 
-
 def multisim_plancache():
     task_planning_timer = Timer(name='task_planning_time', text='', logger=print)
     motion_refiner_timer = Timer(name='motion_refiner_time', text='', logger=print)
@@ -152,7 +150,6 @@ def multisim_plancache():
     scn = PlanningScenario_4obs_1box()
     save_world = pu.WorldSaver()
 
-    embed()
     parser = PDDL_Parser()
     dirname = os.path.dirname(os.path.abspath(__file__))
     domain_filename = os.path.join(dirname, 'domain_idtmp_regrasp.pddl')
@@ -162,12 +159,11 @@ def multisim_plancache():
                             model_file=args_global.model_file)
     elif feasible_check==2:
         feasible_checker = FeasibilityChecker_CNN(scn, objects=scn.movable_bodies+scn.obstacle_bodies, 
-                        model_file=args_global.model_file, obj_centered_img=True)
+                        model_file=args_global.model_file, obj_centered_img=True, threshold=args_global.threshold)
         # feasible_checker = FeasibilityChecker(scn, objects=scn.movable_bodies, resolution=RESOLUTION, model_file='../training_data_bookshelf/table_2b/mlp_model.pk')
     elif feasible_check==3:
-        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies,
-                    model_file='../training_cnn_simple/mlp_fv_dir4_nodir_32.model',
-                    model_file_1box='../training_cnn_simple/mlp_fv_dir4_1box_nodir_40.model')
+        feasible_checker = FeasibilityChecker_MLP(scn, objects=scn.movable_bodies+scn.obstacle_bodies,
+                    model_file=args_global.model_file, threshold=args_global.threshold)
     else:
         feasible_checker = None
 
@@ -188,7 +184,7 @@ def multisim_plancache():
 
         total_planning_timer.start()
         task_planning_timer.start()    
-        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=8)
+        tp = TaskPlanner(problem_filename, domain_filename, start_horizon=0, max_horizon=6)
         tp.incremental()
         goal_constraints = problem.update_goal_in_formula(tp.encoder)
         tp.formula['goal'] = goal_constraints
@@ -230,7 +226,7 @@ def multisim_plancache():
 
             # ------------------- motion plan ---------------------
             motion_refiner_timer.start()
-            res, m_plan, failed_step = motion_planning(scn, t_plan, path_cache, feasible_checker)
+            res, m_plan, failed_step = tm.motion_planning(scn, t_plan, path_cache, feasible_checker, resolution=RESOLUTION)
             motion_refiner_timer.stop()
 
             scn.reset()
@@ -245,6 +241,7 @@ def multisim_plancache():
                 task_planning_timer.stop()
                 t_plan = None
 
+        feasible_checker.hypothesis_test()
         total_planning_timer.stop()
         if tp.horizon <= tp.max_horizon:
             save_plans(t_plan, m_plan, 'output/'+output_dir+f'/tm_plan_{str(it).zfill(4)}.json')
@@ -259,7 +256,7 @@ def multisim_plancache():
         path_cache.print_node(path_cache.root)
         scn.reset()
 
-    os.system('spd-say -t female2 "hi lei! simulation done"')
+    # os.system('spd-say -t female2 "hi lei! simulation done"')
     pu.disconnect()
 
 if __name__=="__main__":
@@ -268,11 +265,12 @@ if __name__=="__main__":
     parser.add_argument('-v','--visualization', action='store_true', help='visualize the simulation process in pybullet')
     parser.add_argument('-r','--resolution', default=0.1, type=float,help='discretize the continuous region in this sampling step')
     parser.add_argument('-n','--num_simulation', type=int, default=1, help='number of the IDTMP simulation to run')
-    parser.add_argument('-i','--iteration', type=int, default=20, help='motion planning RRT iteration')
+    parser.add_argument('-i','--iteration', type=int, default=500, help='motion planning RRT iteration')
     parser.add_argument('-c','--feasibility', type=int,default=4, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
     parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
     parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
     parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+    parser.add_argument('-t','--threshold', default=0.5, type=float, help='probability threshold of feasible action for learned model')
 
     args_global = parser.parse_args()
 

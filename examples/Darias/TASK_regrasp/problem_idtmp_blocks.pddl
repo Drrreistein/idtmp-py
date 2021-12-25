@@ -1,4 +1,4 @@
-;16:21:50 16/12
+;16:20:59 24/12
 
 (define (problem regrasp-block)
    (:domain blocks)
