@@ -298,7 +298,8 @@ def multi_sims_path_cache():
 
     total_planning_timer.stop()
 
-    feasible_checker.hypothesis_test()
+    if feasible_checker:
+        feasible_checker.hypothesis_test()
     if tp.horizon <= tp.max_horizon:
         if res:
             pass
@@ -339,7 +340,7 @@ if __name__=="__main__":
     parser.add_argument('-c','--feasibility', type=int,default=4, help='choose which kind of feasibility checker, \n 1:SVM/MLP using scikit, 2:CNN, 3:MLP using tensorflow')
     parser.add_argument('-f','--model_file', type=str,default='', help='model file of feasibility checker')
     parser.add_argument('-o','--output_file', type=str, default='output/test', help='save generated tm plan to output file')
-    parser.add_argument('-l', '--load_scene',type=str,default='', help='load scene from file or random a new scene')
+    parser.add_argument('-l','--load_scene',type=str,default='', help='load scene from file or random a new scene')
     parser.add_argument('-t','--threshold', default=0.5, type=float, help='probability threshold of feasible action for learned model')
     args_global = parser.parse_args()
 
@@ -353,12 +354,13 @@ if __name__=="__main__":
 
     file_list = os.listdir('random_scenes')
     for i in range(max_sim):
-        args_global.load_scene = np.random.choice(file_list)
+        args_global.load_scene = file_list[i]
+        # args_global.load_scene = np.random.choice(file_list)
         try:
             multi_sims_path_cache()
         except:
             pass
 
-    embed()
-    for i in range(max_sim):
-        multi_sims_path_cache()
+    # # embed()
+    # for i in range(max_sim):
+    #     multi_sims_path_cache()

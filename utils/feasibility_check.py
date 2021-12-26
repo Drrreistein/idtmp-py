@@ -62,10 +62,10 @@ class FeasibilityChecker(object):
     def hypothesis_test(self):
         call_times = self.true_feasible + self.true_infeasible + self.false_infeasible + self.false_feasible
 
-        perc_tf = np.round(self.true_feasible/call_times, 4)
-        perc_ti = np.round(self.true_infeasible/call_times, 4)
-        perc_fi = np.round(self.false_infeasible/call_times, 4)
-        perc_ff = np.round(self.false_feasible/call_times, 4)
+        perc_tf = np.round(np.divide(self.true_feasible,call_times), 4)
+        perc_ti = np.round(np.divide(self.true_infeasible,call_times), 4)
+        perc_fi = np.round(np.divide(self.false_infeasible,call_times), 4)
+        perc_ff = np.round(np.divide(self.false_feasible,call_times), 4)
         print(f"true_feasible {self.true_feasible}")
         print(f"true_infeasible {self.true_infeasible}")
         print(f"false_infeasible {self.false_infeasible}")
@@ -384,9 +384,9 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
             else:
                 plt.title(f"box1: {np.max(image[:,:,0])} \n feat: {feat[i]}")
 
-
             plt.subplot(1,2,2)
             plt.imshow(image[:,:,1]+image[:,:,0], cmap='gray')
+            # plt.imshow(image[:,:,1], cmap='gray')
             if feat is None:
                 plt.title(f"{labels[i]}\nbox2: {np.max(image[:,:,1]-image[:,:,0])}")
             else:
@@ -626,18 +626,15 @@ class FeasibilityChecker_CNN(FeasibilityChecker_bookshelf):
         self.call_times += 1
         if self.obj_centered_img:
             # learned model with object centered image
-            try:
-                image, feat = self._get_input_obj_centered(target_body, target_pose, grsp_dir)
-                prob = np.round(self.model.predict([image, feat]), 5)
-            except:
-                embed()
+            image, feat = self._get_input_obj_centered(target_body, target_pose, grsp_dir)
+            prob = np.round(self.model.predict([image, feat]), 5)
         else:
             # learned model using image with fixed size
             image = self._get_images(target_body, target_pose)
             prob = np.round(self.model.predict(image),3)
         self.len_feature_vector = len(image)
         labels = prob>=self.threshold
-        # self.display_images(image, prob, feat)
+        # self.display_images(image, prob, np.round(feat,2))
         # if not self.start_plot and target_pose[0][0]>0.1:
         #     self.start_plot = True
         # if self.start_plot:

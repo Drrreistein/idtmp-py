@@ -317,9 +317,10 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None, reso
     # check feasibility of task plan from learned model
     if feasibility_checker:
         isfeasible, failed_step = check_feasibility(feasibility_checker, scn, t_plan, resolution)
-        # if not isfeasible:
-        #     return isfeasible, None, failed_step
-    t0 =time.time()
+        if not isfeasible:
+            return isfeasible, None, failed_step
+
+    t0 = time.time()
     # using plan cache to avoid to resample an known operator
     if path_cache is not None:
         depth, prefix_m_plans = path_cache.find_plan_prefixes(list(t_plan.values()))
@@ -339,7 +340,8 @@ def motion_planning(scn, t_plan, path_cache=None, feasibility_checker=None, reso
     else:
         res, m_plan, failed_step = motion_refiner(t_plan)
 
-    feasibility_checker.fc_statistic(res)
+    if feasibility_checker:
+        feasibility_checker.fc_statistic(res)
     print(f"model querying time, total: {model_querying_time}, num: {model_querying_num}, avg: {np.divide(model_querying_time , model_querying_num)}")
     print(f"MP querying time, total:{mp_feasible_time+mp_infeasible_time}, num:{mp_feasible_num+mp_infeasible_num}, avg:{np.divide(mp_feasible_time+mp_infeasible_time , mp_feasible_num+mp_infeasible_num)}")
     print(f"feasible MP querying time, total:{mp_feasible_time}, num:{mp_feasible_num}, avg:{np.divide(mp_feasible_time , mp_feasible_num)}")

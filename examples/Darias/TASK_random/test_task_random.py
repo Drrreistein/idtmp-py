@@ -16,8 +16,9 @@ def test():
             proc = Process(target=os.system, args=(cmds[i],))
             proc.start()
             procs.append(proc)
-        # for i in range(3):
-        #     procs[i].join()
+        
+        for i in range(3):
+            procs[i].join()
 
 
 if __name__=='__main__':

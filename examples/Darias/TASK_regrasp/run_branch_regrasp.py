@@ -21,7 +21,7 @@ from etamp.pddlstream.utils import read, INF, get_file_path, find_unique
 from etamp.p_uct2 import PlannerUCT
 from etamp.tree_node2 import ExtendedNode
 from etamp.env_sk_branch import SkeletonEnv
-from build_scenario import get_scn
+from build_scenario import get_scn, PlanningScenario_4obs_1box
 
 from etamp.constraint_graph import Constraint
 MOTION_ITERATION=500
@@ -298,7 +298,7 @@ def test(visualization=0, num_rep=50):
     new_problem = 1
     connect(use_gui=visualization)
 
-    PlanningScenario = get_scn(2)
+    PlanningScenario = PlanningScenario_4obs_1box
     scn = PlanningScenario()
 
     saved_world = WorldSaver()
@@ -343,6 +343,9 @@ def test(visualization=0, num_rep=50):
         if concrete_plan is None:
             print('TAMP is failed.', concrete_plan)
             continue
+        else:
+            print('TAMP is successful.', concrete_plan)
+
 
         total_planning_time = time.time() - st
         print(f"################################ display time ################################")

@@ -34,5 +34,5 @@ def main():
     for k,v in sum_mlp.items():
         val = np.round(np.array(v)/np.sum(np.array(list(sum_mlp.values())), axis=0), 5)
         res[k+'_mlp'] = val
-
-    return pd.DataFrame(res)
+    dat_pd = pd.DataFrame(res)
+    return dat_pd

@@ -7,7 +7,7 @@ import time
 import utils.pybullet_tools.utils as pu
 import utils.pybullet_tools.kuka_primitives3 as pk
 from utils.pybullet_tools.kuka_primitives3 import BodyPose, BodyConf, Register
-from utils.pybullet_tools.utils import WorldSaver, connect, dump_world, get_pose, set_pose, Pose, \
+from utils.pybullet_tools.utils import WorldSaver, connect, create_rectangular_surface, dump_world, get_pose, set_pose, Pose, \
     Point, set_default_camera, stable_z, disconnect, get_bodies, HideOutput, \
     create_box, set_color,\
     load_pybullet, step_simulation, Euler, get_links, get_link_info, get_movable_joints, set_joint_positions, \
@@ -480,6 +480,80 @@ class Scene_unpack3(object):
         self.reset()
         return self.arm_left, self.movable_bodies, self.regions
 
+class Scene_camera_setup(object):
+    def __init__(self):
+        with HideOutput():
+            with LockRenderer():
+                self.arm_left = load_pybullet("../darias_description/urdf/darias_L_primitive_collision.urdf",
+                                              fixed_base=True)
+                self.arm_base = load_pybullet("../darias_description/urdf/darias_base.urdf", fixed_base=True)
+
+                self.bd_body = {
+                    'floor': load_pybullet("../scenario_description/floor.urdf", fixed_base=True),
+                    # 'cabinet_shelf': load_pybullet(
+                    #     "../scenario_description/manipulation_worlds/urdf/cabinet_shelf.urdf",
+                    #     fixed_base=True),
+                    # 'drawer_shelf': load_pybullet(
+                    #     "../scenario_description/manipulation_worlds/urdf/drawer_shelf.urdf",
+                        # fixed_base=True),
+                    # 'pegboard': load_pybullet(
+                    #     "../scenario_description/manipulation_worlds/urdf/pegboard.urdf",
+                    #     fixed_base=True),
+                    'region1': load_pybullet("../scenario_description/region.urdf", fixed_base=True),
+                    # 'region2': load_pybullet("../scenario_description/region_big.urdf", fixed_base=True),
+                    'region2': create_box(0.4,0.4,0.005, color=(0.718, 0.753, 0.749, 1.0)),
+                    'camera1': load_pybullet("../scenario_description/realsense.urdf", fixed_base=True),
+                    'c1': load_pybullet("../scenario_description/boxCm.urdf", fixed_base=False),
+                    'c2': load_pybullet("../scenario_description/boxC.urdf", fixed_base=False),
+                    # 'c3': load_pybullet("../scenario_description/boxCx.urdf", fixed_base=False),
+                }
+                self.bd_body.update(dict((self.bd_body[k], k) for k in self.bd_body))
+
+                # self.drawer_links = get_links(self.bd_body['drawer_shelf'])
+                # cabinet_links = get_links(self.bd_body['cabinet_shelf'])
+
+                # set_pose(self.bd_body['cabinet_shelf'],
+                #          Pose(Point(x=-0.45, y=-0.8, z=stable_z(self.bd_body['cabinet_shelf'], self.bd_body['floor']))))
+                # set_pose(self.bd_body['drawer_shelf'],
+                #          Pose(Point(x=-0.45, y=0.8, z=stable_z(self.bd_body['drawer_shelf'], self.bd_body['floor']))))
+                # set_pose(self.bd_body['pegboard'],
+                #          Pose(Point(x=-0.60, y=0, z=stable_z(self.bd_body['pegboard'], self.bd_body['floor']))))
+                # set_pose(self.bd_body['region1'],
+                #          Pose(Point(x=0.35, y=0.9, z=stable_z(self.bd_body['region1'], self.bd_body['floor']))))
+                set_pose(self.bd_body['region2'],Pose(Point(x=0.35, y=0.8, z=stable_z(self.bd_body['region2'], self.bd_body['floor']))))
+                set_pose(self.bd_body['camera1'],Pose(Point(x=0.35, y=0.8, z=0.512), Euler(np.pi, 0, np.pi/2)))
+                set_color(self.bd_body['camera1'], (0.1, 0.1, 0.1, 0.5))
+                pu.add_line((0.35,0.8,0),(0.35,0.8,0.512))
+
+                self.reset()
+
+    def show_view_cone(self, lifetime=10):
+        r = Register(self.bd_body['camera1'], self.bd_body['c1'])
+        attach_viewcone(self.bd_body['camera1'], depth=1.5)
+        # draw_frame(tform_from_pose(get_pose(self.bd_body['camera1'])), None)
+        # r.show()
+
+    def reset(self):
+        with HideOutput():
+            with LockRenderer():
+                # initial_jts = np.array([0.8, 0.75, 0.4, -1.8, 0.8, -1.5, 0])
+                initial_jts = np.array([0., -1.57, 0, 0, 0, 0, 0])
+                config_left = BodyConf(self.arm_left, initial_jts)
+                config_left.assign()
+
+                # movable_door = get_movable_joints(self.bd_body['cabinet_shelf'])
+                # set_joint_positions(self.bd_body['cabinet_shelf'], movable_door, [-0.])
+
+                set_pose(self.bd_body['c1'], Pose(Point(x=0.35, y=0.8, z=stable_z(self.bd_body['c1'], self.bd_body['region1']))))
+                set_pose(self.bd_body['c2'], Pose(Point(x=0.295, y=0.8, z=stable_z(self.bd_body['c2'], self.bd_body['region1']))))
+                # set_pose(self.bd_body['c3'],
+                #          Pose(Point(x=0.34, y=0.845, z=stable_z(self.bd_body['c3'], self.bd_body['region1']))))
+
+                set_camera(150, -35, 1.6, Point(-0.1, 0.1, -0.1))
+
+    def get_elemetns(self):
+        self.reset()
+        return self.arm_left, self.movable_bodies, self.regions
 
 #######################################################
 

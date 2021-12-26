@@ -1,0 +1,4 @@
+true_infeasible 284 1412 1722 1726 1726 1726 1726 1726 1726
+true_feasible 50 50 50 48 48 48 48 48 48
+false_infeasible 0 0 0 2 2 2 2 2 2
+false_feasible 1443 315 5 1 1 1 1 1 1

@@ -300,8 +300,8 @@ def get_data(dirname, num=100000, height=120):
 def read_image(dataset:dict, shape, downsampling, labels_ind=-5, scale=256):
     images_labels=dict()
     for k, v in dataset.items():
-        if not np.any(v[-10:]):
-            continue
+        # if not np.any(v[-10:]):
+        #     continue
         img_mat = np.asarray(Image.open(k+'.png'))
         if np.min(img_mat)>0:
             img_mat = img_mat - np.array(img_mat<2, dtype=np.uint8)
@@ -618,7 +618,6 @@ def get_data0(dirnames, num=100000, height=120):
 def plot_images(dirname, num):
     all_files = os.listdir(dirname)
     txt_files = []
-    png_names = []
     for f in all_files:
         if 'txt' in f:
             txt_files.append(f)
@@ -645,7 +644,6 @@ def plot_images(dirname, num):
 def png_to_vector(images):
     vectors = []
     for i in range(len(images)):
-        
         size_box1 = []
         size_box2 = None
         pos_box1 = None
@@ -1229,6 +1227,69 @@ def train_mlp_model(train, test):
         pickle.dump(clf_mlp, file)
     return clf_mlp
 
+def model_evaluation_vs_threshold_mlp(model, x,y):
+    """
+    model, tf model
+    x,
+    y,
+
+    return:
+        overall_acc,
+        false_positive_rate,
+        false_negative_rate,
+    """
+
+    data_length = len(y)
+    pred_y = model.predict(x)
+    pred_labels = np.array(pred_y >= np.array(list(range(1,10)))*0.1, dtype=int)
+    args_real_pos = np.argwhere(y==1)
+    args_real_neg = np.argwhere(y==0)
+
+    tp = np.sum(pred_labels[args_real_pos[:,0]] == np.array(y[args_real_pos], dtype=int), axis=0) / data_length
+    fn = len(args_real_pos) / data_length - tp
+
+    tn = np.sum(pred_labels[args_real_neg[:,0]] == np.array(y[args_real_neg], dtype=int), axis=0) / data_length
+    fp = len(args_real_neg) / data_length - tn
+
+    dat = {'true_feasible':tp,'true_infeasible':tn,'false_feasible':fp,'false_infeasible':fn}
+    return pd.DataFrame(dat)
+
+def model_evaluation_vs_threshold_cnn(model, data_gen):
+
+    """
+    model, tf model
+    x,
+    y,
+
+    return:
+        overall_acc,
+        false_positive_rate,
+        false_negative_rate,
+    """
+
+    y = []
+    pred_y = []
+    for i in range(data_gen.batch_num):
+        tmp_x, tmp_y = data_gen.__getitem__(i)
+        y += list(tmp_y)
+        pred_y += list(model.predict(tmp_x)[:,0])
+    y = np.array(y, dtype=np.int8)
+    data_length = len(y)
+
+    pred_y = np.array(pred_y).reshape((data_length, 1))
+
+    pred_labels = np.array(pred_y >= np.array(list(range(1,10)))*0.1, dtype=int)
+    args_real_pos = np.argwhere(y==1)
+    args_real_neg = np.argwhere(y==0)
+    
+    tp = np.sum(pred_labels[args_real_pos[:,0]] == np.array(y[args_real_pos], dtype=int), axis=0) / data_length
+    fn = len(args_real_pos) / data_length - tp
+
+    tn = np.sum(pred_labels[args_real_neg[:,0]] == np.array(y[args_real_neg], dtype=int), axis=0) / data_length
+    fp = len(args_real_neg) / data_length - tn
+
+    dat = {'true_feasible':tp,'true_infeasible':tn,'false_feasible':fp,'false_infeasible':fn}
+    return pd.DataFrame(dat)
 
 def merge_tf_history(h1, h2, force_merge=False):
     if h1.keys() == h2.keys() or force_merge:
